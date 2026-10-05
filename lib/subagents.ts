@@ -14,6 +14,8 @@ import type { SessionEntry, SubagentSessionStatus } from "./types";
 export const SUBAGENT_META_TYPE = "pi-web:subagent";
 export const SUBAGENT_STATUS_TYPE = "pi-web:subagent-status";
 export const SUBAGENT_RESULT_TYPE = "pi-web:subagent-result";
+/** A top-level session the user started directly as an agent profile (no parent session). */
+export const AGENT_PROFILE_SESSION_TYPE = "pi-web:agent-profile";
 export const SUBAGENT_CONTROL_TOOL_NAMES = ["Agent", "get_subagent_result", "steer_subagent"] as const;
 
 export type SubagentStatus = SubagentSessionStatus;
@@ -67,6 +69,13 @@ export interface SubagentResourceSnapshot {
   loadSkills: boolean;
   loadExtensions: boolean;
   exactSystemPrompt?: string;
+}
+
+export interface AgentProfileSessionMetadata {
+  version: 1;
+  profile: string;
+  createdAt: string;
+  resourceSnapshot: SubagentResourceSnapshot;
 }
 
 export interface SubagentSessionResources {
@@ -532,11 +541,27 @@ function subagentMetadataData(entries: readonly SessionEntry[]): ValidSubagentMe
   return data as ValidSubagentMetadataData;
 }
 
-/** Restore the isolated prompt and tool scope used by a persisted subagent session. */
+function agentProfileMetadataData(entries: readonly SessionEntry[]): Record<string, unknown> & { profile: string } | null {
+  const metaEntry = entries.find((entry) => entry.type === "custom" && entry.customType === AGENT_PROFILE_SESSION_TYPE);
+  if (!metaEntry || metaEntry.type !== "custom" || !isRecord(metaEntry.data)) return null;
+  const data = metaEntry.data;
+  if (data.version !== 1 || typeof data.profile !== "string") return null;
+  return data as Record<string, unknown> & { profile: string };
+}
+
+/** The profile a top-level agent-profile session was started with, if any. */
+export function readSessionAgentProfile(entries: readonly SessionEntry[]): string | undefined {
+  return agentProfileMetadataData(entries)?.profile;
+}
+
+/**
+ * Restore the isolated prompt and tool scope used by a persisted subagent session, or by a
+ * top-level session started directly as an agent profile: both pin the same snapshot.
+ */
 export function readSubagentSessionResources(
   entries: readonly SessionEntry[],
 ): SubagentSessionResources | null {
-  const data = subagentMetadataData(entries);
+  const data = subagentMetadataData(entries) ?? agentProfileMetadataData(entries);
   if (!data) return null;
   const snapshot = data.resourceSnapshot;
   const loadSkills = isRecord(snapshot) && snapshot.loadSkills === true;

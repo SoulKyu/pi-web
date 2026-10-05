@@ -58,6 +58,8 @@ export interface SessionData {
   tree: SessionTreeNode[];
   leafId: string | null;
   toolNames?: string[];
+  /** The agent profile a top-level session was started as (its prompt and tools are pinned). */
+  agentProfile?: string;
   /** Opaque freshness token for the session view cache (summary tree reads). */
   snapshotRevision?: string | null;
   /** "summary" when `tree` carries the body-free navigation format. */
@@ -343,6 +345,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const [newSessionModel, setNewSessionModel] = useState<SelectedModel | null>(null);
   const [newSessionDefaultModel, setNewSessionDefaultModel] = useState<SelectedModel | null>(null);
   const [toolPreset, setToolPreset] = useState<ToolPreset>(CONFIGURED_TOOL_PRESET);
+  const [agentProfile, setAgentProfile] = useState<string | null>(null);
   const [newSessionThinkingLevel, setNewSessionThinkingLevel] = useState<ConcreteThinkingLevel | null>(null);
   const [newSessionDefaultThinkingLevel, setNewSessionDefaultThinkingLevel] = useState<ConcreteThinkingLevel | null>(null);
   const [savedDefaultThinkingLevel, setSavedDefaultThinkingLevel] = useState<ConcreteThinkingLevel | null>(null);
@@ -464,6 +467,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   useLayoutEffect(() => {
     if (!existingSessionId && (!isNew || sessionIdRef.current)) return;
     setToolPresetState(getPreferredToolPreset());
+    // A fresh composer starts as the default agent; an opened session reads its own profile.
+    if (isNew && !sessionIdRef.current) setAgentProfile(null);
   }, [existingSessionId, isNew, setToolPresetState]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -656,6 +661,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       // on every read, cached window or not (#700).
       sessionToolsPinnedRef.current = d.toolNames !== undefined;
       setToolPresetState(d.toolNames !== undefined ? getPresetFromToolNames(d.toolNames) : CONFIGURED_TOOL_PRESET);
+      setAgentProfile(d.agentProfile ?? null);
       setCurrentModelOverride((current) => modelSwitchPendingRef.current ? current : null);
       setCurrentThinkingOverride(null);
       setError(null);
@@ -817,7 +823,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       if (selectedModel) setPendingModel(selectedModel);
       // Undefined means the user never overrode the loadout: omit the field entirely
       // so pi resolves settings.json defaultTools instead of being pinned to ours (#700).
-      const toolNames = getToolNamesForPreset(toolPreset);
+      // An agent profile fixes the session's tools, so no preset is sent with it.
+      const toolNames = agentProfile ? undefined : getToolNamesForPreset(toolPreset);
       sessionToolsPinnedRef.current = toolNames !== undefined;
       const res = await fetch("/api/agent/new", {
         method: "POST",
@@ -825,6 +832,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         body: JSON.stringify({
           cwd: newSessionCwd,
           type: "ensure_session",
+          ...(agentProfile ? { agentProfile } : {}),
           ...(toolNames !== undefined ? { toolNames } : {}),
           ...(selectedModel ? { provider: selectedModel.provider, modelId: selectedModel.modelId } : {}),
           ...(selectedThinkingLevel
@@ -862,7 +870,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     } finally {
       ensuringNewSessionRef.current = null;
     }
-  }, [isNew, newSessionCwd, toolPreset]);
+  }, [agentProfile, isNew, newSessionCwd, toolPreset]);
 
   // Opening the System or Tools panel may initialize an otherwise dormant
   // session. This is deliberately a non-prompt command: it creates no message
@@ -2326,6 +2334,25 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     }
   }, [cancelEventStreamGrace, clearSlashCommands, closeEvents, loadTools, maintainEventsConnected, setToolPresetState, syncLiveModel]);
 
+  // Only a new session picks its agent profile. The composer may already have started an
+  // empty runtime (ensure_session) to load commands; it was never persisted or listed, so it
+  // is dropped here and the next ensureNewSession starts one with the chosen profile.
+  const handleAgentProfileChange = useCallback(async (profile: string | null) => {
+    if (!isNew || newSessionPromotedRef.current) return;
+    await ensuringNewSessionRef.current?.catch(() => undefined);
+    setAgentProfile(profile);
+    if (!sessionIdRef.current) return;
+    cancelEventStreamGrace();
+    closeEvents();
+    setExtensionDialogs([]);
+    setExtensionCustomUis([]);
+    setExtensionStatuses([]);
+    setExtensionWidgets([]);
+    clearSlashCommands();
+    setSystemPrompt("");
+    sessionIdRef.current = null;
+  }, [cancelEventStreamGrace, clearSlashCommands, closeEvents, isNew]);
+
   const scrollToMessage = useCallback((element: HTMLElement, viewportOffset = 16) => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -2637,7 +2664,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   return {
     // State
     data, loading, error, activeLeafId, messages, activeToolResults, entryIds, historyCursor, hasEarlierMessages, streamState,
-    agentRunning, modelNames, modelList, modelError, modelScopeWarnings, modelThinkingLevels, modelThinkingLevelMaps, newSessionModel, toolPreset, thinkingLevel,
+    agentRunning, modelNames, modelList, modelError, modelScopeWarnings, modelThinkingLevels, modelThinkingLevelMaps, newSessionModel, toolPreset, agentProfile, thinkingLevel,
     retryInfo, contextUsage, systemPrompt, forkingEntryId,
     isCompacting, compactError, compactResult, currentModel, displayModel, modelSwitching, sessionStats, autoCompactionEnabled,
     slashCommands, slashCommandsLoading, queuedMessages,
@@ -2663,7 +2690,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     // Present only while a history edit is pending.
     cancelEdit: editEntryId ? cancelEdit : undefined,
     setNoticePaused: setPausedNoticeId,
-    handleToolPresetChange, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadTools, loadSlashCommands, setActiveLeafId, setData, setMessages, loadContext,
+    handleToolPresetChange, handleAgentProfileChange, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadTools, loadSlashCommands, setActiveLeafId, setData, setMessages, loadContext,
     scrollToBottom, scrollUserMsgToTop, scrollToMessage,
     dispatch, setAgentRunning, setForkingEntryId,
     bashRunning, pendingBash,

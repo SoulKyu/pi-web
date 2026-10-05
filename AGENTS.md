@@ -39,7 +39,7 @@ app/api/
   sessions/[id]/state/route.ts     GET live wrapper state while running
   sessions/[id]/auto-name/route.ts POST generate a session title
   sessions/search/route.ts         GET session search
-  agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel? }
+  agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
   agent/running/route.ts           GET running session ids

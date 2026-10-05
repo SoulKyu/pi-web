@@ -31,6 +31,7 @@ import { useEnterSendMode } from "@/hooks/useEnterSendMode";
 import { useI18n } from "@/hooks/useI18n";
 import { useChatAppearance } from "@/hooks/useChatAppearance";
 import type { ToolPreset } from "@/lib/tool-presets";
+import { AgentProfileSelector } from "./AgentProfileSelector";
 import { SelectorRow } from "./SelectorRow";
 import { ModelSelector, type ModelSelectorOption } from "./ModelSelector";
 
@@ -71,6 +72,10 @@ interface Props {
   compactResult?: CompactResultInfo | null;
   toolPreset?: ToolPreset;
   onToolPresetChange?: (preset: ToolPreset) => void;
+  /** The agent profile the session runs as; null is the default agent. */
+  agentProfile?: string | null;
+  /** Present only while a new session can still choose its agent profile. */
+  onAgentProfileChange?: (profile: string | null) => void;
   thinkingLevel?: "auto" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
   /** New session has not committed a thinking level; the button still shows the resolved default. */
   isAutoThinkingSelection?: boolean;
@@ -587,7 +592,7 @@ export function ModelScopeWarningBanner({ warnings }: { warnings?: string[] }) {
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   onSend, onAbort, onSteer, onFollowUp, isStreaming, model, isAutoModelSelection, modelNames, modelList, modelError, modelScopeWarnings, onModelChange, modelSwitching,
   defaultModel, onSetDefaultModel,
-  onCompact, onAbortCompaction, isCompacting, compactError, compactResult, toolPreset, onToolPresetChange,
+  onCompact, onAbortCompaction, isCompacting, compactError, compactResult, toolPreset, onToolPresetChange, agentProfile = null, onAgentProfileChange,
   thinkingLevel, isAutoThinkingSelection = false, onThinkingLevelChange, availableThinkingLevels, thinkingLevelMap,
   savedDefaultThinkingLevel, onSetDefaultThinkingLevel,
   retryInfo, queuedMessages, inputHistory = [], onRecallQueue,
@@ -2567,6 +2572,15 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   </div>
                 )}
               </div>
+            )}
+            {!isStreaming && (
+              <AgentProfileSelector
+                cwd={cwd ?? undefined}
+                agentProfile={agentProfile}
+                onChange={onAgentProfileChange}
+                isMobile={isMobile}
+                showLabel={!isMobile || controlsMenuOpen}
+              />
             )}
             {!isStreaming && onToolPresetChange && (
               <div ref={toolDropdownRef} style={{ position: "relative" }}>

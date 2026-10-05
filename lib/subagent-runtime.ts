@@ -27,6 +27,7 @@ import {
   selectSubagentExtensionTools,
   withSubagentExtensionTools,
   type SubagentMetadata,
+  type SubagentProfile,
   type SubagentResultMetadata,
   type SubagentRunInfo,
 } from "./subagents";
@@ -151,7 +152,22 @@ function settleOrphanedRun(run: SubagentRunInfo): SubagentRunInfo {
   return run.status === "running" || run.status === "queued" ? { ...run, status: "interrupted" } : run;
 }
 
-function parseSubagentModel(runtime: ModelRuntime, value: string | undefined) {
+/** A profile's coding tools plus the extension tools it selects, with the shell tool resolved for this platform. */
+export function resolveProfileActiveTools(
+  profile: SubagentProfile,
+  extensions: Parameters<typeof selectSubagentExtensionTools>[0],
+  defaultTools: Parameters<typeof resolveShellTools>[1],
+): string[] {
+  const loaded = [...extensions];
+  const extensionToolNames = profile.loadExtensions
+    ? profile.extensionTools?.length
+      ? selectSubagentExtensionTools(loaded, profile.extensionTools, profile.disallowedExtensionTools)
+      : loaded.flatMap((extension) => [...extension.tools.keys()])
+    : [];
+  return resolveShellTools(withSubagentExtensionTools(profile.tools, extensionToolNames), defaultTools);
+}
+
+export function parseSubagentModel(runtime: ModelRuntime, value: string | undefined) {
   if (!value?.trim()) return undefined;
   const requested = value.trim();
   const slash = requested.indexOf("/");
@@ -267,17 +283,9 @@ export function createSubagentController(
           : {}),
       });
 
-      const extensionToolNames = profile.loadExtensions
-        ? profile.extensionTools?.length
-          ? selectSubagentExtensionTools(
-            services.resourceLoader.getExtensions().extensions,
-            profile.extensionTools,
-            profile.disallowedExtensionTools,
-          )
-          : services.resourceLoader.getExtensions().extensions.flatMap((extension) => [...extension.tools.keys()])
-        : [];
-      const activeTools = resolveShellTools(
-        withSubagentExtensionTools(profile.tools, extensionToolNames),
+      const activeTools = resolveProfileActiveTools(
+        profile,
+        services.resourceLoader.getExtensions().extensions,
         settingsManager.getDefaultTools(),
       );
 

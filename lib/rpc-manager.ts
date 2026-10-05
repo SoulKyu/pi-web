@@ -32,12 +32,19 @@ import {
   preferPiWebSubagentExtension,
 } from "./subagent-extension";
 import {
+  AGENT_PROFILE_SESSION_TYPE,
   listSubagentProfiles,
+  readSessionAgentProfile,
   readSubagentRun,
   readSubagentSessionResources,
+  resolveSubagentProfile,
   SUBAGENT_CONTROL_TOOL_NAMES,
+  type AgentProfileSessionMetadata,
+  type SubagentProfile,
+  type SubagentSessionResources,
 } from "./subagents";
-import { createSubagentController } from "./subagent-runtime";
+import { createSubagentController, parseSubagentModel, resolveProfileActiveTools } from "./subagent-runtime";
+import { buildSubagentPromptPlan } from "./subagent-prompt";
 import { isBuiltInSubagentsEnabled } from "./subagent-settings";
 import { resolveShellTools } from "./powershell-settings";
 import { CHAT_ONLY_RESOURCE_LOADER_OPTIONS, contextFilesSystemPrompt } from "./chat-only";
@@ -201,6 +208,8 @@ export interface RpcSessionStartOptions {
   initialModel?: { provider: string; modelId: string };
   allowInitialModelFallback?: boolean;
   thinkingLevel?: ThinkingLevel;
+  /** Start a new session as this agent profile: its prompt, tools, model and thinking, pinned in the file. */
+  agentProfile?: string;
 }
 
 const CODING_TOOL_NAMES = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
@@ -2255,6 +2264,25 @@ export function getCompletionNotificationSuppressedRpcSessionIds(): string[] {
   return [...ids];
 }
 
+/** The isolated resources a new session started as `profile` runs with, before extension tools are resolved. */
+function profileSessionResources(profile: SubagentProfile): SubagentSessionResources {
+  const plan = buildSubagentPromptPlan({
+    profileSystemPrompt: profile.systemPrompt,
+    tools: profile.tools,
+    loadSkills: profile.loadSkills,
+    loadExtensions: profile.loadExtensions,
+    promptMode: profile.promptMode,
+    task: "",
+  });
+  return {
+    appendSystemPrompt: plan.appendSystemPrompt,
+    tools: [...profile.tools],
+    loadSkills: profile.loadSkills,
+    loadExtensions: profile.loadExtensions,
+    ...(plan.exactSystemPrompt !== undefined ? { exactSystemPrompt: plan.exactSystemPrompt } : {}),
+  };
+}
+
 /**
  * Get or create an AgentSession for the given session.
  * For new sessions (sessionFile === ""), pi generates its own id.
@@ -2300,11 +2328,23 @@ export async function startRpcSession(
     sessionManager = SessionManager.create(cwd, undefined);
   }
   const sessionCwd = sessionManager.getCwd();
+  // A new agent-profile session takes the same isolated resources a subagent does; its
+  // snapshot is written below, once the profile's extension tools are known.
+  const newSessionProfile = !sessionFile && options.agentProfile
+    ? resolveSubagentProfile(sessionCwd, options.agentProfile)
+    : undefined;
+  if (!sessionFile && options.agentProfile && !newSessionProfile) {
+    throw new Error(`Unknown or disabled agent profile: ${options.agentProfile}`);
+  }
   const subagentResources = sessionFile
     ? readSubagentSessionResources(
         sessionManager.getEntries() as unknown as SessionEntry[],
       )
-    : null;
+    : newSessionProfile
+      ? profileSessionResources(newSessionProfile)
+      : null;
+  const isAgentProfileSession = Boolean(newSessionProfile)
+    || (Boolean(sessionFile) && readSessionAgentProfile(sessionManager.getEntries() as unknown as SessionEntry[]) !== undefined);
   const persistedToolNames = subagentResources
     ? undefined
     : readSessionToolSelection(sessionManager.getEntries() as unknown as SessionEntry[]);
@@ -2400,6 +2440,34 @@ export async function startRpcSession(
           },
       ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
     });
+    if (newSessionProfile && subagentResources) {
+      const activeTools = resolveProfileActiveTools(
+        newSessionProfile,
+        services.resourceLoader.getExtensions().extensions,
+        settingsManager.getDefaultTools(),
+      );
+      subagentResources.tools = activeTools;
+      toolsOption = activeTools;
+      const metadata: AgentProfileSessionMetadata = {
+        version: 1,
+        profile: newSessionProfile.name,
+        createdAt: new Date().toISOString(),
+        resourceSnapshot: {
+          version: 1,
+          appendSystemPrompt: [...subagentResources.appendSystemPrompt],
+          tools: [...activeTools],
+          loadSkills: subagentResources.loadSkills,
+          loadExtensions: subagentResources.loadExtensions,
+          ...(subagentResources.exactSystemPrompt !== undefined
+            ? { exactSystemPrompt: subagentResources.exactSystemPrompt }
+            : {}),
+        },
+      };
+      sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
+    }
+    const profileModel = newSessionProfile
+      ? parseSubagentModel(services.modelRuntime, newSessionProfile.model)
+      : undefined;
     const scope = await resolveVisibleModels(
       services.modelRuntime,
       services.settingsManager.getEnabledModels(),
@@ -2426,11 +2494,13 @@ export async function startRpcSession(
         ...(defaultProvider && defaultModelId
           ? { defaultModel: { provider: defaultProvider, modelId: defaultModelId } }
           : {}),
-        ...(thinkingLevel ? { thinkingLevel } : {}),
+        ...(newSessionProfile?.thinking ?? thinkingLevel
+          ? { thinkingLevel: newSessionProfile?.thinking ?? thinkingLevel }
+          : {}),
       });
     const startupModel = restoredModel && services.modelRuntime.hasConfiguredAuth(restoredModel.provider)
       ? restoredModel
-      : initial?.model;
+      : profileModel ?? initial?.model;
     const { session: inner } = await createAgentSessionFromServices({
       services,
       sessionManager,
@@ -2468,7 +2538,7 @@ export async function startRpcSession(
           console.error("[pi-web] failed to send completion push:", error instanceof Error ? error.message : error);
         });
       },
-      suppressCompletionNotifications: Boolean(subagentResources),
+      suppressCompletionNotifications: Boolean(subagentResources) && !isAgentProfileSession,
       ...(builtins?.mcpHost ? { mcpHost: builtins.mcpHost } : {}),
     });
     const realSessionId = inner.sessionId as string;

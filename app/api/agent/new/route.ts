@@ -45,7 +45,10 @@ export async function POST(req: Request) {
     }
 
     // Use a one-time key so startRpcSession's lock doesn't conflict with real session ids
-    const { provider, modelId, toolNames, thinkingLevel, ...promptCommand } = command as { provider?: string; modelId?: string; toolNames?: string[]; thinkingLevel?: unknown; [key: string]: unknown };
+    const { provider, modelId, toolNames, thinkingLevel, agentProfile, ...promptCommand } = command as { provider?: string; modelId?: string; toolNames?: string[]; thinkingLevel?: unknown; agentProfile?: unknown; [key: string]: unknown };
+    if (agentProfile !== undefined && (typeof agentProfile !== "string" || !agentProfile.trim())) {
+      throw new Error("agentProfile must be a non-empty string");
+    }
     if ((provider && !modelId) || (!provider && modelId)) {
       throw new Error("provider and modelId must be provided together");
     }
@@ -56,7 +59,8 @@ export async function POST(req: Request) {
     // requests in the same millisecond, merging two new sessions into one.
     const tempKey = `__new__${randomUUID()}`;
     const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, {
-      ...(toolNames ? { toolNames } : {}),
+      // A profile fixes its own tools, so a tool preset sent alongside it is ignored.
+      ...(agentProfile ? { agentProfile } : toolNames ? { toolNames } : {}),
       ...(provider && modelId ? { initialModel: { provider, modelId } } : {}),
       ...(explicitThinkingLevel ? { thinkingLevel: explicitThinkingLevel } : {}),
     });
