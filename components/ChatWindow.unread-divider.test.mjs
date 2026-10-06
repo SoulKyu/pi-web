@@ -11,7 +11,8 @@ test("the unread divider renders before the first unread entry", () => {
 
 test("onLatestEntryViewed fires from a debounced effect keyed on the newest entry", () => {
   assert.match(chat, /const latestEntryId = entryIds\[entryIds\.length - 1\]/);
-  assert.match(chat, /document\.visibilityState !== "visible"/);
+  assert.match(chat, /document\.visibilityState === "visible"/);
+  assert.match(chat, /document\.addEventListener\("visibilitychange"/);
   assert.match(chat, /window\.setTimeout\(\(\) => onLatestEntryViewed\(latestEntryId\), 1000\)/);
   assert.match(chat, /\[latestEntryId, onLatestEntryViewed\]/);
 });

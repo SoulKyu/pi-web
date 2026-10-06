@@ -578,7 +578,7 @@ export function AppShell() {
         ?? activeProjectKeyRef.current
         ?? workspaceKeyOf(selectedSession);
       setLastOpenSession(projectKey, selectedSession.id);
-      setTabOpenSession(selectedSession.id);
+      if (pendingAgentRef.current?.sessionId !== selectedSession.id) setTabOpenSession(selectedSession.id); // an agent thread is not an ordinary session on a bare reload
       return;
     }
     if (newSessionCwd) setTabOpenNewSession(newSessionCwd);
@@ -1316,7 +1316,7 @@ export function AppShell() {
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
         initialSessionId={initialSessionId}
-        skipInitialProjectSelection={initialNavigation.requestedCwd !== null}
+        skipInitialProjectSelection={initialNavigation.requestedCwd !== null || initialNavigation.agentName !== null}
         onInitialRestoreDone={handleInitialRestoreDone}
         refreshKey={refreshKey}
         onSessionDeleted={handleSessionDeleted}

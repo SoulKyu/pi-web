@@ -35,7 +35,7 @@ test("explicit context changes invalidate a pending workspace restore", () => {
 test("all active-session transitions share one persistence effect", () => {
   assert.match(
     source,
-    /useEffect\(\(\) => \{\s+if \(selectedSession\) \{[\s\S]*?setLastOpenSession\(projectKey, selectedSession\.id\);\s+setTabOpenSession\(selectedSession\.id\);\s+return;\s+\}\s+if \(newSessionCwd\) setTabOpenNewSession\(newSessionCwd\);\s+\}, \[newSessionCwd, selectedSession\]\);/,
+    /useEffect\(\(\) => \{\s+if \(selectedSession\) \{[\s\S]*?setLastOpenSession\(projectKey, selectedSession\.id\);\s+if \(pendingAgentRef\.current\?\.sessionId !== selectedSession\.id\) setTabOpenSession\(selectedSession\.id\);[^\n]*\s+return;\s+\}\s+if \(newSessionCwd\) setTabOpenNewSession\(newSessionCwd\);\s+\}, \[newSessionCwd, selectedSession\]\);/,
   );
 });
 

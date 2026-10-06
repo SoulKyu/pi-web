@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
@@ -84,7 +85,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted }: { age
   const title = t("agents.profile.title", { name: agent.name });
   const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
         <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
@@ -140,6 +142,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted }: { age
           </div>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

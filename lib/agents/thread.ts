@@ -61,11 +61,18 @@ export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): bo
 }
 
 /** ponytail: reads the whole thread file on every rail poll; switch to a bounded tail read if files grow past a few MB. */
-export async function unreadCount(agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">): Promise<number> {
+export async function unreadCount(
+  agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">,
+  deps: { resolvePath: typeof resolveSessionPath; readEntries: typeof getSessionEntries } = { resolvePath: resolveSessionPath, readEntries: getSessionEntries },
+): Promise<number> {
   if (!agent.threadSessionId) return 0;
-  const live = getRpcSession(agent.threadSessionId);
-  const entries = live?.isAlive()
-    ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
-    : await resolveSessionPath(agent.threadSessionId).then((path) => (path && existsSync(path) ? getSessionEntries(path) : []));
-  return countUnread(entries, agent.lastReadEntryId);
+  try {
+    const live = getRpcSession(agent.threadSessionId);
+    const entries = live?.isAlive()
+      ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
+      : await deps.resolvePath(agent.threadSessionId).then((path) => (path && existsSync(path) ? deps.readEntries(path) : []));
+    return countUnread(entries, agent.lastReadEntryId);
+  } catch {
+    return 0; // one unreadable thread must not blank the rail
+  }
 }

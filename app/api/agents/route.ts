@@ -10,7 +10,7 @@ const headers = { "Cache-Control": "no-store" };
 
 // GET /api/agents - the rail: every long-term agent with running state and unread count.
 export async function GET() {
-  const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent))));
+  const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0))));
   return NextResponse.json({ agents }, { headers });
 }
 

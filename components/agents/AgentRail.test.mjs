@@ -28,3 +28,7 @@ test("AppShell opens an agent through its thread and writes ?agent= instead of ?
   assert.match(shell, /<AgentRail/);
   assert.match(shell, /initialNavigation\.agentName/);
 });
+test("?agent= skips the sidebar's project auto-selection and the thread is not remembered as a plain tab session", () => {
+  assert.match(shell, /skipInitialProjectSelection=\{initialNavigation\.requestedCwd !== null \|\| initialNavigation\.agentName !== null\}/);
+  assert.match(shell, /if \(pendingAgentRef\.current\?\.sessionId !== selectedSession\.id\) setTabOpenSession\(selectedSession\.id\)/);
+});

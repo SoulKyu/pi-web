@@ -296,9 +296,16 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   );
   const latestEntryId = entryIds[entryIds.length - 1];
   useEffect(() => {
-    if (!onLatestEntryViewed || !latestEntryId || typeof document === "undefined" || document.visibilityState !== "visible") return;
-    const timer = window.setTimeout(() => onLatestEntryViewed(latestEntryId), 1000);
-    return () => window.clearTimeout(timer);
+    if (!onLatestEntryViewed || !latestEntryId || typeof document === "undefined") return;
+    let timer: number | undefined;
+    const arm = () => { timer = window.setTimeout(() => onLatestEntryViewed(latestEntryId), 1000); };
+    const onVisible = () => { if (document.visibilityState === "visible" && timer === undefined) arm(); };
+    if (document.visibilityState === "visible") arm();
+    else document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [latestEntryId, onLatestEntryViewed]);
   const [quotedSelection, setQuotedSelection] = useState<{
     text: string;

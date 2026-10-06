@@ -14,7 +14,7 @@ export async function GET() {
     return ref ? [{ id: s.id, path: s.path, name: s.name, created: s.created, modified: s.modified, cwd: s.cwd, agentProfile: ref.profile }] : [];
   });
   // process.cwd() is the pi-web checkout: keep only built-in and global profiles, never its workspace/project ones.
-  const profiles = listSubagentProfiles(process.cwd()).filter((p) => p.scope === "builtin" || p.scope === "global");
+  const profiles = listSubagentProfiles(process.cwd()).filter((p) => (p.scope === "builtin" || p.scope === "global") && !p.longTerm);
   const cards = buildAgentCards({ profiles, sessions: candidates, runningSessionIds: new Set(runningIds) });
   return NextResponse.json({ cards }, { headers: { "Cache-Control": "no-store" } });
 }
