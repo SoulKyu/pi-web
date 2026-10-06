@@ -39,5 +39,5 @@
 - Phases 2-4 (events, triggers, webhooks, memory) are not implemented; do not document them as existing.
 
 ## Known gaps
-- PATCH re-checks `threadRunning` right before the write, but a start in the remaining instant is not locked out.
+- PATCH gates on `threadRunning` after the body parse and re-reads the agent first; nothing awaits between the gate and the write, so a turn cannot start in between. DELETE answers 409 `agent_running` for a live or starting thread (`isRpcSessionStarting`) and never shuts one down.
 - The tab bar is hidden while the agent panel shows.

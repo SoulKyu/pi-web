@@ -2105,6 +2105,11 @@ export function getRpcSession(sessionId: string): AgentSessionWrapper | undefine
   return getRegistry().get(sessionId);
 }
 
+/** True while a start or reopen of this session id is in flight: the wrapper is registered only once it finishes. */
+export function isRpcSessionStarting(sessionId: string): boolean {
+  return getLocks().has(sessionId);
+}
+
 export interface SetRpcSessionToolsResult {
   session: AgentSessionWrapper;
   sessionId: string;

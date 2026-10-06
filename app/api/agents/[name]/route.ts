@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { canEditProfile, splitModel, toAgentDetail } from "@/lib/agents/agent-view";
 import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
 import { openThread, threadRunning, unreadCount, withThreadLock } from "@/lib/agents/thread";
-import { getRpcSession } from "@/lib/rpc-manager";
+import { getRpcSession, isRpcSessionStarting } from "@/lib/rpc-manager";
 import { invalidateSessionListCache, invalidateSessionPathCache, resolveSessionPath } from "@/lib/session-reader";
 import { registryErrorResponse } from "@/lib/agents/registry-response";
 
@@ -20,16 +20,17 @@ export async function GET(_req: Request, { params }: Context) {
 // PATCH: role and tools apply at the next open (the trusted thread re-snapshots, lib/rpc-manager.ts); model and
 // thinking are sent to the thread so the file records them; avatar only touches the space state.
 export async function PATCH(req: Request, { params }: Context) {
-  const agent = getLongTermAgent((await params).name);
-  if (!agent) return notFound();
+  const { name } = await params;
+  if (!getLongTermAgent(name)) return notFound();
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers }); }
   const checked = validateUpdateInput(body);
   if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400, headers });
+  const agent = getLongTermAgent(name); // re-read after the body parse: the agent may have changed meanwhile
+  if (!agent) return notFound();
   const gate = canEditProfile(threadRunning(agent));
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status, headers });
   try {
-    if (threadRunning(agent)) return NextResponse.json({ error: "agent_running" }, { status: 409, headers }); // started since the gate
     const updated = updateLongTermAgent(agent.name, checked.input);
     if (agent.threadSessionId) {
       const modelChanged = "model" in checked.input && updated.model !== agent.model;
@@ -48,15 +49,17 @@ export async function PATCH(req: Request, { params }: Context) {
 
 // DELETE: profile and space removed, home and thread moved to the trash (reversible by hand).
 export async function DELETE(_req: Request, { params }: Context) {
-  const agent = getLongTermAgent((await params).name);
-  if (!agent) return notFound();
+  const { name } = await params;
+  if (!getLongTermAgent(name)) return notFound();
   try {
-    return await withThreadLock(agent.name, async () => {
-      if (threadRunning(agent)) return NextResponse.json({ error: "agent_running" }, { status: 409, headers });
-      const live = agent.threadSessionId ? getRpcSession(agent.threadSessionId) : undefined;
-      if (live?.isAlive()) await live.shutdown();
-      const threadPath = agent.threadSessionId ? await resolveSessionPath(agent.threadSessionId) : null;
-      if (agent.threadSessionId && getRpcSession(agent.threadSessionId)?.isAlive()) return NextResponse.json({ error: "agent_running" }, { status: 409, headers }); // reopened meanwhile
+    return await withThreadLock(name, async () => {
+      const agent = getLongTermAgent(name); // re-read under the lock: a thread may have been created while we waited
+      if (!agent) return notFound();
+      const id = agent.threadSessionId;
+      const busy = () => Boolean(id && (isRpcSessionStarting(id) || getRpcSession(id)?.isAlive()));
+      if (busy()) return NextResponse.json({ error: "agent_running" }, { status: 409, headers });
+      const threadPath = id ? await resolveSessionPath(id) : null;
+      if (busy()) return NextResponse.json({ error: "agent_running" }, { status: 409, headers }); // started during the await
       const trash = deleteLongTermAgent(agent.name, threadPath ?? undefined);
       if (agent.threadSessionId) invalidateSessionPathCache(agent.threadSessionId);
       invalidateSessionListCache();

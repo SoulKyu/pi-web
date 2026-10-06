@@ -17,7 +17,9 @@ test("PATCH and DELETE refuse while the thread runs, and profile edits reach the
   assert.match(one, /type: "set_thinking_level"/);
   assert.match(one, /shutdownWhenIdle\(\)/);
   assert.match(one, /deleteLongTermAgent\(/);
-  assert.match(one, /withThreadLock\(agent\.name/);
+  assert.match(one, /withThreadLock\(name/);
+  assert.match(one, /isRpcSessionStarting\(id\)/);
+  assert.match(one, /re-read under the lock/);
   assert.match(one, /invalidateSessionPathCache\(/);
 });
 test("the sessions list leaves agent homes out, and long-term agents are never delegable", async () => {
