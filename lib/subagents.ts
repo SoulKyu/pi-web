@@ -18,6 +18,7 @@ export const SUBAGENT_RESULT_TYPE = "pi-web:subagent-result";
 export const AGENT_PROFILE_SESSION_TYPE = "pi-web:agent-profile";
 export const SUBAGENT_CONTROL_TOOL_NAMES = ["Agent", "get_subagent_result", "steer_subagent"] as const;
 
+export type AgentProfileTrust = "trusted" | "untrusted";
 export type SubagentStatus = SubagentSessionStatus;
 export type SubagentScope = "builtin" | "global" | "workspace" | "project";
 export type SubagentWritableScope = Extract<SubagentScope, "global" | "project">;
@@ -42,6 +43,8 @@ export interface SubagentProfile {
   color?: string;
   isolation?: "worktree" | "off";
   persistSession?: boolean;
+  /** A long-term agent (rail, pinned thread, automatic home). Never delegable. */
+  longTerm?: true;
   enabled: boolean;
   scope: SubagentScope;
   filePath?: string;
@@ -76,6 +79,8 @@ export interface AgentProfileSessionMetadata {
   profile: string;
   createdAt: string;
   resourceSnapshot: SubagentResourceSnapshot;
+  /** Absent means untrusted (fail closed): existing profile sessions keep today's behavior. */
+  trust?: AgentProfileTrust;
 }
 
 export interface SubagentSessionResources {
@@ -149,6 +154,7 @@ const MANAGED_FRONTMATTER_KEYS = new Set([
   "color",
   "isolation",
   "persist_session",
+  "long_term",
 ]);
 
 const FRONTMATTER_OPEN_RE = /^(?:\uFEFF)?---[ \t]*(?:\r\n|\n|\r)/;
@@ -334,6 +340,7 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
       ...(stringValue(data?.color) ? { color: stringValue(data?.color) } : {}),
       ...(data?.isolation === "worktree" || data?.isolation === "off" ? { isolation: data.isolation } : {}),
       ...(typeof data?.persist_session === "boolean" ? { persistSession: data.persist_session } : {}),
+      ...(data?.long_term === true ? { longTerm: true as const } : {}),
       enabled: booleanValue(data?.enabled, true),
       scope,
       filePath,
@@ -481,6 +488,7 @@ export function saveSubagentProfile(
   if (profile.color?.trim()) managed.color = profile.color.trim();
   if (profile.isolation) managed.isolation = profile.isolation;
   if (profile.persistSession !== undefined) managed.persist_session = profile.persistSession;
+  if (profile.longTerm) managed.long_term = true;
   // Managed keys win; keys this app does not own follow in their original order.
   const frontmatter: Record<string, unknown> = { ...managed };
   for (const [key, value] of Object.entries(unmanagedFrontmatter(stored))) {
@@ -504,6 +512,7 @@ export function saveSubagentProfile(
     ...(profile.color ? { color: profile.color } : {}),
     ...(profile.isolation ? { isolation: profile.isolation } : {}),
     ...(profile.persistSession !== undefined ? { persistSession: profile.persistSession } : {}),
+    ...(profile.longTerm ? { longTerm: true as const } : {}),
     scope,
     filePath,
   };
@@ -542,11 +551,29 @@ function subagentMetadataData(entries: readonly SessionEntry[]): ValidSubagentMe
 }
 
 function agentProfileMetadataData(entries: readonly SessionEntry[]): Record<string, unknown> & { profile: string } | null {
-  const metaEntry = entries.find((entry) => entry.type === "custom" && entry.customType === AGENT_PROFILE_SESSION_TYPE);
-  if (!metaEntry || metaEntry.type !== "custom" || !isRecord(metaEntry.data)) return null;
-  const data = metaEntry.data;
-  if (data.version !== 1 || typeof data.profile !== "string") return null;
-  return data as Record<string, unknown> & { profile: string };
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (entry.type !== "custom" || entry.customType !== AGENT_PROFILE_SESSION_TYPE || !isRecord(entry.data)) continue;
+    const data = entry.data;
+    if (data.version !== 1 || typeof data.profile !== "string") continue;
+    return data as Record<string, unknown> & { profile: string };
+  }
+  return null;
+}
+
+/** The trust of a top-level agent-profile session. Anything but an explicit "trusted" is untrusted. */
+export function readSessionAgentTrust(entries: readonly SessionEntry[]): AgentProfileTrust {
+  return agentProfileMetadataData(entries)?.trust === "trusted" ? "trusted" : "untrusted";
+}
+
+/** Same loadout: a reopened thread appends a new profile entry only when this is false. */
+export function sameResourceSnapshot(a: SubagentSessionResources, b: SubagentSessionResources): boolean {
+  const sortedTools = (resources: SubagentSessionResources) => [...new Set(resources.tools)].sort().join("\u0000");
+  return sortedTools(a) === sortedTools(b)
+    && a.appendSystemPrompt.join("\u0000") === b.appendSystemPrompt.join("\u0000")
+    && a.loadSkills === b.loadSkills
+    && a.loadExtensions === b.loadExtensions
+    && a.exactSystemPrompt === b.exactSystemPrompt;
 }
 
 /** The profile a top-level agent-profile session was started with, if any. */
