@@ -1279,6 +1279,8 @@ export function AppShell() {
     />
   ) : null;
 
+  const showAgentPanel = Boolean(agentSpaceRight) && !activeFileTab && !terminalTabs.some((tab) => tab.id === activeFileTabId);
+
   const sidebarContent = agentSpaceLeft ? (
     <>
       {agentSpaceLeft}
@@ -2577,7 +2579,7 @@ export function AppShell() {
         } as React.CSSProperties}
       >
         {/* Right panel tab bar */}
-        {!agentSpaceRight && <div style={{
+        {!showAgentPanel && <div style={{
           display: "flex",
           alignItems: "center",
           flexShrink: 0,
@@ -2633,7 +2635,7 @@ export function AppShell() {
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
         <div style={{ flex: 1, minHeight: 0, overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
-          {agentSpaceRight ? (
+          {showAgentPanel ? (
             <div style={{ height: "100%", overflow: "auto", paddingTop: "env(safe-area-inset-top)" }}>{agentSpaceRight}</div>
           ) : activeFileTab?.filePath ? (
             <FileViewer
@@ -2665,7 +2667,7 @@ export function AppShell() {
             </div>
           ) : null}
           {terminalTabs.map((tab) => (
-            <div key={tab.id} hidden={Boolean(agentSpaceRight) || tab.id !== activeFileTabId} style={{ width: "100%", height: "100%" }}>
+            <div key={tab.id} hidden={tab.id !== activeFileTabId} style={{ width: "100%", height: "100%" }}>
               <TerminalPanel
                 tab={tab}
                 active={rightPanelOpen && tab.id === activeFileTabId}
