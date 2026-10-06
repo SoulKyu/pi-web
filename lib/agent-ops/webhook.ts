@@ -29,22 +29,28 @@ export function hookThrottle(triggerId?: string): AuthThrottleState {
   return state;
 }
 
+const HEX_SHA256 = /^[0-9a-f]{64}$/;
 const sha256 = (value: string): Buffer => createHash("sha256").update(value).digest();
 const json = (body: unknown, status: number, headers?: Record<string, string>): Response =>
   Response.json(body, { status, headers: { "Cache-Control": "no-store", ...headers } });
 
 /** Reads at most `max` bytes from the stream itself: content-length is client-declared and not trusted. null when over the cap. */
-async function readCapped(body: ReadableStream<Uint8Array> | null, max: number): Promise<string | null> {
+/** `undefined` when the stream fails (client gone mid-body). */
+async function readCapped(body: ReadableStream<Uint8Array> | null, max: number): Promise<string | null | undefined> {
   if (!body) return "";
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > max) { void reader.cancel().catch(() => {}); return null; }
-    chunks.push(value);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) { void reader.cancel().catch(() => {}); return null; }
+      chunks.push(value);
+    }
+  } catch {
+    return undefined;
   }
   return Buffer.concat(chunks).toString("utf8");
 }
@@ -58,11 +64,13 @@ export async function handleHook(request: Request, id: string, kick: () => unkno
   const fail = (error: string, status: number): Response => { recordAuthFailure(Date.now(), throttle); return json({ error }, status); };
 
   if (!trigger) return fail("Not found", 404); // counted on the shared unknown-id state: ids cannot be probed freely
-  if (!trigger.webhookSecret) return fail("Webhook not enabled for this trigger", 403); // before any comparison
-  // Digests have equal length; raw buffers of different lengths make timingSafeEqual throw.
-  if (!timingSafeEqual(sha256(request.headers.get(HOOK_SECRET_HEADER) ?? ""), sha256(trigger.webhookSecret))) return fail("Unauthorized", 401);
+  // Before any comparison. A legacy plaintext `webhookSecret` has no digest: refused until the secret is rotated.
+  if (!trigger.webhookSecretSha256 || !HEX_SHA256.test(trigger.webhookSecretSha256)) return fail("Webhook not enabled for this trigger", 403);
+  // Both are 32-byte digests; raw buffers of different lengths make timingSafeEqual throw.
+  if (!timingSafeEqual(sha256(request.headers.get(HOOK_SECRET_HEADER) ?? ""), Buffer.from(trigger.webhookSecretSha256, "hex"))) return fail("Unauthorized", 401);
 
   const text = await readCapped(request.body, HOOK_BODY_MAX_BYTES);
+  if (text === undefined) return json({ error: "Request body unreadable" }, 400);
   if (text === null) return json({ error: "Payload too large" }, 413);
   let body: unknown = { text };
   if (hasJsonContentType(request)) {

@@ -2,12 +2,12 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { resolveSubagentProfile } from "../subagents";
 import {
-  buildTriggerConfig, deleteTrigger, getTrigger, listTriggers, saveTrigger, validateTriggerFields,
+  buildTriggerConfig, deleteTrigger, getTrigger, hashWebhookSecret, listTriggers, saveTrigger, validateTriggerFields,
   type TriggerConfig, type TriggerInput,
 } from "./trigger-store";
 
 /** What leaves the server: the secret is shown once at creation or rotation, never again. */
-export type PublicTrigger = Omit<TriggerConfig, "webhookSecret"> & { hasWebhookSecret: boolean };
+export type PublicTrigger = Omit<TriggerConfig, "webhookSecretSha256"> & { hasWebhookSecret: boolean };
 
 export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 | 404; error: string };
 
@@ -17,8 +17,9 @@ const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 export function toPublicTrigger(trigger: TriggerConfig): PublicTrigger {
-  const { webhookSecret, ...rest } = trigger;
-  return { ...rest, hasWebhookSecret: Boolean(webhookSecret) };
+  // `webhookSecret` is the legacy plaintext field of older files: it must not leave the server either.
+  const { webhookSecretSha256, webhookSecret: _legacy, ...rest } = trigger as TriggerConfig & { webhookSecret?: unknown };
+  return { ...rest, hasWebhookSecret: Boolean(webhookSecretSha256) };
 }
 
 export function listPublicTriggers(): PublicTrigger[] {
@@ -42,7 +43,7 @@ export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigge
   const built = buildTriggerConfig(input as unknown as TriggerInput, resolveIn(cwd));
   if (!built.ok) return refuse(built.error);
   const webhookSecret = body.webhook ? generateWebhookSecret() : undefined;
-  const trigger = webhookSecret ? { ...built.trigger, webhookSecret } : built.trigger;
+  const trigger = webhookSecret ? { ...built.trigger, webhookSecretSha256: hashWebhookSecret(webhookSecret) } : built.trigger;
   saveTrigger(trigger);
   return { ok: true, trigger: toPublicTrigger(trigger), ...(webhookSecret ? { webhookSecret } : {}) };
 }
@@ -73,12 +74,13 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
   return { ok: true, trigger: toPublicTrigger(updated) };
 }
 
-/** The old secret stops working at once. Also gives a first secret to a trigger created without a webhook. */
+/** Only the digest is stored. The old secret stops working at once. Also gives a first secret to a trigger created without a webhook. */
 export function rotateSecret(id: string): TriggerApiResult<{ trigger: PublicTrigger; webhookSecret: string }> {
   const existing = getTrigger(id);
   if (!existing) return NOT_FOUND;
   const webhookSecret = generateWebhookSecret();
-  const trigger = { ...existing, webhookSecret };
+  const { webhookSecret: _legacy, ...kept } = existing as TriggerConfig & { webhookSecret?: unknown }; // a rotation also drops a legacy plaintext
+  const trigger = { ...kept, webhookSecretSha256: hashWebhookSecret(webhookSecret) };
   saveTrigger(trigger);
   globalThis.__agentOpsHookThrottles?.delete(id); // failures with the old secret must not lock the new one out
   return { ok: true, trigger: toPublicTrigger(trigger), webhookSecret };

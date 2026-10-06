@@ -10,7 +10,9 @@ export interface TriggerConfig {
   /** Fire interval in minutes (v1 scheduler). Absent for pure-webhook triggers. */
   everyMinutes?: number;
   promptTemplate: string;
-  webhookSecret?: string;
+  /** Hex sha256 of the webhook secret: the plaintext is shown once at creation or rotation and never stored.
+   *  A trigger file still holding a plaintext `webhookSecret` has no digest, so its webhook is refused until rotated. */
+  webhookSecretSha256?: string;
   /** Must be > 0, else the dedup bucket is Infinity. */
   dedupWindowMs: number;
   /** Ingestion is refused while this many tasks of the trigger are queued or running. */
@@ -24,6 +26,8 @@ export interface TriggerConfig {
 function sha256Of(data: string | Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
+
+export const hashWebhookSecret = (secret: string): string => sha256Of(secret);
 
 /** Closed allowlist. A blocklist (bash/write/edit/powershell) misses every extension tool
  *  that runs code: a subagent tool spawning a child with bash, an MCP adapter, an
