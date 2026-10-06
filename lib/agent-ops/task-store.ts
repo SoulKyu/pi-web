@@ -17,9 +17,12 @@ const RANK: Record<AgentTaskStatus, number> = { queued: 0, running: 1, completed
 export const TERMINAL: ReadonlySet<AgentTaskStatus> = new Set(["completed", "failed", "cancelled"]);
 
 const storeDir = join(getAgentDir(), "agent-ops", "tasks");
+const VALID_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+function isValidId(id: string): boolean { return VALID_ID.test(id); }
 function taskPath(id: string): string { return join(storeDir, `${id}.json`); }
 function lockPath(id: string): string { return join(storeDir, `${id}.lock`); }
 function readOne(id: string): AgentTask | null {
+  if (!isValidId(id)) return null;
   try {
     const raw = JSON.parse(readFileSync(taskPath(id), "utf8")) as AgentTask;
     return typeof raw?.id === "string" ? raw : null;
@@ -31,7 +34,7 @@ export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | 
   writePrivateFileAtomicSync(taskPath(task.id), JSON.stringify(task, null, 2));
   return task;
 }
-export function getTask(id: string): AgentTask | null { return readOne(id); }
+export function getTask(id: string): AgentTask | null { if (!isValidId(id)) return null; return readOne(id); }
 export function listTasks(): AgentTask[] {
   if (!existsSync(storeDir)) return [];
   return readdirSync(storeDir).filter((f) => f.endsWith(".json"))
@@ -39,6 +42,7 @@ export function listTasks(): AgentTask[] {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 export function updateTask(id: string, patch: Partial<Omit<AgentTask, "id" | "createdAt">>): AgentTask {
+  if (!isValidId(id)) throw new Error("invalid task id");
   const current = readOne(id);
   if (!current) throw new Error(`Unknown task: ${id}`);
   if (TERMINAL.has(current.status)) throw new Error(`Task ${id} is ${current.status}: terminal states are immutable`);
@@ -49,23 +53,35 @@ export function updateTask(id: string, patch: Partial<Omit<AgentTask, "id" | "cr
 }
 /** Exclusive claim: the record stays at <id>.json; the lock is a separate wx file. */
 export function claimTask(id: string): boolean {
+  if (!isValidId(id)) return false;
   const task = readOne(id);
   if (!task || task.status !== "queued") return false;
   let fd: number;
   try { fd = openSync(lockPath(id), "wx"); } catch { return false; } // O_EXCL: one winner
   try { writeSync(fd, JSON.stringify({ pid: process.pid, claimedAt: new Date().toISOString() })); }
   finally { closeSync(fd); }
-  updateTask(id, { status: "running", startedAt: new Date().toISOString() });
+  const reread = readOne(id);
+  if (!reread || reread.status !== "queued") {
+    releaseClaim(id);
+    return false;
+  }
+  try {
+    updateTask(id, { status: "running", startedAt: new Date().toISOString() });
+  } catch (err) {
+    releaseClaim(id);
+    throw err;
+  }
   return true;
 }
 /** Records the run's session even after a racing cancel: sessionId is not a status, so the terminal guard does not apply. Never throws. */
 export function attachSession(id: string, sessionId: string): void {
+  if (!isValidId(id)) return;
   try {
     const current = readOne(id);
     if (current) writePrivateFileAtomicSync(taskPath(id), JSON.stringify({ ...current, sessionId }, null, 2));
   } catch { /* the task record is best effort here */ }
 }
-export function releaseClaim(id: string): void { try { unlinkSync(lockPath(id)); } catch { /* gone */ } }
+export function releaseClaim(id: string): void { if (!isValidId(id)) return; try { unlinkSync(lockPath(id)); } catch { /* gone */ } }
 /** EPERM means the pid exists under another user: alive. Only ESRCH means dead. */
 function isAlive(pid: number): boolean {
   try { process.kill(pid, 0); return true; }
@@ -92,6 +108,7 @@ export function recoverInterrupted(): void {
 }
 /** Only queued tasks cancel; running ones go through the route's abort + update. */
 export function cancelTask(id: string): boolean {
+  if (!isValidId(id)) return false;
   const task = readOne(id);
   if (!task || task.status !== "queued") return false;
   updateTask(id, { status: "cancelled", completedAt: new Date().toISOString() });
