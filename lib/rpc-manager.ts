@@ -2378,11 +2378,13 @@ export async function startRpcSession(
   // snapshot is written below, once the profile's extension tools are known.
   const trustedStart = !sessionFile && options.agentProfile !== undefined && options.agentProfileTrust === "trusted";
   // A trusted thread runs only the global long-term profile, in its home: no project file may shadow it.
+  // An isolated trigger run (agentProfileTools) resolves the same way: a project file must not shadow the profile it narrows.
+  const globalStart = trustedStart || (!sessionFile && options.agentProfile !== undefined && options.agentProfileTools !== undefined);
   const newSessionProfile = !sessionFile && options.agentProfile
-    ? trustedStart ? resolveLongTermProfile(options.agentProfile) : resolveSubagentProfile(sessionCwd, options.agentProfile)
+    ? globalStart ? resolveLongTermProfile(options.agentProfile) : resolveSubagentProfile(sessionCwd, options.agentProfile)
     : undefined;
-  if (trustedStart && (!newSessionProfile || sessionCwd !== agentHome(newSessionProfile.name))) {
-    throw new Error("trusted threads run only the global long-term profile in its home");
+  if (globalStart && (!newSessionProfile || sessionCwd !== agentHome(newSessionProfile.name))) {
+    throw new Error("trusted threads and trigger runs use only the global long-term profile, in its home");
   }
   if (newSessionProfile?.longTerm && options.agentProfileTrust !== "trusted" && options.agentProfileTools === undefined) {
     throw new Error(`Long-term agent ${newSessionProfile.name} runs only in its thread`);
@@ -2505,7 +2507,7 @@ export async function startRpcSession(
         services.resourceLoader.getExtensions().extensions,
         settingsManager.getDefaultTools(),
       );
-      if (options.agentProfileTools) activeTools = activeTools.filter((tool) => options.agentProfileTools!.includes(tool));
+      if (newSessionProfile && options.agentProfileTools) activeTools = activeTools.filter((tool) => options.agentProfileTools!.includes(tool));
       subagentResources.tools = activeTools;
       toolsOption = activeTools;
       const snapshotResources: SubagentSessionResources = { ...subagentResources, tools: [...activeTools] };

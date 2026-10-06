@@ -1290,6 +1290,7 @@ export function AppShell() {
     <AgentSpaceLeft
       agent={agentDetail}
       onOpenFile={handleOpenFile}
+      onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
       onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
       onDeleted={handleAgentDeleted}
     />

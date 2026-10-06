@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deleteTriggersOfAgent, repinTriggersOfAgent } from "@/lib/agent-ops/trigger-api";
 import { canEditProfile, splitModel, toAgentDetail } from "@/lib/agents/agent-view";
 import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
 import { openThread, threadRunning, unreadCount, withThreadLock } from "@/lib/agents/thread";
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, { params }: Context) {
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status, headers });
   try {
     const updated = updateLongTermAgent(agent.name, checked.input);
+    repinTriggersOfAgent(agent.name); // a saved Profile settings edit is the authenticated drift the pin exists to catch
     if (agent.threadSessionId) {
       const modelChanged = "model" in checked.input && updated.model !== agent.model;
       const thinkingChanged = "thinking" in checked.input && updated.thinking !== agent.thinking;
@@ -67,6 +69,7 @@ export async function DELETE(_req: Request, { params }: Context) {
       if (busy()) return running(); // it came back meanwhile
       const threadPath = id ? await resolveSessionPath(id) : null;
       if (busy()) return running(); // started during the await
+      deleteTriggersOfAgent(agent.name); // no trigger may outlive its agent; the agent is idle, nothing fires into the trash
       const trash = deleteLongTermAgent(agent.name, threadPath ?? undefined);
       if (agent.threadSessionId) invalidateSessionPathCache(agent.threadSessionId);
       invalidateSessionListCache();

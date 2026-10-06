@@ -1,11 +1,10 @@
-import { allowFileRoot } from "@/lib/file-access";
 import { deleteTriggerById, patchTrigger, triggerResponse, unexpectedErrorResponse } from "@/lib/agent-ops/trigger-api";
 
 export const dynamic = "force-dynamic";
 
 type Context = { params: Promise<{ id: string }> };
 
-// PATCH /api/agent-ops/triggers/[id]  body: any of name, profile, cwd, promptTemplate, enabled, everyMinutes (null clears), dedupWindowMs, maxActiveTasks
+// PATCH /api/agent-ops/triggers/[id]  body: any of name, profile, promptTemplate, enabled, everyMinutes (null clears), dedupWindowMs, maxActiveTasks
 export async function PATCH(req: Request, { params }: Context) {
   let body: unknown;
   try {
@@ -14,9 +13,7 @@ export async function PATCH(req: Request, { params }: Context) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   try {
-    const result = patchTrigger((await params).id, body);
-    if (result.ok) allowFileRoot(result.trigger.cwd);
-    return triggerResponse(result);
+    return triggerResponse(patchTrigger((await params).id, body));
   } catch (error) {
     return unexpectedErrorResponse(error);
   }

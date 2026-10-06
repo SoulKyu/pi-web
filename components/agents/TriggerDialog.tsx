@@ -3,7 +3,6 @@
 import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
-import type { AgentCard } from "@/lib/agent-ops/overview";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./AssignTaskDialog";
 import { requestTrigger, type TriggerResponse } from "./trigger-view";
@@ -11,18 +10,15 @@ import { requestTrigger, type TriggerResponse } from "./trigger-view";
 const labelStyle: CSSProperties = { display: "grid", gap: 4, fontSize: 12, color: "var(--text-muted)" };
 const MS_PER_MINUTE = 60_000;
 
-/** Creates a trigger, or edits `trigger`. Only the profile cards that are enabled can be chosen (the current one is always listed). */
-export function TriggerDialog({ trigger, cards, initialCwd, onClose, onSaved }: {
+/** Creates a trigger of `agentName`, or edits `trigger`. The run happens in the agent home. */
+export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   trigger?: PublicTrigger;
-  cards: readonly AgentCard[];
-  initialCwd: string;
+  agentName: string;
   onClose: () => void;
   onSaved: (response: Partial<TriggerResponse>) => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(trigger?.name ?? "");
-  const [profile, setProfile] = useState(trigger?.profile ?? cards.find((card) => card.enabled)?.profile ?? "");
-  const [cwd, setCwd] = useState(trigger?.cwd ?? initialCwd);
   const [promptTemplate, setPromptTemplate] = useState(trigger?.promptTemplate ?? "");
   const [everyMinutes, setEveryMinutes] = useState(trigger?.everyMinutes?.toString() ?? "");
   const [webhook, setWebhook] = useState(false);
@@ -37,14 +33,12 @@ export function TriggerDialog({ trigger, cards, initialCwd, onClose, onSaved }: 
   onCloseRef.current = onClose;
   useEffect(() => openStackedDialog(document, dialogRef.current, () => onCloseRef.current()), []);
 
-  const profiles = cards.filter((card) => card.enabled || card.profile === trigger?.profile);
-
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
     const fields = {
-      name: name.trim(), profile, cwd: cwd.trim(), promptTemplate,
+      name: name.trim(), profile: agentName, promptTemplate,
       dedupWindowMs: Number(dedupMinutes) * MS_PER_MINUTE, maxActiveTasks: Number(maxActiveTasks),
     };
     const every = everyMinutes.trim() ? Number(everyMinutes) : undefined;
@@ -67,17 +61,6 @@ export function TriggerDialog({ trigger, cards, initialCwd, onClose, onSaved }: 
         <label style={labelStyle}>
           {t("agentOps.trigger.name")}
           <input value={name} onChange={(event) => setName(event.target.value)} required style={fieldStyle} />
-        </label>
-        <label style={labelStyle}>
-          {t("agentOps.trigger.profile")}
-          <select value={profile} onChange={(event) => setProfile(event.target.value)} required style={fieldStyle}>
-            {profiles.map((card) => <option key={card.profile} value={card.profile}>{card.displayName}</option>)}
-            {!profiles.some((card) => card.profile === profile) && <option value={profile}>{profile}</option>}
-          </select>
-        </label>
-        <label style={labelStyle}>
-          {t("agentOps.cwd")}
-          <input value={cwd} onChange={(event) => setCwd(event.target.value)} required spellCheck={false} style={fieldStyle} />
         </label>
         <label style={labelStyle}>
           {t("agentOps.trigger.promptTemplate")}
@@ -104,7 +87,7 @@ export function TriggerDialog({ trigger, cards, initialCwd, onClose, onSaved }: 
         {error && <div role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !profile || !cwd.trim() || !promptTemplate.trim()} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
+          <button type="submit" disabled={busy || !name.trim() || !promptTemplate.trim()} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
             {busy ? t("agentOps.trigger.saving") : trigger ? t("agentOps.trigger.save") : t("agentOps.trigger.create")}
           </button>
         </div>

@@ -10,6 +10,8 @@ test("AgentSpaceLeft mounts the home explorer and the profile dialog", () => {
   assert.match(left, /<FileExplorer cwd=\{agent\.home\}/);
   assert.match(left, /<AgentProfileDialog/);
   assert.match(left, /agents\.space\.triggers/);
+  assert.match(left, /\/api\/agent-ops\/triggers\?agent=\$\{encodeURIComponent\(name\)\}/);
+  assert.match(left, /<AgentTriggers agentName=\{name\}/);
 });
 
 test("AgentSpaceRight shows the status row", () => {

@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
-import { resolveSubagentProfile } from "../subagents";
+import { resolveLongTermProfile } from "../agents/registry";
 import {
   buildTriggerConfig, deleteTrigger, getTrigger, hashWebhookSecret, listTriggers, saveTrigger, validateTriggerFields,
   triggerPinStatus, type TriggerConfig, type TriggerInput, type TriggerPinStatus,
@@ -13,7 +12,7 @@ export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 
 
 /** Not a stored field: `repin: true` re-resolves the profile and renews the pin. */
 const PATCH_ONLY_FIELDS = ["repin"] as const;
-const EDITABLE_FIELDS = ["name", "profile", "cwd", "promptTemplate", "enabled", "everyMinutes", "dedupWindowMs", "maxActiveTasks"] as const;
+const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "dedupWindowMs", "maxActiveTasks"] as const;
 const NOT_FOUND = { ok: false, status: 404, error: "Trigger not found" } as const;
 const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -32,7 +31,8 @@ export function listPublicTriggers(): PublicTrigger[] {
 
 const generateWebhookSecret = (): string => randomBytes(32).toString("base64url");
 
-const resolveIn = (cwd: string) => (name: string) => resolveSubagentProfile(cwd, name);
+// The global profile only: an agent that can write its home must not shadow its profile through a project file.
+const resolveIn = (name: string) => resolveLongTermProfile(name);
 
 /** `webhookSecret` is forwarded on purpose: the store refuses a client-supplied one. */
 export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigger: PublicTrigger; webhookSecret?: string }> {
@@ -42,9 +42,7 @@ export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigge
   for (const field of [...EDITABLE_FIELDS, "webhookSecret"]) if (body[field] !== undefined) input[field] = body[field];
   const invalid = validateTriggerFields(input as unknown as TriggerInput);
   if (invalid) return refuse(invalid);
-  const cwd = input.cwd as string;
-  if (!existsSync(cwd)) return refuse(`Directory does not exist: ${cwd}`);
-  const built = buildTriggerConfig(input as unknown as TriggerInput, resolveIn(cwd));
+  const built = buildTriggerConfig(input as unknown as TriggerInput, resolveIn);
   if (!built.ok) return refuse(built.error);
   const webhookSecret = body.webhook ? generateWebhookSecret() : undefined;
   const trigger = webhookSecret ? { ...built.trigger, webhookSecretSha256: hashWebhookSecret(webhookSecret) } : built.trigger;
@@ -52,7 +50,7 @@ export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigge
   return { ok: true, trigger: toPublicTrigger(trigger), ...(webhookSecret ? { webhookSecret } : {}) };
 }
 
-/** Edits keep id and secret. The profile pin is renewed only when the profile or the cwd (which scopes project profiles) changes,
+/** Edits keep id and secret. The profile pin is renewed only when the profile changes,
  *  or on an explicit `repin: true` (the creation checks run again, so a profile that now has disallowed tools is refused),
  *  so an unrelated edit or a toggle never silently accepts a drifted profile. `everyMinutes: null` removes the schedule. */
 export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trigger: PublicTrigger }> {
@@ -70,14 +68,29 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
   if (invalid) return refuse(invalid);
   const updated: TriggerConfig = { ...existing, ...(merged as unknown as Omit<TriggerInput, "webhookSecret">) };
   if (clearSchedule) delete updated.everyMinutes;
-  if (body.repin === true || updated.profile !== existing.profile || updated.cwd !== existing.cwd) {
-    if (!existsSync(updated.cwd)) return refuse(`Directory does not exist: ${updated.cwd}`);
-    const built = buildTriggerConfig(merged as unknown as TriggerInput, resolveIn(updated.cwd));
+  if (body.repin === true || updated.profile !== existing.profile) {
+    const built = buildTriggerConfig(merged as unknown as TriggerInput, resolveIn);
     if (!built.ok) return refuse(built.error);
     updated.pinnedProfile = built.trigger.pinnedProfile;
   }
   saveTrigger(updated);
   return { ok: true, trigger: toPublicTrigger(updated) };
+}
+
+/** Profile settings saved: renew the pin of every trigger of the agent. An authenticated edit is the drift the pin exists to catch, so it is accepted here, never by the scheduler. */
+export function repinTriggersOfAgent(name: string): number {
+  let count = 0;
+  for (const trigger of listTriggers().filter((candidate) => candidate.profile === name)) {
+    const built = buildTriggerConfig({ ...trigger }, resolveIn);
+    if (!built.ok) continue; // a profile that vanished keeps its old pin and shows "missing"
+    saveTrigger({ ...trigger, pinnedProfile: built.trigger.pinnedProfile });
+    count += 1;
+  }
+  return count;
+}
+
+export function deleteTriggersOfAgent(name: string): number {
+  return listTriggers().filter((trigger) => trigger.profile === name).filter((trigger) => deleteTrigger(trigger.id)).length;
 }
 
 /** Only the digest is stored. The old secret stops working at once. Also gives a first secret to a trigger created without a webhook. */

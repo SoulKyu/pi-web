@@ -3,7 +3,6 @@
 import { type CSSProperties, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
-import type { AgentCard } from "@/lib/agent-ops/overview";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { AgentTasks } from "./AgentTasks";
@@ -63,8 +62,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
           <input type="checkbox" role="switch" checked={trigger.enabled} onChange={toggle} aria-label={t("agentOps.trigger.toggle", { name: trigger.name })} />
           <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trigger.name}</strong>
         </label>
-        <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{trigger.profile}</span>
-        <span style={{ marginLeft: "auto", flexShrink: 0, color: "var(--text-muted)" }}>{schedule}</span>
+                <span style={{ marginLeft: "auto", flexShrink: 0, color: "var(--text-muted)" }}>{schedule}</span>
       </div>
       <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-dim)" }}>
         <span>{lastFireAt ? t("agentOps.trigger.lastFire", { time: formatRelativeTime(lastFireAt, locale) }) : t("agentOps.trigger.neverFired")}</span>
@@ -92,11 +90,10 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   );
 }
 
-export function AgentTriggers({ triggers, tasks, cards, initialCwd, onOpenSession, onChanged }: {
+export function AgentTriggers({ agentName, triggers, tasks, onOpenSession, onChanged }: {
+  agentName: string;
   triggers: readonly PublicTrigger[];
   tasks: readonly AgentTaskListItem[];
-  cards: readonly AgentCard[];
-  initialCwd: string;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
 }) {
@@ -110,9 +107,8 @@ export function AgentTriggers({ triggers, tasks, cards, initialCwd, onOpenSessio
   };
 
   return (
-    <section aria-label={t("agentOps.triggers")} style={{ gridColumn: "1 / -1", display: "grid", gap: 8 }}>
+    <section aria-label={t("agentOps.triggers")} style={{ display: "grid", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.triggers")}</strong>
         <button type="button" onClick={() => setDialog({})} style={{ ...smallButton, marginLeft: "auto" }}>{t("agentOps.trigger.new")}</button>
       </div>
       {triggers.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 12 }}>{t("agentOps.trigger.none")}</div>}
@@ -121,7 +117,7 @@ export function AgentTriggers({ triggers, tasks, cards, initialCwd, onOpenSessio
           <TriggerRow key={trigger.id} trigger={trigger} tasks={tasks} onEdit={() => setDialog({ trigger })} onReveal={setReveal} onOpenSession={onOpenSession} onChanged={onChanged} />
         ))}
       </ul>
-      {dialog && <TriggerDialog trigger={dialog.trigger} cards={cards} initialCwd={initialCwd} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog && <TriggerDialog trigger={dialog.trigger} agentName={agentName} onClose={() => setDialog(null)} onSaved={saved} />}
       {reveal && <TriggerSecretDialog {...reveal} onClose={() => setReveal(null)} />}
     </section>
   );
