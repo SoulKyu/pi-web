@@ -8,6 +8,8 @@ export interface AgentSessionRef {
 export interface AgentCard {
   profile: string; displayName: string; description: string; color?: string; enabled: boolean;
   sessions: AgentSessionRef[]; running: boolean; lastActivity?: string;
+  /** The profile is no longer defined; the panel shows a translated label instead of a description. */
+  orphan: boolean;
 }
 
 // Fingerprint cache: session files are scanned on every board poll; skip unchanged ones.
@@ -49,8 +51,8 @@ export function readAgentProfileRef(filePath: string, maxBytes = 64 * 1024): { p
       }
     } finally { closeSync(fd); }
   } catch { return null; }
-  // ponytail: global map, clear at 2000 entries; per-filePath+maxBytes locks if contention matters
-  if (refCache.size >= 2000) refCache.clear();
+  // ponytail: global map, clear at 20000 entries; per-filePath+maxBytes locks if contention matters
+  if (refCache.size >= 20000) refCache.clear();
   refCache.set(cacheKey, { fp, ref });
   return ref;
 }
@@ -74,11 +76,12 @@ export function buildAgentCards(input: {
     return {
       profile: p.name, displayName: p.displayName, description: p.description, color: p.color, enabled: p.enabled,
       sessions, running: sessions.some((s) => input.runningSessionIds.has(s.id)), lastActivity: sessions[0]?.modified,
+      orphan: false,
     };
   });
   for (const [name, sessions] of byProfile) {
     if (input.profiles.some((p) => p.name === name)) continue;
-    cards.push({ profile: name, displayName: name, description: "Profile no longer defined", enabled: false, sessions, running: sessions.some((s) => input.runningSessionIds.has(s.id)), lastActivity: sessions[0]?.modified });
+    cards.push({ profile: name, displayName: name, description: "", enabled: false, sessions, running: sessions.some((s) => input.runningSessionIds.has(s.id)), lastActivity: sessions[0]?.modified, orphan: true });
   }
   return cards.sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? ""));
 }

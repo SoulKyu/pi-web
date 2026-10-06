@@ -1320,6 +1320,7 @@ export const enLocale: LocalePlugin = {
     "agentOps.running": "running",
     "agentOps.lastActivity": "Last activity {time}",
     "agentOps.noActivity": "No activity yet",
+    "agentOps.orphan": "Profile no longer defined",
     "agentOps.open": "Agents",
     "agentOps.assign": "Assign task",
     "agentOps.assignTitle": "Assign task to {name}",

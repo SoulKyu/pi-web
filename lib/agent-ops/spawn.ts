@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { resolveSubagentProfile } from "../subagents";
 import { startRpcSession } from "../rpc-manager";
+import { invalidateSessionListCache } from "../session-reader";
 import { enforceTriggerTools, watchPromptRun } from "./prompt-run";
 import type { RunHandle } from "./runner";
 import { profilePinSha256 } from "./trigger-store";
@@ -20,7 +21,8 @@ export async function startAgentProfileRun(
   }
   const tempKey = `__agentops__${randomUUID()}`; // unique: same-key callers coalesce onto one session
   const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, { agentProfile: profile });
+  invalidateSessionListCache(); // the route's call at queue time ran before this session existed
   if (isTriggerRun) await enforceTriggerTools(session);
-  const { done, abort } = await watchPromptRun(session, prompt);
+  const { done, abort } = watchPromptRun(session, prompt);
   return { sessionId: realSessionId, done, abort };
 }

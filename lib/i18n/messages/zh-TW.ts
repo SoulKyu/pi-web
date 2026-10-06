@@ -1320,6 +1320,7 @@ export const zhTWLocale: LocalePlugin = {
     "agentOps.running": "執行中",
     "agentOps.lastActivity": "最近活動 {time}",
     "agentOps.noActivity": "暫無活動",
+    "agentOps.orphan": "此代理已不再定義",
     "agentOps.open": "代理",
     "agentOps.assign": "分配任務",
     "agentOps.assignTitle": "向 {name} 分配任務",

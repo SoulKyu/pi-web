@@ -23,11 +23,11 @@ export function AgentsPanel({ onClose, onOpenSession }: {
 }) {
   const { locale, t } = useI18n();
   const [cards, setCards] = useState<AgentCard[] | null>(null);
-  const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [tasks, setTasks] = useState<AgentTask[] | null>(null);
   const [assigning, setAssigning] = useState<AgentCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const delay = cards ? agentsPollInterval(cards, tasks) : POLL_MS;
+  const delay = cards ? agentsPollInterval(cards, tasks ?? []) : POLL_MS;
 
   useEffect(() => listenForPanelEscape(document, onClose), [onClose]);
   useLayoutEffect(() => focusModalPanel(document, dialogRef.current, {
@@ -35,22 +35,22 @@ export function AgentsPanel({ onClose, onOpenSession }: {
   }), []);
 
   const load = useCallback(async (signal: AbortSignal) => {
-    try {
-      const [response, tasksResponse] = await Promise.all([
-        fetch("/api/agent-ops/overview", { cache: "no-store", signal }),
-        fetch("/api/agent-ops/tasks", { cache: "no-store", signal }),
-      ]);
-      const data = await response.json() as { cards?: AgentCard[]; error?: string };
-      if (!response.ok || !data.cards) throw new Error(data.error ?? `HTTP ${response.status}`);
-      const taskData = await tasksResponse.json() as { tasks?: AgentTask[]; error?: string };
-      if (!tasksResponse.ok || !taskData.tasks) throw new Error(taskData.error ?? `HTTP ${tasksResponse.status}`);
-      setCards(data.cards);
-      setTasks(taskData.tasks);
-      setError(null);
-    } catch (reason) {
-      if (signal.aborted) return;
-      setError(reason instanceof Error ? reason.message : String(reason));
-    }
+    const read = async <T,>(url: string, key: "cards" | "tasks"): Promise<T> => {
+      const response = await fetch(url, { cache: "no-store", signal });
+      const data = await response.json() as Record<string, unknown> & { error?: string };
+      if (!response.ok || !data[key]) throw new Error(data.error ?? `HTTP ${response.status}`);
+      return data[key] as T;
+    };
+    // Independent sections: one failing request must not hide the other.
+    const [cardsResult, tasksResult] = await Promise.allSettled([
+      read<AgentCard[]>("/api/agent-ops/overview", "cards"),
+      read<AgentTask[]>("/api/agent-ops/tasks", "tasks"),
+    ]);
+    if (signal.aborted) return;
+    if (cardsResult.status === "fulfilled") setCards(cardsResult.value);
+    if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
+    const failure = [cardsResult, tasksResult].find((r): r is PromiseRejectedResult => r.status === "rejected");
+    setError(failure ? (failure.reason instanceof Error ? failure.reason.message : String(failure.reason)) : null);
   }, []);
 
   const reload = useCallback(() => void load(new AbortController().signal), [load]);
@@ -96,7 +96,7 @@ export function AgentsPanel({ onClose, onOpenSession }: {
                 {!card.enabled && <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agentOps.disabled")}</span>}
                 {card.running && <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--accent)" }}>● {t("agentOps.running")}</span>}
               </header>
-              {card.description && <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-muted)" }}>{card.description}</p>}
+              {(card.orphan ? t("agentOps.orphan") : card.description) && <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--text-muted)" }}>{card.orphan ? t("agentOps.orphan") : card.description}</p>}
               <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-dim)" }}>
                 {card.lastActivity ? t("agentOps.lastActivity", { time: formatRelativeTime(card.lastActivity, locale) }) : t("agentOps.noActivity")}
               </div>
@@ -128,7 +128,7 @@ export function AgentsPanel({ onClose, onOpenSession }: {
               </ul>
             </section>
           ))}
-          {cards && <AgentTasks tasks={tasks} onOpenSession={(sessionId) => { onOpenSession(sessionId); onClose(); }} onChanged={reload} />}
+          {tasks && <AgentTasks tasks={tasks} onOpenSession={(sessionId) => { onOpenSession(sessionId); onClose(); }} onChanged={reload} />}
         </main>
         {assigning && (
           <AssignTaskDialog

@@ -1320,6 +1320,7 @@ export const zhCNLocale: LocalePlugin = {
     "agentOps.running": "运行中",
     "agentOps.lastActivity": "最近活动 {time}",
     "agentOps.noActivity": "暂无活动",
+    "agentOps.orphan": "该智能体已不再定义",
     "agentOps.open": "代理",
     "agentOps.assign": "分配任务",
     "agentOps.assignTitle": "向 {name} 分配任务",
