@@ -26,9 +26,6 @@ test("PATCH and DELETE refuse while the thread runs, and profile edits reach the
 });
 test("the sessions list leaves agent homes out, and long-term agents are never delegable", async () => {
   assert.match(await read("../sessions/route.ts"), /isAgentHomePath\(/);
-  const overview = await read("../agent-ops/overview/route.ts");
-  assert.match(overview, /const all = [^\n]*\.filter\(\(p\) => p\.scope === "builtin" \|\| p\.scope === "global"\)/);
-  assert.match(overview, /const profiles = all\.filter\(\(p\) => !p\.longTerm\)/);
   assert.match(await read("../subagents/profiles/route.ts"), /filter\(\(profile\) => !profile\.longTerm\)/);
   assert.match(await read("../../../lib/subagent-runtime.ts"), /if \(profile\.longTerm\) throw new Error/);
   assert.match(await read("../../../lib/rpc-manager.ts"), /listSubagentProfiles\(sessionCwd\)\.filter\(\(profile\) => !profile\.longTerm\)/);

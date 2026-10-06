@@ -4,7 +4,7 @@ import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { copyText } from "@/lib/clipboard";
 import { openStackedDialog } from "@/lib/stacked-dialog";
-import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./AssignTaskDialog";
+import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./dialog-styles";
 import { HOOK_SECRET_HEADER } from "../../lib/agent-ops/hook-path";
 import { hookCurl, hookUrl } from "./trigger-view";
 

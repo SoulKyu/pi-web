@@ -10,7 +10,6 @@ import { FileViewer } from "./FileViewer";
 import { TabBar, type Tab } from "./TabBar";
 import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
-import { AgentsPanel } from "./agents/AgentsPanel";
 import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { AgentAvatar } from "./agents/AgentAvatar";
@@ -179,7 +178,6 @@ export function AppShell() {
   }, []);
   const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
   const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
-  const [agentsPanelOpen, setAgentsPanelOpen] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(initialNavigation.agentName);
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null);
   const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
@@ -1363,23 +1361,6 @@ export function AppShell() {
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => setAgentsPanelOpen(true)}
-          title={translate("agentOps.open")}
-          aria-label={translate("agentOps.open")}
-          style={{
-            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            height: 32, padding: 0, background: "none", border: "none",
-            borderRadius: 9, color: "var(--text-muted)", cursor: "pointer",
-            fontSize: 12, transition: "background 0.12s, color 0.12s",
-          }}
-          onMouseEnter={(event) => { event.currentTarget.style.background = "var(--bg-hover)"; event.currentTarget.style.color = "var(--text)"; }}
-          onMouseLeave={(event) => { event.currentTarget.style.background = "none"; event.currentTarget.style.color = "var(--text-muted)"; }}
-        >
-          <SettingsSectionIcon section="agents" size={14} strokeWidth={2} />
-          <span>{translate("agentOps.open")}</span>
-        </button>
         <button
           type="button"
           onClick={() => setSettingsSection(getLastSettingsSection(projectTrustCwd))}
@@ -2726,12 +2707,6 @@ export function AppShell() {
       <NewAgentDialog
         onClose={() => setNewAgentOpen(false)}
         onCreated={(agent) => { reloadAgents(); void openAgent(agent.name); }}
-      />
-    )}
-    {agentsPanelOpen && (
-      <AgentsPanel
-        onClose={() => setAgentsPanelOpen(false)}
-        onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
       />
     )}
     {/* After Settings, so it opens above it (z-index 1100 over 1000) when Settings › MCP asks for it. */}

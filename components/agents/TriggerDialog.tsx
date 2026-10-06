@@ -4,7 +4,7 @@ import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from 
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
-import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./AssignTaskDialog";
+import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./dialog-styles";
 import { requestTrigger, type TriggerResponse } from "./trigger-view";
 
 const labelStyle: CSSProperties = { display: "grid", gap: 4, fontSize: 12, color: "var(--text-muted)" };
