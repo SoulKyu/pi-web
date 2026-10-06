@@ -5,7 +5,7 @@
 
 ## Data model
 - An agent is four things: a profile (`~/.pi/agent/agents/<name>.md`, frontmatter `longTerm`), space state (`agent-spaces/<name>.json`: avatar, `createdAt`, `threadSessionId`, `lastReadEntryId`), a home (`agents-home/<name>`, mode 700, the thread's cwd) and, after delete, a `agent-spaces/.trash/<name>-<stamp>/` holding `home` and `thread.jsonl`. Delete is reversible by hand; profile and space file are removed.
-- The name is the id and cannot be renamed. `AGENT_NAME_RE` guards every place a name reaches a path (`registry.ts`, the routes). The name is refused if any profile of any scope matches it case-insensitively (a built-in must not be shadowed) or the home / space file exists.
+- The name is the id and cannot be renamed. Every route resolves the name through `getLongTermAgent` first; `agentHome`, `spacePath`, `setThreadSessionId` and `setLastReadEntryId` take the registry's own names. The name is refused if any profile of any scope matches it case-insensitively (a built-in must not be shadowed) or the home / space file exists.
 - `createLongTermAgent` writes space state and home first and the profile last, since the profile is what lists the agent. A failed profile write removes the home and the space file, otherwise the name stays blocked.
 - A project profile under a home is never offered: homes are not project cwds.
 
@@ -17,7 +17,7 @@
 - Long-term profiles are never delegable (`lib/subagent-runtime.ts`: the `Agent` tool refuses them) and are hidden from Settings › Sub-agents (`app/api/subagents/profiles/route.ts`).
 
 ## Unread
-- Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. Phase 2 adds event cards.
+- Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. No divider is drawn for an absent or unknown marker although the badge counts everything. The divider count includes non-message entries; the badge counts assistant replies only. Phase 2 adds event cards.
 - `ChatWindow` fixes the marker for the visit (`unreadMarkerEntryId`) so the divider does not move as reads post. `onLatestEntryViewed` posts the read 1 s after the newest entry is visible. When the first unread entry is inside a collapsed process group, the divider is rendered before the group.
 
 ## Rail and navigation
@@ -32,6 +32,5 @@
 - Phases 2-4 (events, triggers, webhooks, memory) are not implemented; do not document them as existing.
 
 ## Known gaps
-- `GET /api/agents` fails whole when one thread file is unreadable.
 - PATCH has a check-then-act window between `canEditProfile` and the write.
 - The tab bar is hidden while the agent panel shows.
