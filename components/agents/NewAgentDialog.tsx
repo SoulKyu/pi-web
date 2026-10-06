@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
+import { shortenPath } from "@/lib/display-path";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
@@ -14,7 +15,7 @@ export const TOOLS_PRESETS: ToolsPreset[] = ["read-only", "standard", "full"];
 
 export interface ModelOption { id: string; name: string; provider: string }
 
-export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (agent: AgentDetail) => void }) {
+export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose: () => void; onCreated: (agent: AgentDetail) => void; agentsHomeDir?: string }) {
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState(EMOJIS[0]);
@@ -116,7 +117,7 @@ export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; on
             ))}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{t("agents.new.home", { path: `~/.pi/agent/agents-home/${name.trim() || "<name>"}` })}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{t("agents.new.home", { path: `${agentsHomeDir ? shortenPath(agentsHomeDir) : "~/.pi/agent/agents-home"}/${name.trim() || "<name>"}` })}</div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
           <button type="submit" disabled={busy || !name.trim() || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>

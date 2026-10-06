@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { allowFileRoot } from "@/lib/file-access";
 import { toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
-import { createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
+import { agentsHomeDir, createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
 import { registryErrorResponse } from "@/lib/agents/registry-response";
 import { threadRunning, unreadCount } from "@/lib/agents/thread";
 
@@ -11,7 +11,7 @@ const headers = { "Cache-Control": "no-store" };
 // GET /api/agents - the rail: every long-term agent with running state and unread count.
 export async function GET() {
   const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0))));
-  return NextResponse.json({ agents }, { headers });
+  return NextResponse.json({ agents, agentsHomeDir: agentsHomeDir() }, { headers });
 }
 
 // POST /api/agents  body: CreateAgentInput - create the profile, space state and home.

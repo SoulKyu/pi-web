@@ -6,8 +6,9 @@ import type { AgentListItem } from "@/lib/agents/agent-view";
 import { AgentAvatar } from "./AgentAvatar";
 
 /** Polls the agent list: the running dot and the unread badge must move, so 5 s while the tab is visible, 30 s hidden. */
-export function useAgentsPoll(): { agents: AgentListItem[]; error: string | null; reload: () => void } {
+export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: string; error: string | null; reload: () => void } {
   const [agents, setAgents] = useState<AgentListItem[]>([]);
+  const [agentsHomeDir, setAgentsHomeDir] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const reload = useCallback(() => setReloadTick((tick) => tick + 1), []);
@@ -18,9 +19,10 @@ export function useAgentsPoll(): { agents: AgentListItem[]; error: string | null
     const load = async () => {
       try {
         const response = await fetch("/api/agents", { cache: "no-store", signal: controller.signal });
-        const data = await response.json() as { agents?: AgentListItem[]; error?: string };
+        const data = await response.json() as { agents?: AgentListItem[]; agentsHomeDir?: string; error?: string };
         if (!response.ok || !data.agents) throw new Error(data.error ?? `HTTP ${response.status}`);
         setAgents(data.agents);
+        setAgentsHomeDir(data.agentsHomeDir);
         setError(null);
       } catch (cause) {
         if (controller.signal.aborted) return;
@@ -42,7 +44,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; error: string | null
     };
   }, [reloadTick]);
 
-  return { agents, error, reload };
+  return { agents, agentsHomeDir, error, reload };
 }
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };

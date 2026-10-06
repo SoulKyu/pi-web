@@ -81,13 +81,13 @@ export function AgentSpaceRight({ agent, running, contextPercent, onOpenSession 
           <AgentMemory facts={memory.staged} onChanged={reloadMemory} open />
         </>
       )}
-      <div className="agent-space-section">{t("agents.space.memory")}</div>
-      {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
-      <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} onChanged={reloadMemory} />
       <div className="agent-space-section">{t("agents.space.tasks")}</div>
       <button type="button" onClick={() => setQueueOpen(true)} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", marginBottom: 6 }}>{t("agents.tasks.queue")}</button>
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.tasks.none")}</div>}
       {tasks.length > 0 && <AgentTasks tasks={tasks} compact onOpenSession={onOpenSession} onChanged={reloadMemory} />}
+      <div className="agent-space-section">{t("agents.space.memory")}</div>
+      {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
+      <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} onChanged={reloadMemory} />
       {queueOpen && <QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={reloadMemory} />}
     </div>
   );

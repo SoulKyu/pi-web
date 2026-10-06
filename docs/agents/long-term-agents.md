@@ -18,7 +18,7 @@
 
 ## Security rules
 - Trusted starts and re-snapshots resolve the profile through `resolveLongTermProfile` (`registry.ts`): global scope, exact name. A `.pi/agents` or `.agents/agents` file under the home never applies. A new trusted session must also have the agent's home as cwd.
-- `startRpcSession` refuses a new session of a long-term profile unless it is the trusted thread or an isolated run (`agentProfileTools`): `POST /api/agent/new` and `POST /api/agent-ops/tasks` cannot start one.
+- `startRpcSession` refuses a new session of a long-term profile unless it is the trusted thread or an isolated run (`agentProfileTools`): `POST /api/agent/new` cannot start one.
 - Settings › Sub-agents (PUT, PATCH toggle, DELETE) answers 409 `long-term agent` for a long-term name, and PUT strips `longTerm` from the body.
 - DELETE runs inside `withThreadLock` (the lock `ensureThread` uses) and re-checks the live wrapper before moving files; `ensureThread` throws `not_found` when the agent vanished.
 - Names are at most 64 characters (`AGENT_NAME_MAX`).

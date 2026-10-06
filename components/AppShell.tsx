@@ -184,7 +184,7 @@ export function AppShell() {
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
-  const { agents, reload: reloadAgents } = useAgentsPoll();
+  const { agents, agentsHomeDir, reload: reloadAgents } = useAgentsPoll();
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -2706,6 +2706,7 @@ export function AppShell() {
     {newAgentOpen && (
       <NewAgentDialog
         onClose={() => setNewAgentOpen(false)}
+        agentsHomeDir={agentsHomeDir}
         onCreated={(agent) => { reloadAgents(); void openAgent(agent.name); }}
       />
     )}
