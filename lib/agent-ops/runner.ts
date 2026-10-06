@@ -23,7 +23,9 @@ function runningCount(): number { return globalThis.__agentOpsRunning ?? 0; }
 export async function runPendingTasks(deps: RunnerDeps): Promise<void> {
   const capacity = deps.maxConcurrent - runningCount();
   if (capacity <= 0) return;
-  const batch = listTasks().filter((t) => t.status === "queued").slice(0, capacity);
+  // listTasks is newest first (the UI relies on it); dequeue oldest first so steady ingestion cannot starve old tasks.
+  const queued = listTasks().filter((t) => t.status === "queued").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const batch = queued.slice(0, capacity);
   await Promise.all(batch.map((task) => runOne(task, deps)));
 }
 
@@ -35,8 +37,16 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
   } catch { return; } // claimTask released its lock; the task stays queued for the next pass
   globalThis.__agentOpsRunning = runningCount() + 1;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let starting: Promise<RunHandle> | undefined;
+  let handle: RunHandle | undefined;
   try {
-    const handle = await deps.start(task);
+    // One deadline for the whole run, start included: a start stuck in preflight or an MCP wait has no handle to abort.
+    const maxRunMs = deps.maxRunMs ?? DEFAULT_MAX_RUN_MS;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new RunTimeoutError(`timeout after ${maxRunMs} ms`)), maxRunMs);
+    });
+    starting = deps.start(task);
+    handle = await Promise.race([starting, deadline]);
     handle.done.catch(() => {}); // observed now: a late rejection after a racing cancel stays handled
     attachSession(task.id, handle.sessionId); // never throws, even on a terminal task
     const current = getTask(task.id);
@@ -45,26 +55,26 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
       await handle.abort().catch(() => {});
       return;
     }
-    const maxRunMs = deps.maxRunMs ?? DEFAULT_MAX_RUN_MS;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new RunTimeoutError(`timeout after ${maxRunMs} ms`)), maxRunMs);
-    });
-    try {
-      const outcome = await Promise.race([handle.done, timeout]);
-      finish(task.id, outcome.status === "cancelled" ? { status: "cancelled" } : { status: "completed", result: outcome.result });
-    } catch (error) {
-      if (error instanceof RunTimeoutError) await handle.abort().catch(() => {});
-      throw error;
-    }
+    const outcome = await Promise.race([handle.done, deadline]);
+    finish(task.id, outcome.status === "cancelled" ? { status: "cancelled" } : { status: "completed", result: outcome.result });
   } catch (error) {
     // A concurrent cancel may already have written a terminal status.
     // Never throw from this catch: runOne runs fire-and-forget.
     finish(task.id, { status: "failed", error: error instanceof Error ? error.message : String(error) });
+    if (error instanceof RunTimeoutError) {
+      if (handle) await handle.abort().catch(() => {});
+      else abortLateSession(starting);
+    }
   } finally {
     clearTimeout(timer);
     releaseClaim(task.id);
     globalThis.__agentOpsRunning = runningCount() - 1;
   }
+}
+
+/** The deadline won while start was pending: abort the session if it still comes up, swallow every rejection. */
+function abortLateSession(starting: Promise<RunHandle> | undefined): void {
+  starting?.then((late) => { late.done.catch(() => {}); return late.abort(); }, () => {}).catch(() => {});
 }
 
 /** Terminal-safe write: re-reads the status, skips if a racing writer already finished. */
