@@ -22,7 +22,7 @@ import { computeSessionStats } from "@/lib/session-stats";
 import { startServerPerf } from "@/lib/perf";
 import { computeSessionRevision } from "@/lib/session-revision";
 import type { SessionEntry } from "@/lib/types";
-import { readSessionAgentProfile, readSubagentRun, readSubagentSessionResources, SUBAGENT_META_TYPE } from "@/lib/subagents";
+import { readSessionAgentProfile, readSessionAgentProfileInfo, readSubagentRun, readSubagentSessionResources, SUBAGENT_META_TYPE } from "@/lib/subagents";
 import { readSessionToolSelection } from "@/lib/session-tool-selection";
 import { jsonResponse } from "@/lib/json-response";
 
@@ -109,6 +109,7 @@ export async function GET(
     const toolNames = readSubagentSessionResources(entries as never)?.tools
       ?? readSessionToolSelection(entries as never);
     const agentProfile = readSessionAgentProfile(entries as never);
+    const agentProfileInfo = readSessionAgentProfileInfo(entries as never);
     const info = header ? (await attachSessionProjectInfo([{
       path: filePath,
       id: header.id,
@@ -129,6 +130,7 @@ export async function GET(
         : header.parentSession
           ? { relation: { kind: "fork" as const, ...(parentSessionId ? { originSessionId: parentSessionId } : {}) } }
           : {}),
+      ...(agentProfileInfo ? { agentProfile: agentProfileInfo } : {}),
       transient: !filePath || !existsSync(filePath),
     }]))[0] : null;
 

@@ -51,3 +51,9 @@ test("an isolated (untrusted agent-profile) run refuses every command but the ge
   assert.ok(route.indexOf("isolated run is read-only") < route.indexOf("existing.send(body)"));
   assert.ok(route.indexOf("isolated run is read-only") < route.indexOf('body.type === "set_tools"'));
 });
+
+test("the session detail route puts the agent profile trust on info so a run opened by id renders read-only", async () => {
+  const route = await read("../sessions/[id]/route.ts");
+  assert.match(route, /readSessionAgentProfileInfo\(entries as never\)/);
+  assert.match(route, /agentProfile: agentProfileInfo/);
+});
