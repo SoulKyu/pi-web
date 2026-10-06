@@ -1,5 +1,7 @@
 import { configureHttpDispatcher } from "@/lib/http-dispatcher";
 import { closeAllAgentEventStreams } from "@/lib/agent-event-stream";
+import { kickRunner } from "@/lib/agent-ops/kick";
+import { startScheduler } from "@/lib/agent-ops/scheduler";
 
 export function registerNodeInstrumentation(): void {
   configureHttpDispatcher();
@@ -10,4 +12,6 @@ export function registerNodeInstrumentation(): void {
   const shutdownStreams = () => closeAllAgentEventStreams();
   process.on("SIGINT", shutdownStreams);
   process.on("SIGTERM", shutdownStreams);
+
+  startScheduler({ kick: kickRunner });
 }

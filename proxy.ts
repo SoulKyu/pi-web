@@ -4,6 +4,7 @@ import {
   recordAuthFailure,
   retryAfterSeconds,
 } from "@/lib/auth-throttle";
+import { isAgentOpsHookRequest } from "@/lib/agent-ops/hook-path";
 import {
   isApiRequestAllowed,
   isApiRequestHostAllowed,
@@ -38,6 +39,10 @@ export function proxy(request: NextRequest) {
     }
     return NextResponse.json({ error: "Untrusted API request" }, { status: 403 });
   }
+
+  // Authenticated by the trigger's shared secret and a dedicated throttle (lib/agent-ops/webhook.ts), not by
+  // the browser session. Before any Authorization handling, so a wrong header here never feeds the login throttle.
+  if (isAgentOpsHookRequest(request.nextUrl.pathname, request.method)) return NextResponse.next();
 
   const password = process.env.PI_WEB_PASSWORD;
   if (!isWebPasswordEnabled(password)) {
