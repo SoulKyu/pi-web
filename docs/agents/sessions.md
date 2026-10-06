@@ -50,6 +50,7 @@ On mount `useAgentSession` loads the history, then `GET /api/sessions/[id]/state
 - While a run is active, `useAgentSession` polls `GET /api/agent/[id]` and reconciles on `visibilitychange` / `online`, for terminal events missed by background tabs or half-open connections.
 - Prompt runs carry a monotonic run id; late SSE or reconciliation answers from an old run must be ignored, or they resurrect stale streaming bubbles.
 - Every SSE (re)connection is gated on `sessionHookMountedRef`. Under React Strict Mode (`next dev`) the mount-only effect's cleanup clears it and restores it only after the warm-session effect re-runs, so that effect must re-assert it before `maintainEventsConnected()`, or a dev tab never opens its stream.
+- Long-term agent threads (see long-term-agents.md): a reopened session whose newest profile entry is `trusted` and whose profile has `longTerm` re-snapshots on open; `appendDisplayEntry` writes a display entry and emits `custom_entry_appended`; `persistSessionFile()` forces the first flush that pi otherwise delays until a user/assistant message.
 
 ## Exported session HTML
 - `/api/sessions/[id]/export` delegates to pi's export helper, then makes the generated HTML's recursive tree helpers iterative, so very deep linear sessions do not overflow the browser call stack.

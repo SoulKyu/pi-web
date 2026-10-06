@@ -48,6 +48,10 @@ app/api/
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
+  agents/route.ts                  GET long-term agents (name, avatar, running, unread) | POST create
+  agents/[name]/route.ts           GET detail | PATCH profile (409 agent_running while the thread runs) | DELETE to .trash
+  agents/[name]/thread/route.ts    POST open or create the pinned thread
+  agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
@@ -114,6 +118,10 @@ lib/
   enabled-models.ts         pure minimal-edit engine for the enabledModels pattern list
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
+  agents/registry.ts        long-term agent files: profile, space state, home, trash; AGENT_NAME_RE
+  agents/registry-response.ts registry errors to HTTP responses
+  agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
+  agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)
   agent-ops/overview.ts     agent cards: profiles + sessions, profile-ref cache, orphan flag
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
@@ -182,6 +190,12 @@ components/
   OAuthPastePanel.tsx      paste box for a sign-in's redirected address or code (Models, MCP)
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
+  agents/AgentRail.tsx     long-term agent rail: avatars, running dot, unread badge
+  agents/AgentAvatar.tsx   agent avatar (color + glyph)
+  agents/NewAgentDialog.tsx create a long-term agent
+  agents/AgentProfileDialog.tsx edit a long-term agent's profile
+  agents/AgentSpaceLeft.tsx / AgentSpaceRight.tsx  agent view panels (home files; profile and status)
+  agents/dialog-styles.ts  shared styles of the agent dialogs
   agents/AgentsPanel.tsx   Agents dialog: cards, triggers, task list, assign, memory queue (AgentTasks, AgentTriggers, TriggerDialog, TriggerSecretDialog, AgentMemory, AssignTaskDialog, task-view, trigger-view)
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
@@ -222,6 +236,7 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [settings-ui.md](docs/agents/settings-ui.md): Plugins and Skills routes, sidebar group switches, the shared `SettingsUi` blocks every settings panel and add pane uses. Files: `app/api/plugins/**`, `app/api/skills/**`, `components/SettingsUi.tsx`, `components/settings-ui-helpers.ts`, `components/SkillsConfig.tsx`, `components/PluginsConfig.tsx`; also before adding a settings section or add pane.
 - [subagents.md](docs/agents/subagents.md): the built-in subagent setting, profiles and their files, run status, completion notifications. Files: `lib/subagent*.ts`, `app/api/subagents/**`, `components/AgentsConfig.tsx`.
 - [agent-ops.md](docs/agents/agent-ops.md): agent cards, the task store and FIFO runner, cancel/steer ordering, the single deadline, the unawaited prompt send, trigger tool check. Files: `lib/agent-ops/**`, `app/api/agent-ops/**`, `components/agents/*`.
+- [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/{AgentRail,AgentAvatar,NewAgentDialog,AgentProfileDialog,AgentSpaceLeft,AgentSpaceRight}.tsx`, `components/agents/dialog-styles.ts`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `lib/rpc-manager.ts` and `lib/session-reader.ts`, `lib/initial-navigation.ts`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
 
 ---
