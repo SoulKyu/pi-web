@@ -180,8 +180,8 @@ export function AppShell() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- read by the unread divider, a later task
   const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
-  const pendingAgentSessionRef = useRef<string | null>(null);
-  const activeAgentNameRef = useRef<string | null>(null);
+  const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
+  const agentMountOpenedRef = useRef(false);
   const { agents, reload: reloadAgents } = useAgentsPoll();
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
@@ -799,15 +799,19 @@ export function AppShell() {
       // onCwdChange effect firing after setSelectedCwd in the sidebar
       suppressCwdBumpRef.current = true;
     }
-    const agentSession = pendingAgentSessionRef.current === session.id;
-    if (!agentSession) setActiveAgent(null);
-    pendingAgentSessionRef.current = null;
+    // Kept on a match (repeated opens of one thread are idempotent); cleared only when another session is picked.
+    const pending = pendingAgentRef.current;
+    const agentSession = pending?.sessionId === session.id;
+    if (!agentSession) {
+      pendingAgentRef.current = null;
+      setActiveAgent(null);
+    }
     // Skip router.replace when the URL already has this session — calling
     // replace in production Next.js triggers a Suspense remount loop.
     // Tab-memory restore lands on `/` and must write `?session=` so reload
     // and copy-link keep this session.
     if (agentSession) {
-      router.replace(`?agent=${encodeURIComponent(activeAgentNameRef.current ?? "")}`, { scroll: false });
+      router.replace(`?agent=${encodeURIComponent(pending.agentName)}`, { scroll: false });
     } else if (!isRestore || new URLSearchParams(window.location.search).get("session") !== session.id) {
       router.replace(`?session=${encodeURIComponent(session.id)}`, { scroll: false });
     }
@@ -884,15 +888,16 @@ export function AppShell() {
       return;
     }
     setActiveAgent(name);
-    activeAgentNameRef.current = name;
     setAgentUnreadMarker(data.lastReadEntryId ?? null);
-    pendingAgentSessionRef.current = data.sessionId;
+    pendingAgentRef.current = { sessionId: data.sessionId, agentName: name };
     await handleOpenSession(data.sessionId);
     if (!isMobile) setRightPanelOpen(true);
   }, [handleOpenSession, isMobile]);
 
   useEffect(() => {
-    if (initialNavigation.agentName) void openAgent(initialNavigation.agentName);
+    if (agentMountOpenedRef.current || !initialNavigation.agentName) return;
+    agentMountOpenedRef.current = true;
+    void openAgent(initialNavigation.agentName);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the ?agent= the page loaded with
   }, []);
 

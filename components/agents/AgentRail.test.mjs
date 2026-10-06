@@ -23,7 +23,7 @@ test("the creation form posts the D7 fields and shows the home path read-only", 
 });
 test("AppShell opens an agent through its thread and writes ?agent= instead of ?session=", () => {
   assert.match(shell, /fetch\(`\/api\/agents\/\$\{encodeURIComponent\(name\)\}\/thread`, \{ method: "POST" \}\)/);
-  assert.match(shell, /pendingAgentSessionRef\.current = data\.sessionId/);
+  assert.match(shell, /pendingAgentRef\.current = \{ sessionId: data\.sessionId, agentName: name \}/);
   assert.match(shell, /router\.replace\(`\?agent=\$\{encodeURIComponent\(/);
   assert.match(shell, /<AgentRail/);
   assert.match(shell, /initialNavigation\.agentName/);
