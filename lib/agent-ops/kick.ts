@@ -13,18 +13,12 @@ export function recoverOnce(): void {
   void kickRunner();
 }
 
-/** Single runner entry point: the task route, the webhook and the scheduler all call it. */
+/** Single runner entry point: the task route, the webhook and the scheduler all call it.
+ *  A finished run re-kicks, so a freed slot never idles until the next external kick. */
 export function kickRunner(): Promise<void> {
-  let started = 0;
   return runPendingTasks({
     maxConcurrent: 2,
-    start: (task) => {
-      started++;
-      return startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task));
-    },
-  }).then(() => {
-    // ponytail: a slot freed early waits for its pass's other runs or the next external kick.
-    // A pass that started nothing must not re-kick: with the cap full it would spin.
-    if (started > 0) void kickRunner();
+    start: (task) => startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task)),
+    onRunEnd: () => void kickRunner(),
   }).catch((error) => console.error("[agent-ops] runner failed:", error instanceof Error ? error.message : error));
 }

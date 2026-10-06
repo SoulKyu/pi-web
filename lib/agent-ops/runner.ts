@@ -13,6 +13,8 @@ export interface RunnerDeps {
   maxConcurrent: number;
   /** A run with no answer (e.g. an unanswered extension dialog) must not hold a slot forever. */
   maxRunMs?: number;
+  /** Called after a run ends and its slot is free, so the caller can start the next queued task. */
+  onRunEnd?: () => void;
 }
 export const DEFAULT_MAX_RUN_MS = 30 * 60_000;
 
@@ -69,6 +71,7 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
     clearTimeout(timer);
     releaseClaim(task.id);
     globalThis.__agentOpsRunning = runningCount() - 1;
+    try { deps.onRunEnd?.(); } catch { /* a finally must not throw: runOne runs fire-and-forget */ }
   }
 }
 
