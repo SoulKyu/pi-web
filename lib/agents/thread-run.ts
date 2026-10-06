@@ -1,13 +1,13 @@
 import { watchPromptRun, type PromptRunSession } from "../agent-ops/prompt-run";
 import type { RunHandle } from "../agent-ops/runner";
-import type { AgentTask } from "../agent-ops/task-store";
+import { getTask, TERMINAL, type AgentTask } from "../agent-ops/task-store";
 import { AGENT_EVENT_ENTRY_TYPE, buildScheduleEvent, buildTaskEvent, type AgentEventData } from "./events";
 import { getLongTermAgent, type LongTermAgent } from "./registry";
 import { openThread } from "./thread";
 
 export interface ThreadSessionLike extends PromptRunSession { isRunning(): boolean; appendDisplayEntry(customType: string, data: unknown): string }
-export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent }
-const defaultDeps = (): ThreadRunDeps => ({ open: openThread, readAgent: getLongTermAgent });
+export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent; readTask: typeof getTask }
+const defaultDeps = (): ThreadRunDeps => ({ open: openThread, readAgent: getLongTermAgent, readTask: getTask });
 
 export function eventOfTask(task: AgentTask): AgentEventData {
   return task.kind === "schedule" && task.triggerId
@@ -18,14 +18,15 @@ export function eventOfTask(task: AgentTask): AgentEventData {
 /**
  * The selector saw an idle thread, but a user turn may have started since. watchPromptRun settles
  * on the first prompt_done it sees, so sending now would complete the task with the user's answer.
- * ponytail: a turn that starts between this resolving and the send still wins the race; pi then
- * queues our prompt behind it (promptAdmission) and the first prompt_done ends our watch early.
+ * ponytail: a turn that starts between this resolving and the send still wins the race. pi rejects
+ * our second prompt ("Agent is already processing"), so the task fails and its card stays behind;
+ * it only settles on the user's prompt_done when an extension command or input handler took that input.
  */
 export function waitUntilIdle(session: Pick<ThreadSessionLike, "isRunning" | "onEvent">): Promise<void> {
   if (!session.isRunning()) return Promise.resolve();
   return new Promise((resolve) => {
-    const off = session.onEvent((event) => {
-      if ((event.type === "agent_settled" || event.type === "prompt_done") && !session.isRunning()) { off(); resolve(); }
+    const off = session.onEvent(() => {
+      if (!session.isRunning()) { off(); resolve(); }
     });
   });
 }
@@ -38,6 +39,8 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   const { session, sessionId } = await deps.open(agent);
   await session.waitUntilReady();
   await waitUntilIdle(session);
+  const current = deps.readTask(task.id);
+  if (!current || TERMINAL.has(current.status)) throw new Error(`task ${current?.status ?? "removed"} while waiting for the thread`);
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
   const { done, abort } = watchPromptRun(session, task.prompt);
   return { sessionId, done, abort };
