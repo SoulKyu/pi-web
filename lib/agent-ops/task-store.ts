@@ -114,3 +114,14 @@ export function cancelTask(id: string): boolean {
   updateTask(id, { status: "cancelled", completedAt: new Date().toISOString() });
   return true;
 }
+/** Retention: deletes terminal tasks completed more than maxAgeMs ago, plus a leftover lock. Never touches queued or running tasks. */
+export function pruneTasks(maxAgeMs = 14 * 24 * 3_600_000): number {
+  const cutoff = Date.now() - maxAgeMs;
+  let pruned = 0;
+  for (const task of listTasks()) {
+    if (!TERMINAL.has(task.status) || !(Date.parse(task.completedAt ?? "") < cutoff)) continue;
+    try { unlinkSync(taskPath(task.id)); pruned++; } catch { continue; }
+    releaseClaim(task.id);
+  }
+  return pruned;
+}
