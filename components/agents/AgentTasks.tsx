@@ -7,8 +7,9 @@ import { formatTaskDuration, requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
-function TaskRow({ task, onOpenSession, onChanged }: {
+function TaskRow({ task, onOpenSession, onChanged, compact }: {
   task: AgentTaskListItem;
+  compact: boolean;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
 }) {
@@ -32,7 +33,7 @@ function TaskRow({ task, onOpenSession, onChanged }: {
     <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
         <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
-        <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>
+        {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>
       </div>
@@ -59,20 +60,22 @@ function TaskRow({ task, onOpenSession, onChanged }: {
   );
 }
 
-export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false }: {
+export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false, compact = false }: {
   tasks: readonly AgentTaskListItem[];
   /** Inside a trigger's history: no heading, no full-row grid span. */
   nested?: boolean;
+  /** Inside one agent's space: no heading, no profile column. */
+  compact?: boolean;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
 }) {
   const { t } = useI18n();
   return (
     <section aria-label={t("agentOps.tasks")} style={{ ...(nested ? {} : { gridColumn: "1 / -1" }), display: "grid", gap: 8 }}>
-      {!nested && <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.tasks")}</strong>}
+      {!nested && !compact && <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.tasks")}</strong>}
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 12 }}>{t("agentOps.noTasks")}</div>}
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-        {tasks.map((task) => <TaskRow key={task.id} task={task} onOpenSession={onOpenSession} onChanged={onChanged} />)}
+        {tasks.map((task) => <TaskRow key={task.id} task={task} onOpenSession={onOpenSession} onChanged={onChanged} compact={compact} />)}
       </ul>
     </section>
   );

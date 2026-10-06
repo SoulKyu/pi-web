@@ -6,7 +6,7 @@ import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSess
 import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
 import type { SessionEntry } from "../types";
 import { AgentRegistryError, getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
-import { AGENT_EVENT_ENTRY_TYPE } from "./events";
+import { AGENT_EVENT_ENTRY_TYPE, type AgentEventData } from "./events";
 
 export interface ThreadDeps {
   start: typeof startRpcSession;
@@ -68,6 +68,11 @@ export async function openThread(agent: LongTermAgent, deps: ThreadDeps = defaul
     const { session } = await deps.start(sessionId, path, undefined, {});
     return { session, sessionId };
   });
+}
+
+export async function appendThreadEvent(agent: LongTermAgent, data: AgentEventData): Promise<string> {
+  const { session } = await openThread(agent);
+  return session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, data);
 }
 
 export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): boolean {

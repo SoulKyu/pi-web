@@ -1299,6 +1299,7 @@ export function AppShell() {
       agent={agentDetail}
       running={Boolean(selectedSession && runningSessionIds.has(selectedSession.id))}
       contextPercent={contextUsage?.percent ?? null}
+      onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
     />
   ) : null;
 

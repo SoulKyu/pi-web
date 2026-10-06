@@ -7,26 +7,39 @@ import type { StagedFactView } from "@/lib/agent-ops/memory-review";
 import type { AgentMemoryItem } from "@/lib/agents/memory";
 import { AgentMemory } from "./AgentMemory";
 import { AgentMemoryRecent } from "./AgentMemoryRecent";
+import { AgentTasks } from "./AgentTasks";
+import { QueueTaskDialog } from "./QueueTaskDialog";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 
 interface MemoryState { recent: AgentMemoryItem[]; pendingForget: string[]; staged: StagedFactView[] }
 const EMPTY_MEMORY: MemoryState = { recent: [], pendingForget: [], staged: [] };
 const MEMORY_POLL_MS = 10_000;
+const ACTIVE_TASK_POLL_MS = 5_000;
 
-// Tasks (Task 17) mount below the memory sections.
-export function AgentSpaceRight({ agent, running, contextPercent }: { agent: AgentDetail; running: boolean; contextPercent: number | null }) {
+export function AgentSpaceRight({ agent, running, contextPercent, onOpenSession }: { agent: AgentDetail; running: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void }) {
   const { t } = useI18n();
   const [memory, setMemory] = useState<MemoryState>(EMPTY_MEMORY);
 
+  const [tasks, setTasks] = useState<AgentTaskListItem[]>([]);
+  const [queueOpen, setQueueOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const signalRef = useRef<AbortSignal | undefined>(undefined);
 
+  // One request pair serves both sections; the poll below reads `tasks` through a ref to pick its interval.
   const loadMemory = useCallback(async (signal?: AbortSignal) => {
+    const base = `/api/agents/${encodeURIComponent(agent.name)}`;
     try {
-      const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}/memory`, { cache: "no-store", signal });
-      const data = await response.json() as MemoryState & { error?: string };
+      const [memoryResponse, tasksResponse] = await Promise.all([
+        fetch(`${base}/memory`, { cache: "no-store", signal }),
+        fetch(`${base}/tasks`, { cache: "no-store", signal }),
+      ]);
+      const data = await memoryResponse.json() as MemoryState & { error?: string };
+      const taskData = await tasksResponse.json() as { tasks?: AgentTaskListItem[]; error?: string };
       if (signal?.aborted) return;
-      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`);
+      if (!memoryResponse.ok) throw new Error(data.error ?? `HTTP ${memoryResponse.status}`);
+      if (!tasksResponse.ok) throw new Error(taskData.error ?? `HTTP ${tasksResponse.status}`);
       setMemory(data);
+      setTasks(taskData.tasks ?? []);
       setError(null);
     } catch (cause) {
       if (signal?.aborted) return;
@@ -34,15 +47,23 @@ export function AgentSpaceRight({ agent, running, contextPercent }: { agent: Age
     }
   }, [agent.name]);
 
+  const tasksActiveRef = useRef(false);
+  tasksActiveRef.current = tasks.some((task) => task.status === "queued" || task.status === "running");
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
     signalRef.current = signal;
     setMemory(EMPTY_MEMORY);
+    setTasks([]);
     setError(null);
-    void loadMemory(signal);
-    const timer = setInterval(() => void loadMemory(signal), MEMORY_POLL_MS);
-    return () => { controller.abort(); clearInterval(timer); };
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      await loadMemory(signal);
+      if (!signal.aborted) timer = setTimeout(() => void tick(), tasksActiveRef.current ? ACTIVE_TASK_POLL_MS : MEMORY_POLL_MS);
+    };
+    void tick();
+    return () => { controller.abort(); clearTimeout(timer); };
   }, [loadMemory]);
 
   const reloadMemory = () => void loadMemory(signalRef.current);
@@ -63,6 +84,11 @@ export function AgentSpaceRight({ agent, running, contextPercent }: { agent: Age
       <div className="agent-space-section">{t("agents.space.memory")}</div>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
       <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} onChanged={reloadMemory} />
+      <div className="agent-space-section">{t("agents.space.tasks")}</div>
+      <button type="button" onClick={() => setQueueOpen(true)} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", marginBottom: 6 }}>{t("agents.tasks.queue")}</button>
+      {tasks.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.tasks.none")}</div>}
+      {tasks.length > 0 && <AgentTasks tasks={tasks} compact onOpenSession={onOpenSession} onChanged={reloadMemory} />}
+      {queueOpen && <QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={reloadMemory} />}
     </div>
   );
 }
