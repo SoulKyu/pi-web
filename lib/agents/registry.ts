@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
@@ -161,7 +161,13 @@ export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   mkdirSync(agentsHomeDir(), { recursive: true, mode: 0o700 });
   mkdirSync(agentHome(name), { mode: 0o700 });
   writeSpace({ name, avatar: input.avatar, createdAt: new Date().toISOString() });
-  writeProfile({ ...input, name }, input.avatar.color); // last: the profile is what lists the agent
+  try {
+    writeProfile({ ...input, name }, input.avatar.color); // last: the profile is what lists the agent
+  } catch (error) {
+    rmSync(agentHome(name), { recursive: true, force: true }); // just created, so empty: a leftover would block the name for good
+    rmSync(spacePath(name), { force: true });
+    throw error;
+  }
   return getLongTermAgent(name)!;
 }
 
