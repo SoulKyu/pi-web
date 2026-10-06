@@ -41,10 +41,17 @@ function FactRow({ fact, onChanged }: { fact: StagedFactView; onChanged: () => v
   );
 }
 
-/** Expandable approval queue of one agent's staged memories; text is rendered as plain text. */
-export function AgentMemory({ facts, onChanged }: { facts: readonly StagedFactView[]; onChanged: () => void }) {
+/** Approval queue of one agent's staged memories (expandable, or a plain list when `open`); text is rendered as plain text. */
+export function AgentMemory({ facts, onChanged, open = false }: { facts: readonly StagedFactView[]; onChanged: () => void; open?: boolean }) {
   const { t } = useI18n();
   if (facts.length === 0) return null;
+  if (open) {
+    return (
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {facts.map((fact) => <FactRow key={fact.id} fact={fact} onChanged={onChanged} />)}
+      </ul>
+    );
+  }
   const pending = facts.filter((fact) => fact.decision === null).length;
   return (
     <details style={{ marginTop: 8 }}>

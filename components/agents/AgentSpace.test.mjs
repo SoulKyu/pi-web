@@ -47,3 +47,10 @@ test("deleting an agent lands on a draft with no cwd and a bare URL", () => {
   assert.match(shell, /const handleAgentDeleted = useCallback/);
   assert.match(shell, /setNewSessionCwd\(null\);[\s\S]*?router\.replace\("\/", \{ scroll: false \}\)/);
 });
+
+test("AgentSpaceRight mounts the two memory sections and polls /memory", () => {
+  assert.match(right, /agents\.space\.memoryToApprove/);
+  assert.match(right, /agents\.space\.memory"/);
+  assert.match(right, /<AgentMemoryRecent/);
+  assert.match(right, /\/memory`/);
+});
