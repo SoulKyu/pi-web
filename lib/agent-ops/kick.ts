@@ -6,6 +6,7 @@ import { runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
 import { recoverInterrupted, type AgentTask } from "./task-store";
 import { triggerRunPin } from "./trigger-store";
+import { localeText, notifyAgent } from "../web-push";
 
 declare global { var __agentOpsRecovered: boolean | undefined; }
 
@@ -27,9 +28,16 @@ function isThreadBusy(agentName: string): boolean {
   return Boolean(live?.isAlive() && live.isRunning());
 }
 
-/** After a terminal write. Task 19 adds the failure push, Task 21 the webhook summary card. */
+/** After a terminal write: a failed run of a long-term agent pushes (Task 21 adds the webhook summary card). */
 export function handleTaskEnd(task: AgentTask): void {
-  void task;
+  if (!task.agent || task.status !== "failed") return;
+  const agent = task.agent;
+  notifyAgent((locale) => ({
+    title: agent,
+    body: localeText(locale, "agentRunFailed").replace("{name}", agent).replace("{title}", task.title),
+    url: `/?agent=${encodeURIComponent(agent)}`,
+    tag: `pi-agent-failed:${task.id}`,
+  })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
 }
 
 /** Single runner entry point: the task route, the webhook and the scheduler all call it.

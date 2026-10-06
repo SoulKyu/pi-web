@@ -30,10 +30,18 @@ interface WebPushEnvironment {
   listSessionNames: () => Promise<Map<string, string>>;
 }
 
+export interface PushPayload {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+}
+
 export interface WebPushNotifier {
   getVapidPublicKey: () => string;
   addSubscription: (subscription: PushSubscriptionRecord) => void;
   notifySessionComplete: (sessionId: string) => Promise<void>;
+  notify: (payloadFor: (locale: string) => PushPayload) => Promise<void>;
 }
 
 function stateFilePath(): string {
@@ -113,13 +121,14 @@ function pushStatusCode(error: unknown): number | undefined {
  * Locale lookup for push payloads. The browser reports its UI locale when it
  * subscribes; unknown locales fall back to English.
  */
-export function localeText(locale: string, key: "sessionComplete" | "taskFinished"): string {
+export function localeText(locale: string, key: "sessionComplete" | "taskFinished" | "agentRunFailed"): string {
+  const id = { sessionComplete: "i18n.sessionComplete", taskFinished: "i18n.taskFinished", agentRunFailed: "agents.push.failed" }[key] as keyof typeof enLocale.messages;
   if (locale === "zh-CN") {
-    const message = zhCNLocale.messages[key === "sessionComplete" ? "i18n.sessionComplete" : "i18n.taskFinished"];
+    const message = zhCNLocale.messages[id];
     if (message) return message;
   }
-  const message = enLocale.messages[key === "sessionComplete" ? "i18n.sessionComplete" : "i18n.taskFinished"];
-  return message ?? (key === "sessionComplete" ? "Session complete" : "Task finished.");
+  const message = enLocale.messages[id];
+  return message ?? { sessionComplete: "Session complete", taskFinished: "Task finished.", agentRunFailed: "{name}: a run failed ({title})" }[key];
 }
 
 export function createWebPushNotifier(environment: WebPushEnvironment): WebPushNotifier {
@@ -131,6 +140,23 @@ export function createWebPushNotifier(environment: WebPushEnvironment): WebPushN
   const saveState = () => {
     environment.saveState(state);
   };
+
+  async function notify(payloadFor: (locale: string) => PushPayload): Promise<void> {
+    if (state.subscriptions.length === 0) return;
+    let pruned = false;
+    for (const subscription of [...state.subscriptions]) {
+      try {
+        await environment.send(subscription, JSON.stringify(payloadFor(subscription.locale)), state.vapidKeys);
+      } catch (error) {
+        const statusCode = pushStatusCode(error);
+        if (statusCode === 404 || statusCode === 410) {
+          state.subscriptions = state.subscriptions.filter((s) => s.endpoint !== subscription.endpoint);
+          pruned = true;
+        }
+      }
+    }
+    if (pruned) saveState();
+  }
 
   return {
     getVapidPublicKey() {
@@ -154,24 +180,9 @@ export function createWebPushNotifier(environment: WebPushEnvironment): WebPushN
         tag: `pi-session-complete:${sessionId}`,
       });
 
-      let pruned = false;
-      for (const subscription of [...state.subscriptions]) {
-        try {
-          await environment.send(
-            subscription,
-            JSON.stringify(payloadFor(subscription.locale)),
-            state.vapidKeys,
-          );
-        } catch (error) {
-          const statusCode = pushStatusCode(error);
-          if (statusCode === 404 || statusCode === 410) {
-            state.subscriptions = state.subscriptions.filter((s) => s.endpoint !== subscription.endpoint);
-            pruned = true;
-          }
-        }
-      }
-      if (pruned) saveState();
+      await notify(payloadFor);
     },
+    notify,
   };
 }
 
@@ -197,4 +208,9 @@ export function addSubscription(subscription: PushSubscriptionRecord): Promise<v
 export async function notifySessionComplete(sessionId: string): Promise<void> {
   const notifier = await getNotifier();
   await notifier.notifySessionComplete(sessionId);
+}
+
+export async function notifyAgent(payloadFor: (locale: string) => PushPayload): Promise<void> {
+  const notifier = await getNotifier();
+  await notifier.notify(payloadFor);
 }

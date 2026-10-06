@@ -2,6 +2,8 @@ import type { AgentMessage, CustomMessage } from "../types";
 
 export const AGENT_EVENT_ENTRY_TYPE = "pi-web:agent-event";
 export const AGENT_EVENT_UI_TYPE = "agent-event";
+/** Client-safe name of the trusted-thread push tool (lib/agents/agent-notify.ts registers it). */
+export const AGENT_NOTIFY_TOOL = "agent_notify";
 export const EVENT_TEXT_MAX = 2000;
 const TITLE_MAX = 80;
 

@@ -41,3 +41,9 @@
 ## Known gaps
 - PATCH gates on `threadRunning` after the body parse and re-reads the agent first; nothing awaits between the gate and the write, so a turn cannot start in between. DELETE answers 409 `agent_running` for a running or starting thread (`isRpcSessionStarting`); an idle live wrapper is shut down first, then the checks run again before the move.
 - The tab bar is hidden while the agent panel shows.
+
+## `agent_notify` and failure push
+
+- `lib/agents/agent-notify.ts` registers `agent_notify` only in trusted threads (`trustedThread` in `startRpcSession`); isolated runs, ordinary and Chat-only sessions never get it. Payload (D9): title = agent name, body = trimmed text clipped to 500, url `/?agent=<name>`; nothing else from the session.
+- `notify(payloadFor)` in `lib/web-push.ts` is the single send loop (404/410 prune, other errors swallowed); `notifySessionComplete` calls it. `handleTaskEnd` pushes only a failed task with `task.agent`; the thread's own completion push stays suppressed.
+- `AGENT_NOTIFY_TOOL` lives in client-safe `lib/agents/events.ts` (MessageView must not import `web-push`).

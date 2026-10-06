@@ -4,6 +4,7 @@ import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@e
 import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
+import { createAgentNotifyExtension } from "./agents/agent-notify";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
@@ -2479,7 +2480,10 @@ export async function startRpcSession(
                 }
               : {}),
             appendSystemPrompt: subagentResources.appendSystemPrompt,
-            ...(usesExactSystemPrompt ? { extensionFactories: [exactSystemPromptExtension] } : {}),
+            extensionFactories: [
+              ...(usesExactSystemPrompt ? [exactSystemPromptExtension] : []),
+              ...(trustedThread ? [createAgentNotifyExtension({ agentName: snapshotProfile!.name })] : []),
+            ],
           }
         : chatOnly
           ? { ...CHAT_ONLY_RESOURCE_LOADER_OPTIONS, extensionFactories: [exactSystemPromptExtension] }

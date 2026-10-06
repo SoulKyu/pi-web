@@ -20,7 +20,7 @@ import { skillExpansionToCommand } from "@/lib/slash-display";
 import type { SubagentToolDetails } from "@/lib/subagent-extension";
 import { CODEMODE_TOOL_NAME, codemodeCalls, codemodeScript, codemodeScriptPreview, stripCodemodeHeader } from "@/lib/codemode-view";
 import { AgentEventCard } from "./agents/AgentEventCard";
-import { AGENT_EVENT_UI_TYPE } from "@/lib/agents/events";
+import { AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
@@ -1132,6 +1132,14 @@ function isSubagentToolDetails(value: unknown): value is SubagentToolDetails {
 function ToolCallBlock({ block, result, duration, onOpenSession }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number; onOpenSession?: (sessionId: string) => void }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(() => isToolCallExpanded(block.toolCallId));
+  if (block.toolName === AGENT_NOTIFY_TOOL) {
+    return (
+      <div className="agent-notify" role="note">
+        ⚠ <strong>{t("agents.notify.label")}:</strong> {String((block.input as { text?: unknown } | undefined)?.text ?? "")}{" "}
+        <span className="agent-notify-sent">({t("agents.notify.sent")})</span>
+      </div>
+    );
+  }
   const toggleExpanded = () => {
     const next = !expanded;
     setToolCallExpanded(block.toolCallId, next);
