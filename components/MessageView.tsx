@@ -1136,7 +1136,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession }: { block: Tool
     return (
       <div className="agent-notify" role="note">
         ⚠ <strong>{t("agents.notify.label")}:</strong> {String((block.input as { text?: unknown } | undefined)?.text ?? "")}{" "}
-        <span className="agent-notify-sent">({t("agents.notify.sent")})</span>
+        {result && !result.isError && <span className="agent-notify-sent">({t("agents.notify.sent")})</span>}
       </div>
     );
   }

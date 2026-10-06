@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { listSubagentProfiles } from "@/lib/subagents";
+import { excludeAgents } from "@/lib/agent-ops/overview";
 import { listStagedFacts } from "@/lib/agent-ops/memory-review";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +9,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const agent = new URL(req.url).searchParams.get("agent");
-    const facts = listStagedFacts().filter((fact) => agent === null || fact.agent === agent);
+    const staged = listStagedFacts();
+    const longTerm = new Set(listSubagentProfiles(process.cwd()).filter((p) => p.longTerm).map((p) => p.name));
+    // Without ?agent= this is the legacy panel's queue: long-term agents review their memory in their own view.
+    const facts = agent === null ? excludeAgents(staged, longTerm, (fact) => fact.agent) : staged.filter((fact) => fact.agent === agent);
     return NextResponse.json({ facts }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });

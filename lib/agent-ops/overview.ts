@@ -57,6 +57,10 @@ export function readAgentProfileRef(filePath: string, maxBytes = 64 * 1024): { p
   return ref;
 }
 
+export function excludeAgents<T>(items: readonly T[], names: ReadonlySet<string>, agentOf: (item: T) => string): T[] {
+  return items.filter((item) => !names.has(agentOf(item)));
+}
+
 export function buildAgentCards(input: {
   profiles: readonly { name: string; displayName: string; description: string; color?: string; enabled: boolean }[];
   sessions: readonly AgentSessionRef[];

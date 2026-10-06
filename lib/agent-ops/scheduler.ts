@@ -20,7 +20,7 @@ export function fenceUntrusted(text: string): string {
 export function createTriggerTask(trigger: TriggerConfig, rawText: string, create: TaskCreator, kind: "schedule" | "webhook"): string {
   const common = {
     agent: trigger.profile, profile: trigger.profile, cwd: triggerHome(trigger), origin: "trigger" as const, triggerId: trigger.id,
-    pinnedProfileSha256: trigger.pinnedProfile.contentSha256, // verified again in start()
+    pinnedProfileSha256: trigger.pinnedProfile.contentSha256, // webhook (isolated) tasks re-check it in start(); a schedule thread task is only admitted at fire time (thread runs are trusted, a Profile settings edit re-pins)
   };
   if (kind === "schedule") {
     // Trusted: the agent's own schedule runs in its thread as a plain prompt; nothing external is in it.
