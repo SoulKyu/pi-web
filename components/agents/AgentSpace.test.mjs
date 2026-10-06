@@ -41,3 +41,9 @@ test("the agent panel shows only when no file or terminal tab is active", () => 
   assert.match(shell, /\{showAgentPanel \? \(/);
   assert.match(shell, /\{!showAgentPanel && <div/);
 });
+
+test("deleting an agent lands on a draft with no cwd and a bare URL", () => {
+  assert.match(shell, /onDeleted=\{handleAgentDeleted\}/);
+  assert.match(shell, /const handleAgentDeleted = useCallback/);
+  assert.match(shell, /setNewSessionCwd\(null\);[\s\S]*?router\.replace\("\/", \{ scroll: false \}\)/);
+});

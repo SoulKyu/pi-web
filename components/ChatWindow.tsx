@@ -291,6 +291,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   });
   const sessionBusy = agentRunning || bashRunning;
   const unreadAt = useMemo(() => firstUnreadIndex(entryIds, unreadMarkerEntryId ?? null), [entryIds, unreadMarkerEntryId]);
+  const unreadDivider = (
+    <div key="agent-unread-divider" className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
+  );
   const latestEntryId = entryIds[entryIds.length - 1];
   useEffect(() => {
     if (!onLatestEntryViewed || !latestEntryId || typeof document === "undefined" || document.visibilityState !== "visible") return;
@@ -1081,7 +1084,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                 if (idx === unreadAt && keyPrefix === "message") {
                   return (
                     <Fragment key={`${keyPrefix}-unread-${messageKey}`}>
-                      <div className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
+                      {unreadDivider}
                       {node}
                     </Fragment>
                   );
@@ -1168,6 +1171,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                 }
 
                 if (processViews.length > 0) {
+                  if (unreadAt > userIdx && (unreadAt < finalAssistantIdx || (unreadAt === finalAssistantIdx && !finalAnswerMessage))) {
+                    rendered.push(unreadDivider);
+                  }
                   rendered.push(
                     <div
                       key={`process-group-${entryIds[groupStartIdx] ?? groupStartIdx}`}

@@ -15,3 +15,8 @@ test("onLatestEntryViewed fires from a debounced effect keyed on the newest entr
   assert.match(chat, /window\.setTimeout\(\(\) => onLatestEntryViewed\(latestEntryId\), 1000\)/);
   assert.match(chat, /\[latestEntryId, onLatestEntryViewed\]/);
 });
+
+test("the divider also renders once before a process group that contains the first unread entry", () => {
+  assert.match(chat, /unreadAt > userIdx && \(unreadAt < finalAssistantIdx \|\| \(unreadAt === finalAssistantIdx && !finalAnswerMessage\)\)/);
+  assert.match(chat, /rendered\.push\(unreadDivider\)/);
+});

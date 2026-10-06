@@ -1090,6 +1090,29 @@ export function AppShell() {
     }
   }, [invalidateWorkspaceRestore, selectedSession, router]);
 
+  const handleAgentDeleted = useCallback(() => {
+    invalidateWorkspaceRestore();
+    setActiveAgent(null);
+    setAgentDetail(null);
+    setAgentUnreadMarker(null);
+    pendingAgentRef.current = null;
+    reloadAgents();
+    setRefreshKey((k) => k + 1);
+    if (selectedSession) clearTabOpenSession(selectedSession.id);
+    activeNewSessionDraftKeyRef.current = null;
+    setSelectedSession(null);
+    setNewSessionCwd(null);
+    setSessionKey((k) => k + 1);
+    setBranchTree([]);
+    setBranchActiveLeafId(null);
+    setBranchSwitchLocked(false);
+    setSystemPrompt(null);
+    setSystemTools(null);
+    setSystemInfoLoading(false);
+    setActiveTopPanel(null);
+    router.replace("/", { scroll: false });
+  }, [invalidateWorkspaceRestore, reloadAgents, selectedSession, router]);
+
   const handleOpenFile = useCallback((
     filePath: string,
     fileName: string,
@@ -1268,7 +1291,7 @@ export function AppShell() {
       agent={agentDetail}
       onOpenFile={handleOpenFile}
       onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
-      onDeleted={() => { setActiveAgent(null); setAgentDetail(null); reloadAgents(); if (selectedSession) handleSessionDeleted(selectedSession.id); }}
+      onDeleted={handleAgentDeleted}
     />
   ) : null;
   const agentSpaceRight = activeAgent && agentDetail ? (
