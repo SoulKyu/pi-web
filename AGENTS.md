@@ -42,6 +42,7 @@ app/api/
   agent-ops/overview/route.ts      GET agent cards (profiles + their sessions)
   agent-ops/tasks/route.ts         GET list tasks | POST { profile, cwd, prompt } queue a task
   agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel
+  agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
@@ -117,6 +118,9 @@ lib/
   agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task
   agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
   agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin
+  agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
+  agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
+  agent-ops/hook-path.ts    exact hook path the proxy lets through without a session
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
   file-access.ts            allowed file roots for /api/files and worktrees
