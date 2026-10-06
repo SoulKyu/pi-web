@@ -255,3 +255,7 @@ Location: `~/.pi/agent/sessions/<encoded-cwd>/<timestamp>_<uuid>.jsonl`
 --accent --user-bg --tool-bg
 --font-mono
 ```
+
+## Learned
+
+- Running the test suite from inside a pi process (agent, subagent): prefix it with `env -i PATH="$PATH" HOME="$HOME" LANG="$LANG"` — inherited `PI_PACKAGE_DIR` & co. break ~44-97 MCP/SDK-resolution tests.
