@@ -5,7 +5,9 @@ import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { focusModalPanel, listenForPanelEscape } from "@/lib/stacked-dialog";
 import type { AgentCard } from "@/lib/agent-ops/overview";
+import type { StagedFactView } from "@/lib/agent-ops/memory-review";
 import type { AgentTask } from "@/lib/agent-ops/task-store";
+import { AgentMemory } from "./AgentMemory";
 import { AgentTasks } from "./AgentTasks";
 import { AssignTaskDialog } from "./AssignTaskDialog";
 import { isActiveTask } from "./task-view";
@@ -24,9 +26,12 @@ export function AgentsPanel({ onClose, onOpenSession }: {
   const { locale, t } = useI18n();
   const [cards, setCards] = useState<AgentCard[] | null>(null);
   const [tasks, setTasks] = useState<AgentTask[] | null>(null);
+  const [facts, setFacts] = useState<StagedFactView[] | null>(null);
   const [assigning, setAssigning] = useState<AgentCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const factsOf = (agent: string) => facts?.filter((fact) => fact.agent === agent) ?? [];
+  const orphanAgents = facts ? [...new Set(facts.map((fact) => fact.agent))].filter((agent) => !cards?.some((card) => card.profile === agent)) : [];
   const delay = cards ? agentsPollInterval(cards, tasks ?? []) : POLL_MS;
 
   useEffect(() => listenForPanelEscape(document, onClose), [onClose]);
@@ -35,21 +40,23 @@ export function AgentsPanel({ onClose, onOpenSession }: {
   }), []);
 
   const load = useCallback(async (signal: AbortSignal) => {
-    const read = async <T,>(url: string, key: "cards" | "tasks"): Promise<T> => {
+    const read = async <T,>(url: string, key: "cards" | "tasks" | "facts"): Promise<T> => {
       const response = await fetch(url, { cache: "no-store", signal });
       const data = await response.json() as Record<string, unknown> & { error?: string };
       if (!response.ok || !data[key]) throw new Error(data.error ?? `HTTP ${response.status}`);
       return data[key] as T;
     };
     // Independent sections: one failing request must not hide the other.
-    const [cardsResult, tasksResult] = await Promise.allSettled([
+    const [cardsResult, tasksResult, factsResult] = await Promise.allSettled([
       read<AgentCard[]>("/api/agent-ops/overview", "cards"),
       read<AgentTask[]>("/api/agent-ops/tasks", "tasks"),
+      read<StagedFactView[]>("/api/agent-ops/memory", "facts"),
     ]);
     if (signal.aborted) return;
     if (cardsResult.status === "fulfilled") setCards(cardsResult.value);
     if (tasksResult.status === "fulfilled") setTasks(tasksResult.value);
-    const failure = [cardsResult, tasksResult].find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (factsResult.status === "fulfilled") setFacts(factsResult.value);
+    const failure = [cardsResult, tasksResult, factsResult].find((r): r is PromiseRejectedResult => r.status === "rejected");
     setError(failure ? (failure.reason instanceof Error ? failure.reason.message : String(failure.reason)) : null);
   }, []);
 
@@ -109,6 +116,7 @@ export function AgentsPanel({ onClose, onOpenSession }: {
                   {t("agentOps.assign")}
                 </button>
               )}
+              <AgentMemory facts={factsOf(card.profile)} onChanged={reload} />
               <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 2 }}>
                 {card.sessions.map((session) => (
                   <li key={session.id}>
@@ -126,6 +134,12 @@ export function AgentsPanel({ onClose, onOpenSession }: {
                   </li>
                 ))}
               </ul>
+            </section>
+          ))}
+          {cards && orphanAgents.map((agent) => (
+            <section key={`memory-${agent}`} aria-label={agent} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-panel)", minWidth: 0 }}>
+              <strong style={{ fontSize: 13, color: "var(--text)" }}>{agent}</strong>
+              <AgentMemory facts={factsOf(agent)} onChanged={reload} />
             </section>
           ))}
           {tasks && <AgentTasks tasks={tasks} onOpenSession={(sessionId) => { onOpenSession(sessionId); onClose(); }} onChanged={reload} />}
