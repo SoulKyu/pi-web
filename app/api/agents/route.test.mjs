@@ -33,6 +33,7 @@ test("the sessions list leaves agent homes out, and long-term agents are never d
 test("a saved profile re-pins the agent's triggers and a delete removes them before the registry delete", async () => {
   const one = await read("./[name]/route.ts");
   assert.match(one, /updateLongTermAgent\([^\n]*\);\s*repinTriggersOfAgent\(agent\.name\)/);
+  assert.match(one, /cancelQueuedTasksOfAgent\(agent\.name\);[^\n]*\n\s*deleteTriggersOfAgent\(agent\.name\)/);
   assert.match(one, /deleteTriggersOfAgent\(agent\.name\);[^\n]*\n\s*const trash = deleteLongTermAgent\(/);
   const triggers = await read("../agent-ops/triggers/route.ts");
   assert.match(triggers, /searchParams\.get\("agent"\)/);

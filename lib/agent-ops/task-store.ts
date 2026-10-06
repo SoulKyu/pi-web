@@ -118,6 +118,10 @@ export function cancelTask(id: string): boolean {
   updateTask(id, { status: "cancelled", completedAt: new Date().toISOString() });
   return true;
 }
+/** DELETE of an agent: cancels its queued tasks; running and terminal ones are left alone. */
+export function cancelQueuedTasksOfAgent(name: string): number {
+  return listTasks().filter((task) => task.agent === name && cancelTask(task.id)).length;
+}
 /** Retention: deletes terminal tasks completed more than maxAgeMs ago, plus a leftover lock. Never touches queued or running tasks. */
 export function pruneTasks(maxAgeMs = 14 * 24 * 3_600_000): number {
   const cutoff = Date.now() - maxAgeMs;

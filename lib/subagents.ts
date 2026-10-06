@@ -555,7 +555,8 @@ function agentProfileMetadataData(entries: readonly SessionEntry[]): Record<stri
     const entry = entries[index];
     if (entry.type !== "custom" || entry.customType !== AGENT_PROFILE_SESSION_TYPE || !isRecord(entry.data)) continue;
     const data = entry.data;
-    if (data.version !== 1 || typeof data.profile !== "string") continue;
+    if (data.version !== 1) continue;
+    if (typeof data.profile !== "string") return null; // the newest entry is invalid: untrusted, never an older one (pi-mem0's rule)
     return data as Record<string, unknown> & { profile: string };
   }
   return null;

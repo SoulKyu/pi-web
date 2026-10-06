@@ -4,6 +4,7 @@ import { appendThreadEvent } from "../agents/thread";
 import { selectIsolatedTasks, selectThreadTasks } from "../agents/queue";
 import { startThreadEventRun } from "../agents/thread-run";
 import { getRpcSession, isRpcSessionStarting } from "../rpc-manager";
+import { redactSecrets } from "./redact";
 import { runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
 import { recoverInterrupted, type AgentTask } from "./task-store";
@@ -44,7 +45,7 @@ export function handleTaskEnd(task: AgentTask): void {
   }
   if (task.target === "isolated" && task.kind === "webhook") {
     const agent = getLongTermAgent(agentName);
-    const event = webhookEventOfTask(task);
+    const event = webhookEventOfTask({ ...task, result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
     if (agent && event) void appendThreadEvent(agent, event).catch((error) => console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error));
   }
 }

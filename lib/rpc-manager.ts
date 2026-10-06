@@ -2408,6 +2408,9 @@ export async function startRpcSession(
   const reopenedLongTermProfile = reopenedProfileName && readSessionAgentTrust(entries) === "trusted"
     ? resolveLongTermProfile(reopenedProfileName)
     : undefined;
+  if (reopenedProfileName && readSessionAgentTrust(entries) === "trusted" && !reopenedLongTermProfile?.longTerm) {
+    throw new Error(`Long-term agent ${reopenedProfileName} profile is missing or disabled`);
+  }
   const snapshotProfile = newSessionProfile ?? (reopenedLongTermProfile?.longTerm ? reopenedLongTermProfile : undefined);
   const subagentResources = snapshotProfile
     ? profileSessionResources(snapshotProfile)
@@ -2490,7 +2493,7 @@ export async function startRpcSession(
             appendSystemPrompt: subagentResources.appendSystemPrompt,
             extensionFactories: [
               ...(usesExactSystemPrompt ? [exactSystemPromptExtension] : []),
-              ...(trustedThread ? [createAgentNotifyExtension({ agentName: snapshotProfile!.name })] : []),
+              ...(trustedThread && snapshotProfile ? [createAgentNotifyExtension({ agentName: snapshotProfile.name })] : []),
             ],
           }
         : chatOnly
@@ -2626,7 +2629,8 @@ export async function startRpcSession(
           console.error("[pi-web] failed to send completion push:", error instanceof Error ? error.message : error);
         });
       },
-      suppressCompletionNotifications: Boolean(subagentResources) && (!isAgentProfileSession || trustedThread),
+      // Subagent runs and every agent-profile session (trusted thread or isolated run) stay silent; ordinary sessions push.
+      suppressCompletionNotifications: Boolean(subagentResources) || isAgentProfileSession,
       ...(builtins?.mcpHost ? { mcpHost: builtins.mcpHost } : {}),
     });
     const realSessionId = inner.sessionId as string;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cancelQueuedTasksOfAgent } from "@/lib/agent-ops/task-store";
 import { deleteTriggersOfAgent, repinTriggersOfAgent } from "@/lib/agent-ops/trigger-api";
 import { canEditProfile, splitModel, toAgentDetail } from "@/lib/agents/agent-view";
 import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
@@ -69,6 +70,7 @@ export async function DELETE(_req: Request, { params }: Context) {
       if (busy()) return running(); // it came back meanwhile
       const threadPath = id ? await resolveSessionPath(id) : null;
       if (busy()) return running(); // started during the await
+      cancelQueuedTasksOfAgent(agent.name); // a queued task must not fire into a vanished agent
       deleteTriggersOfAgent(agent.name); // no trigger may outlive its agent; the agent is idle, nothing fires into the trash
       const trash = deleteLongTermAgent(agent.name, threadPath ?? undefined);
       if (agent.threadSessionId) invalidateSessionPathCache(agent.threadSessionId);
