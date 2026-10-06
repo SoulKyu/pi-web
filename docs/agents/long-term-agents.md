@@ -16,6 +16,13 @@
 - Profile settings: PATCH `agents/[name]` answers 409 `agent_running` while the thread runs (`canEditProfile`). Model and thinking go to a live thread via `set_model` / `set_thinking_level`; role and tools call `shutdownWhenIdle()` so the next open re-snapshots.
 - Long-term profiles are never delegable (`lib/subagent-runtime.ts`: the `Agent` tool refuses them) and are hidden from Settings › Sub-agents (`app/api/subagents/profiles/route.ts`).
 
+## Security rules
+- Trusted starts and re-snapshots resolve the profile through `resolveLongTermProfile` (`registry.ts`): global scope, exact name. A `.pi/agents` or `.agents/agents` file under the home never applies. A new trusted session must also have the agent's home as cwd.
+- `startRpcSession` refuses a new session of a long-term profile unless it is the trusted thread or an isolated run (`agentProfileTools`): `POST /api/agent/new` and `POST /api/agent-ops/tasks` cannot start one.
+- Settings › Sub-agents (PUT, PATCH toggle, DELETE) answers 409 `long-term agent` for a long-term name, and PUT strips `longTerm` from the body.
+- DELETE runs inside `withThreadLock` (the lock `ensureThread` uses) and re-checks the live wrapper before moving files; `ensureThread` throws `not_found` when the agent vanished.
+- Names are at most 64 characters (`AGENT_NAME_MAX`).
+
 ## Unread
 - Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. No divider is drawn for an absent or unknown marker although the badge counts everything. The divider count includes non-message entries; the badge counts assistant replies only. Phase 2 adds event cards.
 - `ChatWindow` fixes the marker for the visit (`unreadMarkerEntryId`) so the divider does not move as reads post. `onLatestEntryViewed` posts the read 1 s after the newest entry is visible. When the first unread entry is inside a collapsed process group, the divider is rendered before the group.
@@ -32,5 +39,5 @@
 - Phases 2-4 (events, triggers, webhooks, memory) are not implemented; do not document them as existing.
 
 ## Known gaps
-- PATCH has a check-then-act window between `canEditProfile` and the write.
+- PATCH re-checks `threadRunning` right before the write, but a start in the remaining instant is not locked out.
 - The tab bar is hidden while the agent panel shows.
