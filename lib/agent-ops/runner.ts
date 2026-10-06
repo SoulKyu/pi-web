@@ -52,7 +52,7 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
     const current = getTask(task.id);
     if (current && TERMINAL.has(current.status)) {
       // Cancelled while the session was starting: the route had no session to abort yet.
-      await handle.abort().catch(() => {});
+      void handle.abort().catch(() => {});
       return;
     }
     const outcome = await Promise.race([handle.done, deadline]);
@@ -62,7 +62,7 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
     // Never throw from this catch: runOne runs fire-and-forget.
     finish(task.id, { status: "failed", error: error instanceof Error ? error.message : String(error) });
     if (error instanceof RunTimeoutError) {
-      if (handle) await handle.abort().catch(() => {});
+      if (handle) void handle.abort().catch(() => {});
       else abortLateSession(starting);
     }
   } finally {
@@ -72,7 +72,8 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
   }
 }
 
-/** The deadline won while start was pending: abort the session if it still comes up, swallow every rejection. */
+/** The deadline won while start was pending: abort the session if it still comes up, swallow every rejection.
+ *  Like every abort in this file it is fire-and-forget: its answer is never used, and a hung abort must not hold a slot. */
 function abortLateSession(starting: Promise<RunHandle> | undefined): void {
   starting?.then((late) => { late.done.catch(() => {}); return late.abort(); }, () => {}).catch(() => {});
 }

@@ -26,10 +26,12 @@ export async function enforceTriggerTools(session: PromptRunSession): Promise<vo
   }
 }
 
-/** Sends the prompt and settles `done` from the session's events. */
-export async function watchPromptRun(
+/** Sends the prompt and settles `done` from the session's events. The send is NOT awaited: it lasts
+ *  through the MCP wait and the extension preflight (lib/rpc-manager.ts:778-799), so a hang there
+ *  must stay abortable through the returned handle instead of blocking start. */
+export function watchPromptRun(
   session: PromptRunSession, prompt: string,
-): Promise<{ done: Promise<RunOutcome>; abort(): Promise<void> }> {
+): { done: Promise<RunOutcome>; abort(): Promise<void> } {
   let resolveDone!: (value: RunOutcome) => void;
   let rejectDone!: (error: Error) => void;
   const done = new Promise<RunOutcome>((resolve, reject) => { resolveDone = resolve; rejectDone = reject; });
@@ -58,12 +60,9 @@ export async function watchPromptRun(
       settle(() => rejectDone(new Error(event.errorMessage ?? "prompt failed")));
     }
   });
-  try {
-    // A preflight rejection THROWS here and emits neither prompt_done nor
-    // prompt_error (lib/rpc-manager.ts:833-836): settle `done` ourselves.
-    await session.send({ type: "prompt", message: prompt });
-  } catch (error) {
-    settle(() => rejectDone(error instanceof Error ? error : new Error(String(error))));
-  }
+  // A preflight rejection rejects the send and emits neither prompt_done nor
+  // prompt_error (lib/rpc-manager.ts:833-836): settle `done` ourselves.
+  session.send({ type: "prompt", message: prompt })
+    .catch((error) => settle(() => rejectDone(error instanceof Error ? error : new Error(String(error)))));
   return { done, abort: async () => { await session.send({ type: "abort" }); } };
 }
