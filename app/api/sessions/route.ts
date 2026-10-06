@@ -12,6 +12,7 @@ import {
   getRpcSessionInfos,
   getRunningRpcSessionIds,
 } from "@/lib/rpc-manager";
+import { isAgentHomePath } from "@/lib/agents/registry";
 import { startServerPerf } from "@/lib/perf";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
       attachSessionProjectInfo(getRpcSessionInfos()),
     ]);
     perf?.span("scan+projects");
-    const sessions = mergeSessionLists(persistedSessions, runtimeSessions);
+    const sessions = mergeSessionLists(persistedSessions, runtimeSessions).filter((session) => !isAgentHomePath(session.cwd));
     return perf?.attach(jsonResponse(
       req,
       {

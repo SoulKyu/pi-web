@@ -219,6 +219,7 @@ export function createSubagentController(
     try {
       const profile = resolveSubagentProfile(parent.cwd, request.profile);
       if (!profile) throw new Error(`Unknown or disabled subagent profile: ${request.profile}`);
+      if (profile.longTerm) throw new Error(`Long-term agent ${profile.name} cannot be delegated to: talk to it in its thread`);
 
       const runInBackground = request.runInBackground ?? profile.runInBackground;
       const isolation = profile.isolation === "off" ? undefined : request.isolation ?? profile.isolation;

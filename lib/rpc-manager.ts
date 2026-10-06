@@ -2477,7 +2477,7 @@ export async function startRpcSession(
               }),
               createSubagentExtension(
                 SUBAGENT_CONTROLLER.extensionRuntime,
-                () => listSubagentProfiles(sessionCwd),
+                () => listSubagentProfiles(sessionCwd).filter((profile) => !profile.longTerm),
                 isBuiltInSubagentsEnabled,
               ),
             ],

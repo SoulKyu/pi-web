@@ -33,7 +33,7 @@ function validateToggleScope(scope: unknown): SubagentWritableScope | "builtin" 
 export async function GET(req: Request) {
   try {
     const cwd = await validateCwd(new URL(req.url).searchParams.get("cwd"));
-    return NextResponse.json({ profiles: listSubagentProfileSources(cwd) });
+    return NextResponse.json({ profiles: listSubagentProfileSources(cwd).filter((profile) => !profile.longTerm) });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: message === "Access denied" ? 403 : 400 });
