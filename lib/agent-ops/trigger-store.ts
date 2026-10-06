@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync } from "no
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
-import type { SubagentProfile, SubagentScope } from "../subagents";
+import { resolveSubagentProfile, type SubagentProfile, type SubagentScope } from "../subagents";
 
 export interface TriggerConfig {
   id: string; name: string; profile: string; cwd: string; enabled: boolean;
@@ -49,6 +49,20 @@ export function profilePinSha256(profile: SubagentProfile): string {
     loadSkills: profile.loadSkills, loadExtensions: profile.loadExtensions,
     model: profile.model, maxTurns: profile.maxTurns,
   }));
+}
+
+export type TriggerPinStatus = "ok" | "drift" | "missing";
+
+/** The scheduler's admission check, as a status: the profile as resolved in the trigger's cwd against its pin.
+ *  Never throws: an unresolvable profile or an unreadable profile file is "missing". */
+export function triggerPinStatus(trigger: Pick<TriggerConfig, "cwd" | "profile" | "pinnedProfile">): TriggerPinStatus {
+  try {
+    const resolved = resolveSubagentProfile(trigger.cwd, trigger.profile);
+    if (!resolved) return "missing";
+    return profilePinSha256(resolved) === trigger.pinnedProfile.contentSha256 ? "ok" : "drift";
+  } catch {
+    return "missing";
+  }
 }
 
 /** Creation-time check on the DECLARED tools, as an early refusal. It cannot see extension

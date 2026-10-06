@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { resolveSubagentProfile } from "../subagents";
 import { redactSecrets, truncate } from "./redact";
 import { createTask, listTasks, pruneTasks, recoverInterrupted } from "./task-store";
-import { listTriggers, profilePinSha256, triggersDir, type TriggerConfig } from "./trigger-store";
+import { listTriggers, triggerPinStatus, triggersDir, type TriggerConfig } from "./trigger-store";
 
 export type TaskCreator = typeof createTask;
 export type IngestResult = { accepted: true; taskId: string } | { accepted: false; reason: string };
@@ -43,10 +42,9 @@ function claimFireToken(name: string): boolean {
 function admissionRefusal(trigger: TriggerConfig): string | null {
   if (!trigger.enabled) return "trigger disabled";
   // Pin check before creating anything: refuse drifted or vanished profiles.
-  const resolved = resolveSubagentProfile(trigger.cwd, trigger.profile);
-  if (!resolved) return "trigger profile not found or disabled";
-  if (profilePinSha256(resolved) !== trigger.pinnedProfile.contentSha256) return "trigger profile drift";
-  return null;
+  const pin = triggerPinStatus(trigger);
+  if (pin === "missing") return "trigger profile not found or disabled";
+  return pin === "drift" ? "trigger profile drift" : null;
 }
 
 export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask): IngestResult {

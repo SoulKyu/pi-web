@@ -3,14 +3,16 @@ import { existsSync } from "node:fs";
 import { resolveSubagentProfile } from "../subagents";
 import {
   buildTriggerConfig, deleteTrigger, getTrigger, hashWebhookSecret, listTriggers, saveTrigger, validateTriggerFields,
-  type TriggerConfig, type TriggerInput,
+  triggerPinStatus, type TriggerConfig, type TriggerInput, type TriggerPinStatus,
 } from "./trigger-store";
 
 /** What leaves the server: the secret is shown once at creation or rotation, never again. */
-export type PublicTrigger = Omit<TriggerConfig, "webhookSecretSha256"> & { hasWebhookSecret: boolean };
+export type PublicTrigger = Omit<TriggerConfig, "webhookSecretSha256"> & { hasWebhookSecret: boolean; pinStatus: TriggerPinStatus };
 
 export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 | 404; error: string };
 
+/** Not a stored field: `repin: true` re-resolves the profile and renews the pin. */
+const PATCH_ONLY_FIELDS = ["repin"] as const;
 const EDITABLE_FIELDS = ["name", "profile", "cwd", "promptTemplate", "enabled", "everyMinutes", "dedupWindowMs", "maxActiveTasks"] as const;
 const NOT_FOUND = { ok: false, status: 404, error: "Trigger not found" } as const;
 const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
@@ -19,7 +21,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 export function toPublicTrigger(trigger: TriggerConfig): PublicTrigger {
   // `webhookSecret` is the legacy plaintext field of older files: it must not leave the server either.
   const { webhookSecretSha256, webhookSecret: _legacy, ...rest } = trigger as TriggerConfig & { webhookSecret?: unknown };
-  return { ...rest, hasWebhookSecret: Boolean(webhookSecretSha256) };
+  return { ...rest, hasWebhookSecret: Boolean(webhookSecretSha256), pinStatus: triggerPinStatus(trigger) };
 }
 
 export function listPublicTriggers(): PublicTrigger[] {
@@ -49,13 +51,15 @@ export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigge
 }
 
 /** Edits keep id and secret. The profile pin is renewed only when the profile or the cwd (which scopes project profiles) changes,
+ *  or on an explicit `repin: true` (the creation checks run again, so a profile that now has disallowed tools is refused),
  *  so an unrelated edit or a toggle never silently accepts a drifted profile. `everyMinutes: null` removes the schedule. */
 export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trigger: PublicTrigger }> {
   const existing = getTrigger(id);
   if (!existing) return NOT_FOUND;
   if (!isRecord(body)) return refuse("Invalid JSON body");
-  const unknown = Object.keys(body).find((key) => !(EDITABLE_FIELDS as readonly string[]).includes(key));
+  const unknown = Object.keys(body).find((key) => ![...EDITABLE_FIELDS, ...PATCH_ONLY_FIELDS].includes(key as never));
   if (unknown) return refuse(`unknown field: ${unknown}`);
+  if (body.repin !== undefined && typeof body.repin !== "boolean") return refuse("repin must be a boolean");
   const merged: Record<string, unknown> = {};
   for (const field of EDITABLE_FIELDS) merged[field] = field in body ? body[field] : existing[field];
   const clearSchedule = body.everyMinutes === null;
@@ -64,7 +68,7 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
   if (invalid) return refuse(invalid);
   const updated: TriggerConfig = { ...existing, ...(merged as unknown as Omit<TriggerInput, "webhookSecret">) };
   if (clearSchedule) delete updated.everyMinutes;
-  if (updated.profile !== existing.profile || updated.cwd !== existing.cwd) {
+  if (body.repin === true || updated.profile !== existing.profile || updated.cwd !== existing.cwd) {
     if (!existsSync(updated.cwd)) return refuse(`Directory does not exist: ${updated.cwd}`);
     const built = buildTriggerConfig(merged as unknown as TriggerInput, resolveIn(updated.cwd));
     if (!built.ok) return refuse(built.error);

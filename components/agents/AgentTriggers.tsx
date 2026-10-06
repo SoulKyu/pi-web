@@ -46,6 +46,11 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
     const data = await run({ method: "POST" }, `${url}/secret`);
     if (data?.webhookSecret) onReveal({ triggerId: trigger.id, triggerName: trigger.name, secret: data.webhookSecret });
   };
+  const repin = () => {
+    if (window.confirm(t("agentOps.trigger.repinConfirm", { name: trigger.name, profile: trigger.profile }))) {
+      void run({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repin: true }) });
+    }
+  };
   const remove = () => {
     if (window.confirm(t("agentOps.trigger.deleteConfirm", { name: trigger.name }))) void run({ method: "DELETE" });
   };
@@ -64,6 +69,12 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
         <span>{lastFireAt ? t("agentOps.trigger.lastFire", { time: formatRelativeTime(lastFireAt, locale) }) : t("agentOps.trigger.neverFired")}</span>
         <span>{t("agentOps.trigger.active", { count: active })}</span>
       </div>
+      {trigger.pinStatus !== "ok" && (
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 8px" }}>
+          <span>{trigger.pinStatus === "drift" ? t("agentOps.trigger.pinDrift", { profile: trigger.profile }) : t("agentOps.trigger.pinMissing", { profile: trigger.profile })}</span>
+          {trigger.pinStatus === "drift" && <button type="button" onClick={repin} style={{ ...smallButton, marginLeft: "auto", flexShrink: 0 }}>{t("agentOps.trigger.repin")}</button>}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <button type="button" onClick={onEdit} style={smallButton}>{t("agentOps.trigger.edit")}</button>
         <button type="button" onClick={() => void rotate()} style={smallButton}>{trigger.hasWebhookSecret ? t("agentOps.trigger.rotate") : t("agentOps.trigger.generate")}</button>
