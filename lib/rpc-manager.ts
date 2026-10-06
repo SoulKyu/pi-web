@@ -38,6 +38,7 @@ import {
   AGENT_PROFILE_SESSION_TYPE,
   listSubagentProfiles,
   readSessionAgentProfile,
+  readSessionAgentProfileInfo,
   readSessionAgentTrust,
   readSubagentRun,
   readSubagentSessionResources,
@@ -352,6 +353,11 @@ export class AgentSessionWrapper {
 
   get sessionId(): string {
     return this.inner.sessionId;
+  }
+
+  /** The agent profile and trust this open session was started with, read from its own entries. */
+  agentProfileInfo(): { name: string; trust: AgentProfileTrust } | undefined {
+    return readSessionAgentProfileInfo(this.inner.sessionManager.getEntries() as unknown as SessionEntry[]);
   }
 
   get sessionFile(): string {
@@ -2235,6 +2241,7 @@ export function getRpcSessionInfos(options: { includeTransient?: boolean } = {})
     const sessionFile = manager.getSessionFile() ?? session.sessionFile;
     const persisted = Boolean(sessionFile && existsSync(sessionFile));
     const subagent = readSubagentRun(entries as unknown as SessionEntry[], header?.id ?? session.sessionId, sessionFile ?? "");
+    const agentProfile = readSessionAgentProfileInfo(entries as unknown as SessionEntry[]);
 
     // An ensure_session call creates an idle, empty runtime while the composer
     // loads commands. Do not leak it into history before a prompt is accepted.
@@ -2269,6 +2276,7 @@ export function getRpcSessionInfos(options: { includeTransient?: boolean } = {})
           status: session.isRunning() ? "running" as const : subagent.status,
         },
       } : {}),
+      ...(agentProfile ? { agentProfile } : {}),
       transient: !persisted,
     });
   }

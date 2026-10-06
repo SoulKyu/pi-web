@@ -13,7 +13,7 @@ import { sessionPathKey } from "./session-path";
 import { MAX_TOOL_RESULT_IMAGE_BYTES, TOOL_RESULT_IMAGE_MIMES } from "./tool-result-images";
 import { resolveProject, type ProjectInfo } from "./worktree";
 import { AGENT_EVENT_ENTRY_TYPE, agentEventToUiMessage, isAgentEventData } from "./agents/events";
-import { readSubagentRun, SUBAGENT_META_TYPE } from "./subagents";
+import { readSessionAgentProfileInfo, readSubagentRun, SUBAGENT_META_TYPE } from "./subagents";
 import { listSessionsIncremental, type ScannedSessionInfo } from "./session-list-scanner";
 
 export { getAgentDir };
@@ -189,15 +189,17 @@ type ScannedSubagent = NonNullable<ReturnType<typeof readSubagentRun>>;
 function resolveScannedSessionRelation(
   scanned: ScannedSessionInfo,
   pathToId: Map<string, string>,
-): { originSessionId?: string; subagent: ScannedSubagent | null } {
+): { originSessionId?: string; subagent: ScannedSubagent | null; agentProfile?: SessionInfo["agentProfile"] } {
   const originSessionId = scanned.parentSessionPath
     ? pathToId.get(sessionPathKey(scanned.parentSessionPath))
     : undefined;
-  if (!scanned.parentSessionPath) return { originSessionId, subagent: null };
 
   try {
-    const subagent = readSubagentRun(readSessionRelationEntries(scanned.path), scanned.id, scanned.path);
-    return { originSessionId, subagent };
+    // ponytail: a bounded prefix read per session on each rebuild (the list is cached); store the profile in the scanner if this shows up in profiles.
+    const entries = readSessionRelationEntries(scanned.path);
+    const agentProfile = readSessionAgentProfileInfo(entries);
+    const subagent = scanned.parentSessionPath ? readSubagentRun(entries, scanned.id, scanned.path) : null;
+    return { originSessionId, subagent, ...(agentProfile ? { agentProfile } : {}) };
   } catch {
     // Malformed or concurrently removed session.
     return { originSessionId, subagent: null };
@@ -209,7 +211,7 @@ function mapScannedSession(
   pathToId: Map<string, string>,
 ): SessionInfo {
   cacheSessionPath(scanned.id, scanned.path);
-  const { originSessionId, subagent } = resolveScannedSessionRelation(scanned, pathToId);
+  const { originSessionId, subagent, agentProfile } = resolveScannedSessionRelation(scanned, pathToId);
   const detailsPending = scanned.detailsPending === true;
   return {
     path: scanned.path,
@@ -225,6 +227,7 @@ function mapScannedSession(
       ? ""
       : scanned.firstMessage || "(no messages)",
     parentSessionId: originSessionId,
+    ...(agentProfile ? { agentProfile } : {}),
     ...(subagent
       ? { relation: { kind: "subagent" as const, parentSessionId: subagent.parentSessionId, profile: subagent.profile, description: subagent.description, status: subagent.status } }
       : scanned.parentSessionPath

@@ -33,6 +33,15 @@ export const buildWebhookEvent = (input: { taskId: string; triggerId: string; ti
   summary: clip(input.summary, EVENT_TEXT_MAX), ...(input.runSessionId ? { runSessionId: input.runSessionId } : {}),
 });
 
+/** The summary card of a finished webhook run; null for cancelled or legacy tasks. Display-only: only result or error goes in. */
+export function webhookEventOfTask(task: { id: string; triggerId?: string; title: string; status: string; result?: string; error?: string; sessionId?: string }): AgentEventData | null {
+  if (!task.triggerId || (task.status !== "completed" && task.status !== "failed")) return null;
+  return buildWebhookEvent({
+    taskId: task.id, triggerId: task.triggerId, title: task.title, status: task.status,
+    summary: (task.status === "completed" ? task.result : task.error) ?? "", ...(task.sessionId ? { runSessionId: task.sessionId } : {}),
+  });
+}
+
 export function agentEventToUiMessage(data: AgentEventData, timestamp?: number): CustomMessage {
   return { role: "custom", customType: AGENT_EVENT_UI_TYPE, content: data.kind === "webhook" ? data.summary : data.title, display: true, details: data, ...(timestamp !== undefined ? { timestamp } : {}) };
 }

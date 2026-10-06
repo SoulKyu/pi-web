@@ -41,3 +41,14 @@ test("a saved profile re-pins the agent's triggers and a delete removes them bef
   assert.match(triggers, /searchParams\.get\("agent"\)/);
   assert.match(triggers, /trigger\.profile === agent/);
 });
+
+test("an isolated (untrusted agent-profile) run refuses every command but the get_ queries", async () => {
+  const route = await read("../agent/[id]/route.ts");
+  assert.match(route, /readSessionAgentProfileInfo\(/);
+  assert.match(route, /trust === "untrusted"/);
+  assert.match(route, /isolated run is read-only/);
+  assert.match(route, /status: 403/);
+  assert.match(route, /startsWith\("get_"\)/);
+  assert.ok(route.indexOf("isolated run is read-only") < route.indexOf("existing.send(body)"));
+  assert.ok(route.indexOf("isolated run is read-only") < route.indexOf('body.type === "set_tools"'));
+});

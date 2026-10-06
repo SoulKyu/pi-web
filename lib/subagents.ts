@@ -581,6 +581,12 @@ export function readSessionAgentProfile(entries: readonly SessionEntry[]): strin
   return agentProfileMetadataData(entries)?.profile;
 }
 
+/** Profile name and trust of a top-level agent-profile session; the one reader behind the list, the live infos and the command guard. */
+export function readSessionAgentProfileInfo(entries: readonly SessionEntry[]): { name: string; trust: AgentProfileTrust } | undefined {
+  const name = readSessionAgentProfile(entries);
+  return name === undefined ? undefined : { name, trust: readSessionAgentTrust(entries) };
+}
+
 /**
  * Restore the isolated prompt and tool scope used by a persisted subagent session, or by a
  * top-level session started directly as an agent profile: both pin the same snapshot.

@@ -1,4 +1,6 @@
 import { getLongTermAgent } from "../agents/registry";
+import { webhookEventOfTask } from "../agents/events";
+import { appendThreadEvent } from "../agents/thread";
 import { selectIsolatedTasks, selectThreadTasks } from "../agents/queue";
 import { startThreadEventRun } from "../agents/thread-run";
 import { getRpcSession, isRpcSessionStarting } from "../rpc-manager";
@@ -28,16 +30,23 @@ function isThreadBusy(agentName: string): boolean {
   return Boolean(live?.isAlive() && live.isRunning());
 }
 
-/** After a terminal write: a failed run of a long-term agent pushes (Task 21 adds the webhook summary card). */
+/** After a terminal write: a failed run of a long-term agent pushes; a finished webhook run posts its summary card. Neither blocks nor throws. */
 export function handleTaskEnd(task: AgentTask): void {
-  if (!task.agent || task.status !== "failed") return;
-  const agent = task.agent;
-  notifyAgent((locale) => ({
-    title: agent,
-    body: localeText(locale, "agentRunFailed").replace("{name}", agent).replace("{title}", task.title),
-    url: `/?agent=${encodeURIComponent(agent)}`,
-    tag: `pi-agent-failed:${task.id}`,
-  })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
+  if (!task.agent) return;
+  const agentName = task.agent;
+  if (task.status === "failed") {
+    notifyAgent((locale) => ({
+      title: agentName,
+      body: localeText(locale, "agentRunFailed").replace("{name}", agentName).replace("{title}", task.title),
+      url: `/?agent=${encodeURIComponent(agentName)}`,
+      tag: `pi-agent-failed:${task.id}`,
+    })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
+  }
+  if (task.target === "isolated" && task.kind === "webhook") {
+    const agent = getLongTermAgent(agentName);
+    const event = webhookEventOfTask(task);
+    if (agent && event) void appendThreadEvent(agent, event).catch((error) => console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error));
+  }
 }
 
 /** Single runner entry point: the task route, the webhook and the scheduler all call it.

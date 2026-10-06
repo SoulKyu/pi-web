@@ -869,7 +869,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     ? (modelThinkingLevelMaps[`${displayModelValue.provider}:${displayModelValue.modelId}`] ?? null)
     : null;
 
-  const chatInputElement = (
+  const chatInputElement = session?.agentProfile?.trust === "untrusted" ? (
+    <div className="agent-read-only" role="status">{t("agents.thread.readOnly", { name: session.agentProfile.name })}</div>
+  ) : (
     <ChatInput
       ref={chatInputRef}
       onSend={handleSend}

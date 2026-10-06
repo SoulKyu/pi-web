@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { resolveSessionPath } from "@/lib/session-reader";
+import { readSessionAgentProfileInfo } from "@/lib/subagents";
+import { getSessionEntries } from "@/lib/session-reader";
 import { startRpcSession, getRpcSession, setRpcSessionTools } from "@/lib/rpc-manager";
+
+/** Trust comes from the session itself: the open wrapper's entries, else the file's. Unreadable means not isolated-provable, so it stays an ordinary session. */
+async function isIsolatedRun(id: string, existing: ReturnType<typeof getRpcSession>): Promise<boolean> {
+  if (existing?.isAlive()) return existing.agentProfileInfo()?.trust === "untrusted";
+  const filePath = await resolveSessionPath(id);
+  if (!filePath) return false;
+  return readSessionAgentProfileInfo(getSessionEntries(filePath))?.trust === "untrusted";
+}
 
 // POST /api/agent/[id] - Send a command to an existing session
 export async function POST(
@@ -25,6 +35,10 @@ export async function POST(
 
     // Fast path: already-running session
     const existing = getRpcSession(id);
+    // An isolated run is for reading: only the get_ queries pass. The runner sends through the wrapper, not this route.
+    if (!(typeof body.type === "string" && body.type.startsWith("get_")) && await isIsolatedRun(id, existing)) {
+      return NextResponse.json({ error: "isolated run is read-only" }, { status: 403 });
+    }
     if (body.type === "set_tools") {
       const filePath = existing?.sessionFile || await resolveSessionPath(id) || undefined;
       if (!existing?.isAlive() && !filePath) {

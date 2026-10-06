@@ -361,6 +361,8 @@ export interface SessionInfo {
   /** True while the sidebar has only header/stat metadata for this session. */
   detailsPending?: boolean;
   parentSessionId?: string; // source session for a fork, or parent session for a subagent
+  /** Set for a session started as an agent profile; "untrusted" is an isolated run, shown read-only. */
+  agentProfile?: { name: string; trust: "trusted" | "untrusted" };
   /** How this session relates to another session. Forks remain top-level in the
    *  UI; only subagent relations form a visible parent/child tree. */
   relation?:
