@@ -13,15 +13,23 @@ export interface AgentCard {
 // Fingerprint cache: session files are scanned on every board poll; skip unchanged ones.
 const refCache = new Map<string, { fp: string; ref: { profile: string; createdAt: string } | null }>();
 
+function makeCacheKey(filePath: string, maxBytes: number): string {
+  return `${filePath}\0${maxBytes}`;
+}
+
 /** Mirrors agentProfileMetadataData (lib/subagents.ts:544): the entry carries data, not metadata. */
 export function readAgentProfileRef(filePath: string, maxBytes = 64 * 1024): { profile: string; createdAt: string } | null {
+  const cacheKey = makeCacheKey(filePath, maxBytes);
   let fp = "";
   try {
     const st = statSync(filePath);
     fp = `${st.size}:${st.mtimeMs}`;
-    const cached = refCache.get(filePath);
+    const cached = refCache.get(cacheKey);
     if (cached && cached.fp === fp) return cached.ref;
-  } catch { return null; }
+  } catch {
+    refCache.delete(cacheKey);
+    return null;
+  }
   let ref: { profile: string; createdAt: string } | null = null;
   try {
     const fd = openSync(filePath, "r"); // inside try: file may vanish between listing and read
@@ -41,7 +49,9 @@ export function readAgentProfileRef(filePath: string, maxBytes = 64 * 1024): { p
       }
     } finally { closeSync(fd); }
   } catch { return null; }
-  refCache.set(filePath, { fp, ref });
+  // ponytail: global map, clear at 2000 entries; per-filePath+maxBytes locks if contention matters
+  if (refCache.size >= 2000) refCache.clear();
+  refCache.set(cacheKey, { fp, ref });
   return ref;
 }
 
@@ -56,8 +66,11 @@ export function buildAgentCards(input: {
     list.push(s);
     byProfile.set(s.agentProfile, list);
   }
+  for (const list of byProfile.values()) {
+    list.sort((a, b) => b.modified.localeCompare(a.modified));
+  }
   const cards: AgentCard[] = input.profiles.map((p) => {
-    const sessions = (byProfile.get(p.name) ?? []).sort((a, b) => b.modified.localeCompare(a.modified));
+    const sessions = byProfile.get(p.name) ?? [];
     return {
       profile: p.name, displayName: p.displayName, description: p.description, color: p.color, enabled: p.enabled,
       sessions, running: sessions.some((s) => input.runningSessionIds.has(s.id)), lastActivity: sessions[0]?.modified,
