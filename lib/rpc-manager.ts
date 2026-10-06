@@ -661,6 +661,11 @@ export class AgentSessionWrapper {
     }, timeoutMs);
   }
 
+  /** Pi delays the first flush until a user or assistant message exists. A long-term agent's thread must exist on disk from its creation, or the id stored in its space state resolves to nothing once the idle release closes the wrapper. */
+  persistSessionFile(): void {
+    this.persistBashOnlySession();
+  }
+
   private persistBashOnlySession(): void {
     const manager = this.inner.sessionManager;
     const sessionFile = manager.getSessionFile();

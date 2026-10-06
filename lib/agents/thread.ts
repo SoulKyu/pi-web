@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { allowFileRoot } from "../file-access";
 import { serializeByKey } from "../key-serializer";
 import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSessionWrapper } from "../rpc-manager";
@@ -33,13 +34,14 @@ export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDep
     const current = deps.readAgent(agent.name) ?? agent; // re-read inside the lock: a parallel call may have just created it
     if (current.threadSessionId) {
       const path = await deps.resolvePath(current.threadSessionId);
-      if (path) return { sessionId: current.threadSessionId, path };
-      // The file was deleted or moved by hand: start over rather than 404 forever.
+      if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };
+      // Deleted or moved by hand, or never flushed before the idle release: start over.
     }
     const { session, realSessionId } = await deps.start(`__agent_thread__${agent.name}_${randomUUID()}`, "", agent.home, {
       agentProfile: agent.name,
       agentProfileTrust: "trusted",
     });
+    session.persistSessionFile();
     allowFileRoot(agent.home);
     invalidateSessionListCache();
     setThreadSessionId(agent.name, realSessionId);
@@ -64,6 +66,6 @@ export async function unreadCount(agent: Pick<LongTermAgent, "threadSessionId" |
   const live = getRpcSession(agent.threadSessionId);
   const entries = live?.isAlive()
     ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
-    : await resolveSessionPath(agent.threadSessionId).then((path) => (path ? getSessionEntries(path) : []));
+    : await resolveSessionPath(agent.threadSessionId).then((path) => (path && existsSync(path) ? getSessionEntries(path) : []));
   return countUnread(entries, agent.lastReadEntryId);
 }
