@@ -36,11 +36,14 @@ import {
   AGENT_PROFILE_SESSION_TYPE,
   listSubagentProfiles,
   readSessionAgentProfile,
+  readSessionAgentTrust,
   readSubagentRun,
   readSubagentSessionResources,
   resolveSubagentProfile,
+  sameResourceSnapshot,
   SUBAGENT_CONTROL_TOOL_NAMES,
   type AgentProfileSessionMetadata,
+  type AgentProfileTrust,
   type SubagentProfile,
   type SubagentSessionResources,
 } from "./subagents";
@@ -211,6 +214,10 @@ export interface RpcSessionStartOptions {
   thinkingLevel?: ThinkingLevel;
   /** Start a new session as this agent profile: its prompt, tools, model and thinking, pinned in the file. */
   agentProfile?: string;
+  /** Written into the pi-web:agent-profile entry of a new profile session. Absent means untrusted (fail closed). */
+  agentProfileTrust?: AgentProfileTrust;
+  /** Isolated runs: keep only these of the profile's active tools (the trigger allowlist). Ignored without agentProfile. */
+  agentProfileTools?: readonly string[];
 }
 
 const CODING_TOOL_NAMES = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
@@ -320,6 +327,7 @@ export class AgentSessionWrapper {
   private shutdownPromise: Promise<void> | null = null;
   private sessionShutdownEmitted = false;
   private forceShutdownOnIdle = false;
+  private shutdownAfterRun = false;
   // The armed idle timer is the forced cleanup Stop scheduled.
   private forcedIdleTimerArmed = false;
   private _alive = true;
@@ -388,6 +396,25 @@ export class AgentSessionWrapper {
     return true;
   }
 
+  /**
+   * Append a display-only entry: type "custom", which the SDK keeps out of the model context
+   * (D11). Open SSE streams never receive entry_appended (lib/agent-event-wire.ts), so tell
+   * them here; hooks/useAgentSession.ts renders agent events from this event.
+   */
+  appendDisplayEntry(customType: string, data: unknown): string {
+    const entryId = this.inner.sessionManager.appendCustomEntry(customType, data);
+    invalidateSessionListCache();
+    this.emit({ type: "custom_entry_appended", entryId, customType, data } as unknown as AgentEvent);
+    return entryId;
+  }
+
+  /** Profile settings changed: the next open rebuilds the session from the profile. A running turn finishes first. */
+  shutdownWhenIdle(): void {
+    if (!this.isAlive()) return;
+    if (!this.isRunning()) { void this.shutdown().catch(() => {}); return; }
+    this.shutdownAfterRun = true;
+  }
+
   isChatOnly(): boolean {
     return this.chatOnly;
   }
@@ -408,6 +435,12 @@ export class AgentSessionWrapper {
       if (IDLE_RESET_EVENT_TYPES.has(event.type)) this.resetIdleTimer();
       this.emit(event);
       if (event.type === "agent_settled") this.notifyAgentRunCompleteIfIdle();
+      if (event.type === "agent_settled") {
+        if (this.shutdownAfterRun && !this.isRunning()) {
+          this.shutdownAfterRun = false;
+          void this.shutdown().catch(() => {});
+        }
+      }
     });
     this.resetIdleTimer();
   }
@@ -2329,6 +2362,7 @@ export async function startRpcSession(
     sessionManager = SessionManager.create(cwd, undefined);
   }
   const sessionCwd = sessionManager.getCwd();
+  const entries = sessionManager.getEntries() as unknown as SessionEntry[];
   // A new agent-profile session takes the same isolated resources a subagent does; its
   // snapshot is written below, once the profile's extension tools are known.
   const newSessionProfile = !sessionFile && options.agentProfile
@@ -2337,18 +2371,23 @@ export async function startRpcSession(
   if (!sessionFile && options.agentProfile && !newSessionProfile) {
     throw new Error(`Unknown or disabled agent profile: ${options.agentProfile}`);
   }
-  const subagentResources = sessionFile
-    ? readSubagentSessionResources(
-        sessionManager.getEntries() as unknown as SessionEntry[],
-      )
-    : newSessionProfile
-      ? profileSessionResources(newSessionProfile)
+  // A trusted long-term thread follows its profile: role, tools preset and newly installed
+  // extension tools apply at the next open (Profile settings). Untrusted sessions keep the
+  // snapshot they were started with: their tools were narrowed on purpose (webhook runs).
+  const reopenedProfileName = sessionFile ? readSessionAgentProfile(entries) : undefined;
+  const reopenedLongTermProfile = reopenedProfileName && readSessionAgentTrust(entries) === "trusted"
+    ? resolveSubagentProfile(sessionCwd, reopenedProfileName)
+    : undefined;
+  const snapshotProfile = newSessionProfile ?? (reopenedLongTermProfile?.longTerm ? reopenedLongTermProfile : undefined);
+  const subagentResources = snapshotProfile
+    ? profileSessionResources(snapshotProfile)
+    : sessionFile
+      ? readSubagentSessionResources(entries)
       : null;
-  const isAgentProfileSession = Boolean(newSessionProfile)
-    || (Boolean(sessionFile) && readSessionAgentProfile(sessionManager.getEntries() as unknown as SessionEntry[]) !== undefined);
-  const persistedToolNames = subagentResources
-    ? undefined
-    : readSessionToolSelection(sessionManager.getEntries() as unknown as SessionEntry[]);
+  const isAgentProfileSession = Boolean(newSessionProfile) || reopenedProfileName !== undefined;
+  const sessionTrust: AgentProfileTrust = newSessionProfile ? (options.agentProfileTrust ?? "untrusted") : readSessionAgentTrust(entries);
+  const trustedThread = isAgentProfileSession && sessionTrust === "trusted";
+  const persistedToolNames = subagentResources ? undefined : readSessionToolSelection(entries);
   const selectedToolNames = subagentResources?.tools ?? persistedToolNames ?? requestedToolNames;
   if (!subagentResources && persistedToolNames === undefined && requestedToolNames !== undefined) {
     appendSessionToolSelection(sessionManager, requestedToolNames);
@@ -2441,18 +2480,21 @@ export async function startRpcSession(
           },
       ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
     });
-    if (newSessionProfile && subagentResources) {
-      const activeTools = resolveProfileActiveTools(
-        newSessionProfile,
+    if (snapshotProfile && subagentResources) {
+      let activeTools = resolveProfileActiveTools(
+        snapshotProfile,
         services.resourceLoader.getExtensions().extensions,
         settingsManager.getDefaultTools(),
       );
+      if (options.agentProfileTools) activeTools = activeTools.filter((tool) => options.agentProfileTools!.includes(tool));
       subagentResources.tools = activeTools;
       toolsOption = activeTools;
+      const snapshotResources: SubagentSessionResources = { ...subagentResources, tools: [...activeTools] };
       const metadata: AgentProfileSessionMetadata = {
         version: 1,
-        profile: newSessionProfile.name,
+        profile: snapshotProfile.name,
         createdAt: new Date().toISOString(),
+        trust: sessionTrust,
         resourceSnapshot: {
           version: 1,
           appendSystemPrompt: [...subagentResources.appendSystemPrompt],
@@ -2464,7 +2506,9 @@ export async function startRpcSession(
             : {}),
         },
       };
-      sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
+      // A reopened thread appends a fresh entry only when its loadout changed, or the file would grow on every open.
+      const previous = sessionFile ? readSubagentSessionResources(entries) : null;
+      if (!previous || !sameResourceSnapshot(previous, snapshotResources)) sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
     }
     const profileModel = newSessionProfile
       ? parseSubagentModel(services.modelRuntime, newSessionProfile.model)
@@ -2549,7 +2593,7 @@ export async function startRpcSession(
           console.error("[pi-web] failed to send completion push:", error instanceof Error ? error.message : error);
         });
       },
-      suppressCompletionNotifications: Boolean(subagentResources) && !isAgentProfileSession,
+      suppressCompletionNotifications: Boolean(subagentResources) && (!isAgentProfileSession || trustedThread),
       ...(builtins?.mcpHost ? { mcpHost: builtins.mcpHost } : {}),
     });
     const realSessionId = inner.sessionId as string;
