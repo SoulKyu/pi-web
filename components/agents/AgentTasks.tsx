@@ -59,15 +59,17 @@ function TaskRow({ task, onOpenSession, onChanged }: {
   );
 }
 
-export function AgentTasks({ tasks, onOpenSession, onChanged }: {
+export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false }: {
   tasks: readonly AgentTask[];
+  /** Inside a trigger's history: no heading, no full-row grid span. */
+  nested?: boolean;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
 }) {
   const { t } = useI18n();
   return (
-    <section aria-label={t("agentOps.tasks")} style={{ gridColumn: "1 / -1", display: "grid", gap: 8 }}>
-      <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.tasks")}</strong>
+    <section aria-label={t("agentOps.tasks")} style={{ ...(nested ? {} : { gridColumn: "1 / -1" }), display: "grid", gap: 8 }}>
+      {!nested && <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.tasks")}</strong>}
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 12 }}>{t("agentOps.noTasks")}</div>}
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
         {tasks.map((task) => <TaskRow key={task.id} task={task} onOpenSession={onOpenSession} onChanged={onChanged} />)}
