@@ -6,6 +6,7 @@ import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSess
 import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
 import type { SessionEntry } from "../types";
 import { AgentRegistryError, getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
+import { AGENT_EVENT_ENTRY_TYPE } from "./events";
 
 export interface ThreadDeps {
   start: typeof startRpcSession;
@@ -15,9 +16,10 @@ export interface ThreadDeps {
 const defaultDeps = (): ThreadDeps => ({ start: startRpcSession, resolvePath: resolveSessionPath, readAgent: getLongTermAgent });
 const THREAD_START = Symbol.for("pi-web:agent-thread-start");
 
-/** What the badge counts: the agent's replies. The user's own messages are read by definition. Task 15 adds event cards. */
+/** What the badge counts: the agent's replies and event cards. The user's own messages are read by definition. */
 export function isUnreadEntry(entry: SessionEntry): boolean {
-  return entry.type === "message" && (entry as { message?: { role?: string } }).message?.role === "assistant";
+  return (entry.type === "message" && (entry as { message?: { role?: string } }).message?.role === "assistant")
+    || (entry.type === "custom" && entry.customType === AGENT_EVENT_ENTRY_TYPE);
 }
 
 /** Entries after `lastReadEntryId` in file order. An unknown or absent marker counts everything: never hide activity. */

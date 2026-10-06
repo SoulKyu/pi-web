@@ -12,6 +12,7 @@ import { projectIdentityKey } from "./project-identity";
 import { sessionPathKey } from "./session-path";
 import { MAX_TOOL_RESULT_IMAGE_BYTES, TOOL_RESULT_IMAGE_MIMES } from "./tool-result-images";
 import { resolveProject, type ProjectInfo } from "./worktree";
+import { AGENT_EVENT_ENTRY_TYPE, agentEventToUiMessage, isAgentEventData } from "./agents/events";
 import { readSubagentRun, SUBAGENT_META_TYPE } from "./subagents";
 import { listSessionsIncremental, type ScannedSessionInfo } from "./session-list-scanner";
 
@@ -708,6 +709,7 @@ export function buildSessionContext(
  */
 function countsTowardTail(entry: SessionEntry): boolean {
   if (entry.type === "compaction") return true;
+  if (entry.type === "custom") return entry.customType === AGENT_EVENT_ENTRY_TYPE && isAgentEventData(entry.data);
   if (entry.type !== "message") return false;
   const role = (entry as { message?: { role?: string } }).message?.role;
   return role === "user" || role === "assistant";
@@ -883,6 +885,10 @@ function entryToUiMessage(
         content: `*The conversation briefly explored another branch and returned with this summary:*\n\n${entry.summary}`,
         timestamp: parseEntryTimestamp(entry.timestamp),
       };
+    case "custom":
+      return entry.customType === AGENT_EVENT_ENTRY_TYPE && isAgentEventData(entry.data)
+        ? agentEventToUiMessage(entry.data, parseEntryTimestamp(entry.timestamp))
+        : null;
     case "custom_message":
       return {
         role: "custom",

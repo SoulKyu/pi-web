@@ -9,6 +9,7 @@ import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
 import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, hasAssistantAnswer, isAssistantTruncated, isMessageGroupAnchor, splitFinalAssistantBlocks } from "@/lib/message-display";
 import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-files";
 import { buildQuotedSelection } from "@/lib/quoted-selection";
+import { eventPromptIndexes } from "@/lib/agents/events";
 import { firstUnreadIndex } from "@/lib/agents/agent-view";
 import { MessageView } from "./MessageView";
 import { MarkdownBody } from "./MarkdownBody";
@@ -290,6 +291,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     deferInitialScroll: Boolean(pendingScrollRestore),
   });
   const sessionBusy = agentRunning || bashRunning;
+  const eventPrompts = useMemo(() => eventPromptIndexes(messages), [messages]);
   const unreadAt = useMemo(() => firstUnreadIndex(entryIds, unreadMarkerEntryId ?? null), [entryIds, unreadMarkerEntryId]);
   const unreadDivider = (
     <div key="agent-unread-divider" className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
@@ -1074,6 +1076,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     onEditContent={sessionBusy ? undefined : handleEditContent}
                     onCancelEdit={cancelEdit}
                     isEditing={editEntryId === entryIds[idx]}
+                    asEventPrompt={eventPrompts.has(idx)}
                     showTimestamp={showTimestamp}
                     prevTimestamp={idx > 0 ? (messages[idx - 1] as AgentMessage & { timestamp?: number }).timestamp : undefined}
                     sessionId={session?.id ?? sessionIdRef.current ?? undefined}

@@ -1967,3 +1967,11 @@ span.token.table {
 
 .agent-unread-divider { text-align: center; font-size: 11px; color: #e5484d; border-top: 1px solid #e5484d; margin: 8px 0; padding-top: 2px; }
 .agent-space-section { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 10px 0 4px; }
+
+.agent-event { border-left: 3px solid #f5a524; background: rgba(245,165,36,.08); padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; font-size: 12px; }
+.agent-event-webhook { border-left-color: #8e7cc3; background: rgba(142,124,195,.10); }
+.agent-event-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; color: var(--text-muted); }
+.agent-event-link { margin-left: auto; font-size: 11px; }
+.agent-event-failed { color: #e5484d; }
+.agent-event-summary { margin-top: 4px; color: var(--text); }
+.agent-event-prompt summary { cursor: pointer; font-size: 11px; color: var(--text-dim); }
