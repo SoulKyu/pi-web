@@ -54,3 +54,9 @@ test("AgentSpaceRight mounts the two memory sections and polls /memory", () => {
   assert.match(right, /<AgentMemoryRecent/);
   assert.match(right, /\/memory`/);
 });
+
+test("AgentSpaceRight aborts the memory poll on agent switch and unmount", () => {
+  assert.match(right, /new AbortController\(\)/);
+  assert.match(right, /signal\?\.aborted/);
+  assert.match(right, /controller\.abort\(\)/);
+});

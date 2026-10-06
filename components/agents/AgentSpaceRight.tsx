@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { StagedFactView } from "@/lib/agent-ops/memory-review";
@@ -17,18 +17,35 @@ export function AgentSpaceRight({ agent, running, contextPercent }: { agent: Age
   const { t } = useI18n();
   const [memory, setMemory] = useState<MemoryState>(EMPTY_MEMORY);
 
-  const loadMemory = useCallback(async () => {
-    const [result] = await Promise.allSettled([fetch(`/api/agents/${encodeURIComponent(agent.name)}/memory`, { cache: "no-store" })]);
-    if (result.status !== "fulfilled" || !result.value.ok) return;
-    setMemory(await result.value.json() as MemoryState);
+  const [error, setError] = useState<string | null>(null);
+  const signalRef = useRef<AbortSignal | undefined>(undefined);
+
+  const loadMemory = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}/memory`, { cache: "no-store", signal });
+      const data = await response.json() as MemoryState & { error?: string };
+      if (signal?.aborted) return;
+      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`);
+      setMemory(data);
+      setError(null);
+    } catch (cause) {
+      if (signal?.aborted) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   }, [agent.name]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    signalRef.current = signal;
     setMemory(EMPTY_MEMORY);
-    void loadMemory();
-    const timer = setInterval(() => void loadMemory(), MEMORY_POLL_MS);
-    return () => clearInterval(timer);
+    setError(null);
+    void loadMemory(signal);
+    const timer = setInterval(() => void loadMemory(signal), MEMORY_POLL_MS);
+    return () => { controller.abort(); clearInterval(timer); };
   }, [loadMemory]);
+
+  const reloadMemory = () => void loadMemory(signalRef.current);
 
   return (
     <div aria-label={agent.name} style={{ padding: "8px", fontSize: 12, color: "var(--text)" }}>
@@ -40,11 +57,12 @@ export function AgentSpaceRight({ agent, running, contextPercent }: { agent: Age
       {memory.staged.length > 0 && (
         <>
           <div className="agent-space-section">{t("agents.space.memoryToApprove")}</div>
-          <AgentMemory facts={memory.staged} onChanged={() => void loadMemory()} open />
+          <AgentMemory facts={memory.staged} onChanged={reloadMemory} open />
         </>
       )}
       <div className="agent-space-section">{t("agents.space.memory")}</div>
-      <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} onChanged={() => void loadMemory()} />
+      {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
+      <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} onChanged={reloadMemory} />
     </div>
   );
 }
