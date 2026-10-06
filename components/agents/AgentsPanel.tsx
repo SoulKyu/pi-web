@@ -5,12 +5,16 @@ import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { focusModalPanel, listenForPanelEscape } from "@/lib/stacked-dialog";
 import type { AgentCard } from "@/lib/agent-ops/overview";
+import type { AgentTask } from "@/lib/agent-ops/task-store";
+import { AgentTasks } from "./AgentTasks";
+import { AssignTaskDialog } from "./AssignTaskDialog";
+import { isActiveTask } from "./task-view";
 
 const POLL_MS = 30_000;
 const POLL_RUNNING_MS = 5_000;
 
-export function agentsPollInterval(cards: readonly AgentCard[]): number {
-  return cards.some((card) => card.running) ? POLL_RUNNING_MS : POLL_MS;
+export function agentsPollInterval(cards: readonly AgentCard[], tasks: readonly AgentTask[] = []): number {
+  return cards.some((card) => card.running) || tasks.some(isActiveTask) ? POLL_RUNNING_MS : POLL_MS;
 }
 
 export function AgentsPanel({ onClose, onOpenSession }: {
@@ -19,9 +23,11 @@ export function AgentsPanel({ onClose, onOpenSession }: {
 }) {
   const { locale, t } = useI18n();
   const [cards, setCards] = useState<AgentCard[] | null>(null);
+  const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [assigning, setAssigning] = useState<AgentCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const delay = cards ? agentsPollInterval(cards) : POLL_MS;
+  const delay = cards ? agentsPollInterval(cards, tasks) : POLL_MS;
 
   useEffect(() => listenForPanelEscape(document, onClose), [onClose]);
   useLayoutEffect(() => focusModalPanel(document, dialogRef.current, {
@@ -30,16 +36,24 @@ export function AgentsPanel({ onClose, onOpenSession }: {
 
   const load = useCallback(async (signal: AbortSignal) => {
     try {
-      const response = await fetch("/api/agent-ops/overview", { cache: "no-store", signal });
+      const [response, tasksResponse] = await Promise.all([
+        fetch("/api/agent-ops/overview", { cache: "no-store", signal }),
+        fetch("/api/agent-ops/tasks", { cache: "no-store", signal }),
+      ]);
       const data = await response.json() as { cards?: AgentCard[]; error?: string };
       if (!response.ok || !data.cards) throw new Error(data.error ?? `HTTP ${response.status}`);
+      const taskData = await tasksResponse.json() as { tasks?: AgentTask[]; error?: string };
+      if (!tasksResponse.ok || !taskData.tasks) throw new Error(taskData.error ?? `HTTP ${tasksResponse.status}`);
       setCards(data.cards);
+      setTasks(taskData.tasks);
       setError(null);
     } catch (reason) {
       if (signal.aborted) return;
       setError(reason instanceof Error ? reason.message : String(reason));
     }
   }, []);
+
+  const reload = useCallback(() => void load(new AbortController().signal), [load]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,6 +100,15 @@ export function AgentsPanel({ onClose, onOpenSession }: {
               <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-dim)" }}>
                 {card.lastActivity ? t("agentOps.lastActivity", { time: formatRelativeTime(card.lastActivity, locale) }) : t("agentOps.noActivity")}
               </div>
+              {card.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setAssigning(card)}
+                  style={{ marginTop: 8, padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}
+                >
+                  {t("agentOps.assign")}
+                </button>
+              )}
               <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 2 }}>
                 {card.sessions.map((session) => (
                   <li key={session.id}>
@@ -105,7 +128,17 @@ export function AgentsPanel({ onClose, onOpenSession }: {
               </ul>
             </section>
           ))}
+          {cards && <AgentTasks tasks={tasks} onOpenSession={(sessionId) => { onOpenSession(sessionId); onClose(); }} onChanged={reload} />}
         </main>
+        {assigning && (
+          <AssignTaskDialog
+            profile={assigning.profile}
+            displayName={assigning.displayName}
+            initialCwd={assigning.sessions[0]?.cwd ?? ""}
+            onClose={() => setAssigning(null)}
+            onAssigned={reload}
+          />
+        )}
       </div>
     </div>
   );
