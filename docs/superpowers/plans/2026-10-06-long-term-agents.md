@@ -895,7 +895,7 @@ git commit -m "feat(agents): pinned trusted thread per agent and unread count"
 ### Task 5: `/api/agents` routes, sidebar exclusion, no delegation
 
 **Files:**
-- Create: `lib/agents/agent-view.ts`, `app/api/agents/route.ts`, `app/api/agents/[name]/route.ts`, `app/api/agents/[name]/thread/route.ts`, `app/api/agents/[name]/read/route.ts`
+- Create: `lib/agents/agent-view.ts`, `lib/agents/registry-response.ts`, `app/api/agents/route.ts`, `app/api/agents/[name]/route.ts`, `app/api/agents/[name]/thread/route.ts`, `app/api/agents/[name]/read/route.ts`
 - Modify: `app/api/sessions/route.ts:38` (filter), `app/api/subagents/profiles/route.ts:36` (filter), `lib/subagent-runtime.ts:220-221` (refuse), `lib/rpc-manager.ts:2436` (profile provider filter)
 - Test: `lib/agents/agent-view.test.mjs`, `app/api/agents/route.test.mjs` (source pins)
 
@@ -1016,19 +1016,29 @@ export function canEditProfile(threadRunning: boolean): { ok: true } | { ok: fal
 }
 ```
 
+`lib/agents/registry-response.ts` (a route file may only export handlers, so the shared error mapping lives here):
+```ts
+import { NextResponse } from "next/server";
+import { AgentRegistryError } from "./registry";
+
+const headers = { "Cache-Control": "no-store" };
+/** invalid → 400, conflict → 409, not_found → 404, anything else → 500 with the message. */
+export const registryErrorResponse = (error: unknown): Response => error instanceof AgentRegistryError
+  ? NextResponse.json({ error: error.message, code: error.code }, { status: error.code === "conflict" ? 409 : error.code === "not_found" ? 404 : 400, headers })
+  : NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500, headers });
+```
+
 `app/api/agents/route.ts`:
 ```ts
 import { NextResponse } from "next/server";
 import { allowFileRoot } from "@/lib/file-access";
 import { toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
-import { AgentRegistryError, createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
+import { createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
+import { registryErrorResponse } from "@/lib/agents/registry-response";
 import { threadRunning, unreadCount } from "@/lib/agents/thread";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
-export const registryErrorResponse = (error: unknown): Response => error instanceof AgentRegistryError
-  ? NextResponse.json({ error: error.message, code: error.code }, { status: error.code === "conflict" ? 409 : error.code === "not_found" ? 404 : 400, headers })
-  : NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500, headers });
 
 // GET /api/agents - the rail: every long-term agent with running state and unread count.
 export async function GET() {
@@ -1049,7 +1059,6 @@ export async function POST(req: Request) {
   } catch (error) { return registryErrorResponse(error); }
 }
 ```
-(`registryErrorResponse` must live in `lib/agents/registry-response.ts` instead if Next refuses a non-handler export from a route file; same body.)
 
 `app/api/agents/[name]/route.ts`:
 ```ts
@@ -1059,7 +1068,7 @@ import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpd
 import { openThread, threadRunning, unreadCount } from "@/lib/agents/thread";
 import { getRpcSession } from "@/lib/rpc-manager";
 import { invalidateSessionListCache, invalidateSessionPathCache, resolveSessionPath } from "@/lib/session-reader";
-import { registryErrorResponse } from "../route";
+import { registryErrorResponse } from "@/lib/agents/registry-response";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
