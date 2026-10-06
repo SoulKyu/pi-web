@@ -8,7 +8,7 @@ test("the hook appends live agent events once, with their entry id", () => {
   assert.match(source, /case "custom_entry_appended":/);
   assert.match(source, /isAgentEventData\(data\)/);
   assert.match(source, /isSameEvent\(message, data\)/);
-  assert.match(source, /setEntryIds\(\(prev\) => \[\.\.\.prev, entryId\]\)/);
+  assert.match(source, /setEntryIds\(\(prev\) => appendEntryId\(prev, messageCount, entryId\)\)/);
 });
 
 test("MessageView routes agent events to the card; ChatWindow marks event prompts", () => {

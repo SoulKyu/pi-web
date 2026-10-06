@@ -52,3 +52,11 @@ export const isSameEvent = (message: AgentMessage, data: AgentEventData): boolea
   const existing = eventOf(message);
   return existing !== null && existing.kind === data.kind && existing.taskId === data.taskId;
 };
+
+/** entryIds parallels messages; live messages without an id leave holes (read as undefined, as ChatWindow already expects). Pad up to the message count so the new id lands on the appended card. */
+export function appendEntryId(prev: readonly string[], messageCount: number, entryId: string): string[] {
+  const next = prev.slice();
+  next.length = Math.max(next.length, messageCount);
+  next.push(entryId);
+  return next;
+}

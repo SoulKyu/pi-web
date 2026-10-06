@@ -31,7 +31,7 @@ import { isNestedToolExecutionEvent, isSystemMessageEvent } from "@/lib/agent-ev
 import { getToolExecutionProgress } from "@/lib/tool-execution-progress";
 import { CODEMODE_TOOL_NAME, getCodemodeProgress } from "@/lib/codemode-view";
 import { updateExtensionWidgets } from "@/lib/extension-widgets";
-import { AGENT_EVENT_ENTRY_TYPE, agentEventToUiMessage, isAgentEventData, isSameEvent } from "@/lib/agents/events";
+import { AGENT_EVENT_ENTRY_TYPE, agentEventToUiMessage, appendEntryId, isAgentEventData, isSameEvent } from "@/lib/agents/events";
 import { bareMcpOpensSettings } from "@/lib/mcp-command";
 import type { SettingsSection } from "@/lib/settings-navigation";
 import {
@@ -1378,7 +1378,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         if ((event as { customType?: unknown }).customType !== AGENT_EVENT_ENTRY_TYPE || !isAgentEventData(data) || typeof entryId !== "string") break;
         if (messagesRef.current.some((message) => isSameEvent(message, data))) break;
         setMessages((prev) => [...prev, agentEventToUiMessage(data, Date.now())]);
-        setEntryIds((prev) => [...prev, entryId]);
+        // messagesRef is assigned in render and both updates are queued here, so its length is the pre-append count.
+        const messageCount = messagesRef.current.length;
+        setEntryIds((prev) => appendEntryId(prev, messageCount, entryId));
         break;
       }
       case "agent_start":
