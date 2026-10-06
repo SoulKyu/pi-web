@@ -15,29 +15,38 @@ export interface RunnerDeps {
   maxRunMs?: number;
   /** Called after a run ends and its slot is free, so the caller can start the next queued task. */
   onRunEnd?: () => void;
+  /** Which queued tasks this runner may start now, oldest first. Default: every queued task. */
+  select?(queued: AgentTask[], all: AgentTask[]): AgentTask[];
+  /** The process-wide counter this runner's slots live in; two runners never share one. */
+  slotKey?: "__agentOpsRunning" | "__agentOpsThreadRunning";
+  /** Called with the final record after the terminal write, in the run's finally. */
+  onTaskEnd?(task: AgentTask): void;
 }
 export const DEFAULT_MAX_RUN_MS = 30 * 60_000;
 
 // Process-wide running counter — same globalThis pattern as __piSessions (lib/rpc-manager.ts:1934).
-declare global { var __agentOpsRunning: number | undefined; }
-function runningCount(): number { return globalThis.__agentOpsRunning ?? 0; }
+declare global { var __agentOpsRunning: number | undefined; var __agentOpsThreadRunning: number | undefined; }
+type SlotKey = NonNullable<RunnerDeps["slotKey"]>;
+const runningCount = (key: SlotKey): number => globalThis[key] ?? 0;
 
 export async function runPendingTasks(deps: RunnerDeps): Promise<void> {
-  const capacity = deps.maxConcurrent - runningCount();
+  const key = deps.slotKey ?? "__agentOpsRunning";
+  const capacity = deps.maxConcurrent - runningCount(key);
   if (capacity <= 0) return;
   // listTasks is newest first (the UI relies on it); dequeue oldest first so steady ingestion cannot starve old tasks.
-  const queued = listTasks().filter((t) => t.status === "queued").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const batch = queued.slice(0, capacity);
-  await Promise.all(batch.map((task) => runOne(task, deps)));
+  const all = listTasks();
+  const queued = all.filter((t) => t.status === "queued").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const batch = (deps.select ? deps.select(queued, all) : queued).slice(0, capacity);
+  await Promise.all(batch.map((task) => runOne(task, deps, key)));
 }
 
 class RunTimeoutError extends Error {}
 
-async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
+async function runOne(task: AgentTask, deps: RunnerDeps, key: SlotKey): Promise<void> {
   try {
     if (!claimTask(task.id)) return; // lost the race to another process/runner
   } catch { return; } // claimTask released its lock; the task stays queued for the next pass
-  globalThis.__agentOpsRunning = runningCount() + 1;
+  globalThis[key] = runningCount(key) + 1;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let starting: Promise<RunHandle> | undefined;
   let handle: RunHandle | undefined;
@@ -70,7 +79,9 @@ async function runOne(task: AgentTask, deps: RunnerDeps): Promise<void> {
   } finally {
     clearTimeout(timer);
     releaseClaim(task.id);
-    globalThis.__agentOpsRunning = runningCount() - 1;
+    globalThis[key] = runningCount(key) - 1;
+    const final = getTask(task.id);
+    if (final && TERMINAL.has(final.status)) { try { deps.onTaskEnd?.(final); } catch { /* a finally must not throw */ } }
     try { deps.onRunEnd?.(); } catch { /* a finally must not throw: runOne runs fire-and-forget */ }
   }
 }

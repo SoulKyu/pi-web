@@ -12,6 +12,10 @@ export interface AgentTask {
   createdAt: string; startedAt?: string; completedAt?: string;
   /** Set by trigger ingestion; verified by start() before spawning. */
   pinnedProfileSha256?: string;
+  /** Long-term agent the task belongs to; `target` says where it runs. Absent on legacy tasks. */
+  agent?: string;
+  target?: "thread" | "isolated";
+  kind?: "schedule" | "task" | "webhook";
 }
 const RANK: Record<AgentTaskStatus, number> = { queued: 0, running: 1, completed: 2, failed: 2, cancelled: 2 };
 export const TERMINAL: ReadonlySet<AgentTaskStatus> = new Set(["completed", "failed", "cancelled"]);
@@ -28,7 +32,7 @@ function readOne(id: string): AgentTask | null {
     return typeof raw?.id === "string" ? raw : null;
   } catch { return null; }
 }
-export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256">>): AgentTask {
+export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256" | "agent" | "target" | "kind">>): AgentTask {
   mkdirSync(storeDir, { recursive: true });
   const task: AgentTask = { id: randomUUID(), status: "queued", createdAt: new Date().toISOString(), ...input };
   writePrivateFileAtomicSync(taskPath(task.id), JSON.stringify(task, null, 2));
