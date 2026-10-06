@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
@@ -16,6 +16,10 @@ export class MemoryReviewError extends Error {
 const FACT_FILE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.json$/;
 const VALID_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+/** A `.processing` this old was left by a crashed apply: pi-mem0's README says to re-approve it from pi-web,
+ *  and its next pass renames the new decision over it. */
+const STALE_PROCESSING_MS = 10 * 60_000;
+
 export function mem0StagingDir(): string {
   return join(process.env.PI_MEM0_DIR ?? join(getAgentDir(), "mem0"), "staging");
 }
@@ -31,8 +35,17 @@ function readFact(dir: string, id: string): Omit<StagedFactView, "decision"> | n
   }
 }
 
+/** "fresh" while an apply may still be running, "stale" when it was abandoned, "none" without a claim file. */
+function processingState(dir: string, id: string): "none" | "fresh" | "stale" {
+  try {
+    return Date.now() - statSync(join(dir, `${id}.processing`)).mtimeMs > STALE_PROCESSING_MS ? "stale" : "fresh";
+  } catch {
+    return "none";
+  }
+}
+
 function readDecision(dir: string, id: string): StagedDecision {
-  if (existsSync(join(dir, `${id}.processing`))) return "applying";
+  if (processingState(dir, id) === "fresh") return "applying";
   try {
     const { approved } = JSON.parse(readFileSync(join(dir, `${id}.decision.json`), "utf8")) as { approved?: unknown };
     return typeof approved === "boolean" ? (approved ? "approved" : "rejected") : null;
@@ -59,6 +72,6 @@ export function listStagedFacts(dir = mem0StagingDir()): StagedFactView[] {
 
 export function writeDecision(id: string, approved: boolean, dir = mem0StagingDir()): void {
   if (!VALID_ID.test(id) || !readFact(dir, id)) throw new MemoryReviewError("not_found", "Staged memory not found");
-  if (existsSync(join(dir, `${id}.processing`))) throw new MemoryReviewError("conflict", "Memory is being applied");
+  if (processingState(dir, id) === "fresh") throw new MemoryReviewError("conflict", "Memory is being applied");
   writePrivateFileAtomicSync(join(dir, `${id}.decision.json`), JSON.stringify({ approved }));
 }
