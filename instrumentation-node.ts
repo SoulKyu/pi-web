@@ -1,7 +1,5 @@
 import { configureHttpDispatcher } from "@/lib/http-dispatcher";
 import { closeAllAgentEventStreams } from "@/lib/agent-event-stream";
-import { kickRunner } from "@/lib/agent-ops/kick";
-import { startScheduler } from "@/lib/agent-ops/scheduler";
 
 export function registerNodeInstrumentation(): void {
   configureHttpDispatcher();
@@ -13,5 +11,8 @@ export function registerNodeInstrumentation(): void {
   process.on("SIGINT", shutdownStreams);
   process.on("SIGTERM", shutdownStreams);
 
-  startScheduler({ kick: kickRunner });
+  // Dynamic and not awaited: kick pulls in rpc-manager, and a failure there must never keep the server from booting.
+  void Promise.all([import("@/lib/agent-ops/kick"), import("@/lib/agent-ops/scheduler")])
+    .then(([{ kickRunner }, { startScheduler }]) => startScheduler({ kick: kickRunner }))
+    .catch((error) => console.error("[agent-ops] scheduler not started:", error instanceof Error ? error.message : error));
 }
