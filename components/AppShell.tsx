@@ -13,6 +13,10 @@ import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { AgentsPanel } from "./agents/AgentsPanel";
 import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
+import { AgentAvatar } from "./agents/AgentAvatar";
+import { AgentSpaceLeft } from "./agents/AgentSpaceLeft";
+import { AgentSpaceRight } from "./agents/AgentSpaceRight";
+import type { AgentDetail } from "@/lib/agents/agent-view";
 import { ProjectTrustDialog, type ProjectTrustFailure } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
 import { SystemPromptPanel } from "./SystemPromptPanel";
@@ -177,7 +181,7 @@ export function AppShell() {
   const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [agentsPanelOpen, setAgentsPanelOpen] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(initialNavigation.agentName);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- read by the unread divider, a later task
+  const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null);
   const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
@@ -887,6 +891,10 @@ export function AppShell() {
       console.error("[pi-web] failed to open agent:", data.error);
       return;
     }
+    const detail = await fetch(`/api/agents/${encodeURIComponent(name)}`, { cache: "no-store" })
+      .then((reply) => reply.json() as Promise<{ agent?: AgentDetail }>)
+      .catch(() => ({} as { agent?: AgentDetail }));
+    setAgentDetail(detail.agent ?? null);
     setActiveAgent(name);
     setAgentUnreadMarker(data.lastReadEntryId ?? null);
     pendingAgentRef.current = { sessionId: data.sessionId, agentName: name };
@@ -1229,9 +1237,20 @@ export function AppShell() {
     if (cwd === projectTrustCwd) setProjectTrust(status);
   }, [projectTrustCwd]);
 
+  useEffect(() => {
+    if (!activeAgent) setAgentDetail(null);
+  }, [activeAgent]);
+
+  const markAgentRead = useCallback((entryId: string) => {
+    if (!activeAgent) return;
+    void fetch(`/api/agents/${encodeURIComponent(activeAgent)}/read`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entryId }) })
+      .then(reloadAgents)
+      .catch(() => {});
+  }, [activeAgent, reloadAgents]);
+
   const activeFileTab = fileTabs.find((tab) => tab.id === activeFileTabId) ?? null;
   const activeCwdName = activeCwd ? getFileName(activeCwd) || activeCwd : null;
-  const windowTitle = activeCwdName ? `${activeCwdName} - Pi Web` : "Pi Web";
+  const windowTitle = activeAgent ? `${activeAgent} - Pi Web` : activeCwdName ? `${activeCwdName} - Pi Web` : "Pi Web";
 
   useEffect(() => {
     const syncWindowTitle = () => {
@@ -1244,7 +1263,28 @@ export function AppShell() {
     return () => observer.disconnect();
   }, [windowTitle]);
 
-  const sidebarContent = (
+  const agentSpaceLeft = activeAgent && agentDetail ? (
+    <AgentSpaceLeft
+      agent={agentDetail}
+      onOpenFile={handleOpenFile}
+      onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
+      onDeleted={() => { setActiveAgent(null); setAgentDetail(null); reloadAgents(); if (selectedSession) handleSessionDeleted(selectedSession.id); }}
+    />
+  ) : null;
+  const agentSpaceRight = activeAgent && agentDetail ? (
+    <AgentSpaceRight
+      agent={agentDetail}
+      running={Boolean(selectedSession && runningSessionIds.has(selectedSession.id))}
+      contextPercent={contextUsage?.percent ?? null}
+    />
+  ) : null;
+
+  const sidebarContent = agentSpaceLeft ? (
+    <>
+      {agentSpaceLeft}
+      {isMobile && agentSpaceRight}
+    </>
+  ) : (
     <>
       <SessionSidebar
         selectedSessionId={selectedSession?.id ?? null}
@@ -2066,6 +2106,21 @@ export function AppShell() {
               </svg>
             )}
           </button>
+          {activeAgent && agentDetail && (
+            <span style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px", minWidth: 0, flexShrink: 0 }}>
+              <AgentAvatar avatar={agentDetail.avatar} size={20} />
+              {!isMobile && <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap" }}>{agentDetail.name}</span>}
+            </span>
+          )}
+          {isMobile && activeAgent && (
+            <button
+              type="button"
+              aria-label={translate("agents.space.panels")}
+              title={translate("agents.space.panels")}
+              onClick={() => setSidebarOpen((open) => !open)}
+              style={{ width: TOP_BAR_ICON_BUTTON_SIZE, height: TOP_BAR_ICON_BUTTON_SIZE, padding: 0, background: "none", border: "none", borderRight: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 }}
+            >ⓘ</button>
+          )}
           {isMobile && (
             <div
               ref={mobileToolbarRef}
@@ -2445,6 +2500,8 @@ export function AppShell() {
               onSoundToggle={onSoundToggle}
               playDoneSound={playDoneSound}
               unlockAudio={unlockAudio}
+              unreadMarkerEntryId={activeAgent ? agentUnreadMarker : null}
+              onLatestEntryViewed={activeAgent ? markAgentRead : undefined}
             />
           ) : initialCwdStatus === "validating" ? (
             <div
@@ -2520,7 +2577,7 @@ export function AppShell() {
         } as React.CSSProperties}
       >
         {/* Right panel tab bar */}
-        <div style={{
+        {!agentSpaceRight && <div style={{
           display: "flex",
           alignItems: "center",
           flexShrink: 0,
@@ -2572,11 +2629,13 @@ export function AppShell() {
               <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="15" y1="3" x2="15" y2="21" />
             </svg>
           </button>
-        </div>
+        </div>}
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
         <div style={{ flex: 1, minHeight: 0, overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
-          {activeFileTab?.filePath ? (
+          {agentSpaceRight ? (
+            <div style={{ height: "100%", overflow: "auto", paddingTop: "env(safe-area-inset-top)" }}>{agentSpaceRight}</div>
+          ) : activeFileTab?.filePath ? (
             <FileViewer
               key={`${activeFileTab.id}:${activeFileTab.viewerRevision ?? 0}`}
               filePath={activeFileTab.filePath}
@@ -2606,7 +2665,7 @@ export function AppShell() {
             </div>
           ) : null}
           {terminalTabs.map((tab) => (
-            <div key={tab.id} hidden={tab.id !== activeFileTabId} style={{ width: "100%", height: "100%" }}>
+            <div key={tab.id} hidden={Boolean(agentSpaceRight) || tab.id !== activeFileTabId} style={{ width: "100%", height: "100%" }}>
               <TerminalPanel
                 tab={tab}
                 active={rightPanelOpen && tab.id === activeFileTabId}

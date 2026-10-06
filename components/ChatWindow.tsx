@@ -1,7 +1,7 @@
 "use client";
 import { registerAbortHandler } from "@/hooks/useKeyboardShortcuts";
 import Image from "next/image";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecutionMessage, BlockingExtensionUiRequest, ExtensionUiRequest, SessionInfo, SessionTreeNode, ToolResultMessage } from "@/lib/types";
 import { normalizeCustomPanelLines } from "@/lib/ansi";
@@ -9,6 +9,7 @@ import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
 import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, hasAssistantAnswer, isAssistantTruncated, isMessageGroupAnchor, splitFinalAssistantBlocks } from "@/lib/message-display";
 import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-files";
 import { buildQuotedSelection } from "@/lib/quoted-selection";
+import { firstUnreadIndex } from "@/lib/agents/agent-view";
 import { MessageView } from "./MessageView";
 import { MarkdownBody } from "./MarkdownBody";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
@@ -71,6 +72,10 @@ interface Props {
   onSoundToggle?: () => void;
   playDoneSound?: () => void;
   unlockAudio?: () => void;
+  /** Long-term agent thread: the divider goes before the first entry after this one. */
+  unreadMarkerEntryId?: string | null;
+  /** Called (debounced 1 s) when the newest entry changes while the page is visible. */
+  onLatestEntryViewed?: (entryId: string) => void;
 }
 const CHAT_MINIMAP_WIDTH = 36;
 const CHAT_COLUMN_PADDING = 16;
@@ -227,7 +232,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
   );
 }
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio }: Props) {
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, onLatestEntryViewed }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -285,6 +290,13 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     deferInitialScroll: Boolean(pendingScrollRestore),
   });
   const sessionBusy = agentRunning || bashRunning;
+  const unreadAt = useMemo(() => firstUnreadIndex(entryIds, unreadMarkerEntryId ?? null), [entryIds, unreadMarkerEntryId]);
+  const latestEntryId = entryIds[entryIds.length - 1];
+  useEffect(() => {
+    if (!onLatestEntryViewed || !latestEntryId || typeof document === "undefined" || document.visibilityState !== "visible") return;
+    const timer = window.setTimeout(() => onLatestEntryViewed(latestEntryId), 1000);
+    return () => window.clearTimeout(timer);
+  }, [latestEntryId, onLatestEntryViewed]);
   const [quotedSelection, setQuotedSelection] = useState<{
     text: string;
     top: number;
@@ -1061,12 +1073,20 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     compactError={options.recoverTruncation ? compactError : undefined}
                   />
                 );
-                if (!isVisible || currentRefIdx === undefined) return view;
-                return (
+                const node = !isVisible || currentRefIdx === undefined ? view : (
                   <div key={`${keyPrefix}-${messageKey}`} data-entry-id={entryIds[idx]} ref={options.attachRef === false ? undefined : attachVisibleRef(idx, currentRefIdx)}>
                     {view}
                   </div>
                 );
+                if (idx === unreadAt && keyPrefix === "message") {
+                  return (
+                    <Fragment key={`${keyPrefix}-unread-${messageKey}`}>
+                      <div className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
+                      {node}
+                    </Fragment>
+                  );
+                }
+                return node;
               };
 
               const rendered: ReactNode[] = [];

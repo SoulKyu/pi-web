@@ -1964,3 +1964,6 @@ span.token.table {
     padding-bottom: 6px !important;
   }
 }
+
+.agent-unread-divider { text-align: center; font-size: 11px; color: #e5484d; border-top: 1px solid #e5484d; margin: 8px 0; padding-top: 2px; }
+.agent-space-section { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 10px 0 4px; }

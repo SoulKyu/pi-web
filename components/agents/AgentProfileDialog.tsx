@@ -6,29 +6,21 @@ import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
+import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
 
-export const EMOJIS = ["🛠", "🤖", "📚", "🔍", "🧭", "🛰", "🧪", "📈"];
-export const COLORS = ["#e07a5f", "#3d9970", "#8e7cc3", "#6c8cff", "#f5a524", "#e5484d", "#30a46c", "#555555"];
-export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
-export const TOOLS_PRESETS: ToolsPreset[] = ["read-only", "standard", "full"];
-
-export interface ModelOption { id: string; name: string; provider: string }
-
-export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (agent: AgentDetail) => void }) {
+export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted }: { agent: AgentDetail; onClose: () => void; onSaved: (agent: AgentDetail) => void; onDeleted: () => void }) {
   const { t } = useI18n();
-  const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
-  const [color, setColor] = useState(COLORS[0]);
-  const [role, setRole] = useState("");
-  const [model, setModel] = useState("");
-  const [thinking, setThinking] = useState("");
-  const [toolsPreset, setToolsPreset] = useState<ToolsPreset>("standard");
+  const [emoji, setEmoji] = useState(agent.avatar.emoji);
+  const [color, setColor] = useState(agent.avatar.color);
+  const [role, setRole] = useState(agent.role);
+  const [model, setModel] = useState(agent.model ?? "");
+  const [thinking, setThinking] = useState(agent.thinking ?? "");
+  const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // The shell re-renders on every poll with a fresh onClose: open the dialog once, call the latest one.
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   useEffect(() => openStackedDialog(document, dialogRef.current, () => onCloseRef.current()), []);
@@ -52,30 +44,51 @@ export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; on
     setBusy(true);
     setError(null);
     try {
-      const body = { name: name.trim(), role, toolsPreset, avatar: { emoji, color }, ...(model ? { model } : {}), ...(thinking ? { thinking } : {}) };
-      const response = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const patch: Record<string, unknown> = {};
+      if (role !== agent.role) patch.role = role;
+      if (toolsPreset !== agent.toolsPreset) patch.toolsPreset = toolsPreset;
+      if (emoji !== agent.avatar.emoji || color !== agent.avatar.color) patch.avatar = { emoji, color };
+      if ((model || undefined) !== agent.model) patch.model = model || null;
+      if ((thinking || undefined) !== agent.thinking) patch.thinking = thinking || null;
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
-      if (!response.ok || !data.agent) { setError(data.error ?? `HTTP ${response.status}`); return; }
-      onCreated(data.agent);
+      if (response.status === 409) { setError(t("agents.profile.running")); return; }
+      if (!response.ok || !data.agent) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
+      onSaved(data.agent);
       onClose();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
     } finally {
       setBusy(false);
     }
   };
 
-  const title = t("agents.new.title");
+  const remove = async () => {
+    if (!window.confirm(t("agents.profile.deleteConfirm", { name: agent.name }))) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      if (response.status === 409) { setError(t("agents.profile.running")); return; }
+      if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
+      onDeleted();
+      onClose();
+    } catch (cause) {
+      setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const title = t("agents.profile.title", { name: agent.name });
   const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
+  const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
         <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
-        <label style={labelStyle}>
-          {t("agents.new.name")}
-          <input value={name} onChange={(event) => setName(event.target.value)} required spellCheck={false} style={fieldStyle} />
-          {error && <span role="alert" style={{ color: "var(--text-muted)" }}>{t("agents.error", { error })}</span>}
-        </label>
+        {error && <span role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{error}</span>}
         <div style={labelStyle}>
           {t("agents.new.avatar")}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -98,6 +111,7 @@ export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; on
           {t("agents.new.model")}
           <select value={model} onChange={(event) => setModel(event.target.value)} style={fieldStyle}>
             <option value="">{t("agents.model.default")}</option>
+            {!modelInList && <option value={model}>{model}</option>}
             {modelList.map((entry) => <option key={`${entry.provider}/${entry.id}`} value={`${entry.provider}/${entry.id}`}>{entry.name || entry.id}</option>)}
           </select>
         </label>
@@ -116,12 +130,14 @@ export function NewAgentDialog({ onClose, onCreated }: { onClose: () => void; on
             ))}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{t("agents.new.home", { path: `~/.pi/agent/agents-home/${name.trim() || "<name>"}` })}</div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
-            {busy ? t("agents.new.creating") : t("agents.new.create")}
-          </button>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid #e5484d", background: "none", color: "#e5484d" }}>{t("agents.profile.delete")}</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
+            <button type="submit" disabled={busy || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
+              {busy ? t("agents.profile.saving") : t("agents.profile.save")}
+            </button>
+          </div>
         </div>
       </form>
     </div>

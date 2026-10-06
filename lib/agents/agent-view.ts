@@ -29,3 +29,9 @@ export function splitModel(model: string): { provider: string; modelId: string }
 export function canEditProfile(threadRunning: boolean): { ok: true } | { ok: false; status: 409; error: "agent_running" } {
   return threadRunning ? { ok: false, status: 409, error: "agent_running" } : { ok: true };
 }
+/** Index of the first entry after the read marker; -1 when there is nothing to divide (no, unknown or last marker). */
+export function firstUnreadIndex(entryIds: readonly string[], marker: string | null): number {
+  if (!marker) return -1;
+  const at = entryIds.indexOf(marker);
+  return at >= 0 && at < entryIds.length - 1 ? at + 1 : -1;
+}
