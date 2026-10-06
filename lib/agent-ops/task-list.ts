@@ -15,9 +15,12 @@ export function shapeTaskList(tasks: readonly AgentTask[], recentLimit = TASK_LI
   const isActive = (task: AgentTask) => task.status === "queued" || task.status === "running";
   let others = 0;
   const kept = newestFirst.filter((task) => isActive(task) || others++ < recentLimit);
-  const items = kept.map(({ prompt: _prompt, ...rest }): AgentTaskListItem => {
-    const { result, error } = rest;
-    return { ...rest, ...(result !== undefined ? { result: clip(result) } : {}), ...(error !== undefined ? { error: clip(error) } : {}) };
+  const items = kept.map((task): AgentTaskListItem => {
+    const item: Partial<AgentTask> = { ...task, result: clip(task.result), error: clip(task.error) };
+    delete item.prompt;
+    if (item.result === undefined) delete item.result;
+    if (item.error === undefined) delete item.error;
+    return item as AgentTaskListItem;
   });
   return kept.length < tasks.length ? { tasks: items, truncated: true } : { tasks: items };
 }

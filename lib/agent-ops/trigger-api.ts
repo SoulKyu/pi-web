@@ -20,8 +20,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 export function toPublicTrigger(trigger: TriggerConfig): PublicTrigger {
   // `webhookSecret` is the legacy plaintext field of older files: it must not leave the server either.
-  const { webhookSecretSha256, webhookSecret: _legacy, ...rest } = trigger as TriggerConfig & { webhookSecret?: unknown };
-  return { ...rest, hasWebhookSecret: Boolean(webhookSecretSha256), pinStatus: triggerPinStatus(trigger) };
+  const view: Partial<TriggerConfig> & { webhookSecret?: unknown } = { ...trigger };
+  delete view.webhookSecretSha256;
+  delete view.webhookSecret;
+  return { ...(view as Omit<PublicTrigger, "hasWebhookSecret" | "pinStatus">), hasWebhookSecret: Boolean(trigger.webhookSecretSha256), pinStatus: triggerPinStatus(trigger) };
 }
 
 export function listPublicTriggers(): PublicTrigger[] {
@@ -83,8 +85,8 @@ export function rotateSecret(id: string): TriggerApiResult<{ trigger: PublicTrig
   const existing = getTrigger(id);
   if (!existing) return NOT_FOUND;
   const webhookSecret = generateWebhookSecret();
-  const { webhookSecret: _legacy, ...kept } = existing as TriggerConfig & { webhookSecret?: unknown }; // a rotation also drops a legacy plaintext
-  const trigger = { ...kept, webhookSecretSha256: hashWebhookSecret(webhookSecret) };
+  const trigger: TriggerConfig & { webhookSecret?: unknown } = { ...existing, webhookSecretSha256: hashWebhookSecret(webhookSecret) };
+  delete trigger.webhookSecret; // a rotation also drops a legacy plaintext
   saveTrigger(trigger);
   globalThis.__agentOpsHookThrottles?.delete(id); // failures with the old secret must not lock the new one out
   return { ok: true, trigger: toPublicTrigger(trigger), webhookSecret };
