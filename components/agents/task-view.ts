@@ -1,13 +1,13 @@
-import type { AgentTask } from "@/lib/agent-ops/task-store";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 
 const ACTIVE = new Set(["queued", "running"]);
 
-export function isActiveTask(task: Pick<AgentTask, "status">): boolean {
+export function isActiveTask(task: Pick<AgentTaskListItem, "status">): boolean {
   return ACTIVE.has(task.status);
 }
 
 /** "42s" / "3m 05s" / "1h 02m": run time from start (or creation while queued) to completion (or now). */
-export function formatTaskDuration(task: Pick<AgentTask, "createdAt" | "startedAt" | "completedAt">, now = Date.now()): string {
+export function formatTaskDuration(task: Pick<AgentTaskListItem, "createdAt" | "startedAt" | "completedAt">, now = Date.now()): string {
   const from = Date.parse(task.startedAt ?? task.createdAt);
   const to = task.completedAt ? Date.parse(task.completedAt) : now;
   const seconds = Math.max(0, Math.round((to - from) / 1000));

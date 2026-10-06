@@ -6,7 +6,7 @@ import { formatRelativeTime } from "@/lib/i18n/format";
 import { focusModalPanel, listenForPanelEscape } from "@/lib/stacked-dialog";
 import type { AgentCard } from "@/lib/agent-ops/overview";
 import type { StagedFactView } from "@/lib/agent-ops/memory-review";
-import type { AgentTask } from "@/lib/agent-ops/task-store";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { AgentMemory } from "./AgentMemory";
 import { AgentTasks } from "./AgentTasks";
@@ -17,7 +17,7 @@ import { isActiveTask } from "./task-view";
 const POLL_MS = 30_000;
 const POLL_RUNNING_MS = 5_000;
 
-export function agentsPollInterval(cards: readonly AgentCard[], tasks: readonly AgentTask[] = []): number {
+export function agentsPollInterval(cards: readonly AgentCard[], tasks: readonly AgentTaskListItem[] = []): number {
   return cards.some((card) => card.running) || tasks.some(isActiveTask) ? POLL_RUNNING_MS : POLL_MS;
 }
 
@@ -27,7 +27,7 @@ export function AgentsPanel({ onClose, onOpenSession }: {
 }) {
   const { locale, t } = useI18n();
   const [cards, setCards] = useState<AgentCard[] | null>(null);
-  const [tasks, setTasks] = useState<AgentTask[] | null>(null);
+  const [tasks, setTasks] = useState<AgentTaskListItem[] | null>(null);
   const [facts, setFacts] = useState<StagedFactView[] | null>(null);
   const [triggers, setTriggers] = useState<PublicTrigger[] | null>(null);
   const [assigning, setAssigning] = useState<AgentCard | null>(null);
@@ -52,7 +52,7 @@ export function AgentsPanel({ onClose, onOpenSession }: {
     // Independent sections: one failing request must not hide the other.
     const [cardsResult, tasksResult, factsResult, triggersResult] = await Promise.allSettled([
       read<AgentCard[]>("/api/agent-ops/overview", "cards"),
-      read<AgentTask[]>("/api/agent-ops/tasks", "tasks"),
+      read<AgentTaskListItem[]>("/api/agent-ops/tasks", "tasks"),
       read<StagedFactView[]>("/api/agent-ops/memory", "facts"),
       read<PublicTrigger[]>("/api/agent-ops/triggers", "triggers"),
     ]);

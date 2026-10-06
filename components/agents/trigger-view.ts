@@ -1,4 +1,4 @@
-import type { AgentTask } from "@/lib/agent-ops/task-store";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { HOOK_SECRET_HEADER } from "../../lib/agent-ops/hook-path";
 import { isActiveTask } from "./task-view";
@@ -18,11 +18,11 @@ export function hookCurl(origin: string, triggerId: string, secret: string): str
   ].join(" \\\n");
 }
 
-export function tasksOfTrigger(tasks: readonly AgentTask[], triggerId: string): AgentTask[] {
+export function tasksOfTrigger(tasks: readonly AgentTaskListItem[], triggerId: string): AgentTaskListItem[] {
   return tasks.filter((task) => task.triggerId === triggerId);
 }
 
-export function triggerActivity(tasks: readonly AgentTask[], triggerId: string): { active: number; lastFireAt?: string } {
+export function triggerActivity(tasks: readonly AgentTaskListItem[], triggerId: string): { active: number; lastFireAt?: string } {
   const own = tasksOfTrigger(tasks, triggerId);
   const lastFireAt = own.reduce<string | undefined>((latest, task) => (!latest || task.createdAt > latest ? task.createdAt : latest), undefined);
   return { active: own.filter(isActiveTask).length, lastFireAt };

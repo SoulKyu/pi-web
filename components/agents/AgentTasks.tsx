@@ -2,13 +2,13 @@
 
 import { type CSSProperties, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
-import type { AgentTask } from "@/lib/agent-ops/task-store";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import { formatTaskDuration, requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
 function TaskRow({ task, onOpenSession, onChanged }: {
-  task: AgentTask;
+  task: AgentTaskListItem;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
 }) {
@@ -31,7 +31,7 @@ function TaskRow({ task, onOpenSession, onChanged }: {
   return (
     <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-        <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.prompt}>{task.title}</strong>
+        <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>
@@ -60,7 +60,7 @@ function TaskRow({ task, onOpenSession, onChanged }: {
 }
 
 export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false }: {
-  tasks: readonly AgentTask[];
+  tasks: readonly AgentTaskListItem[];
   /** Inside a trigger's history: no heading, no full-row grid span. */
   nested?: boolean;
   onOpenSession: (sessionId: string) => void;

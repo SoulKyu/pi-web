@@ -4,7 +4,7 @@ import { type CSSProperties, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import type { AgentCard } from "@/lib/agent-ops/overview";
-import type { AgentTask } from "@/lib/agent-ops/task-store";
+import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { AgentTasks } from "./AgentTasks";
 import { TriggerDialog } from "./TriggerDialog";
@@ -17,7 +17,7 @@ interface Reveal { triggerId: string; triggerName: string; secret: string }
 
 function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged }: {
   trigger: PublicTrigger;
-  tasks: readonly AgentTask[];
+  tasks: readonly AgentTaskListItem[];
   onEdit: () => void;
   onReveal: (reveal: Reveal) => void;
   onOpenSession: (sessionId: string) => void;
@@ -25,6 +25,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
 }) {
   const { locale, t } = useI18n();
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const url = `/api/agent-ops/triggers/${trigger.id}`;
   const history = tasksOfTrigger(tasks, trigger.id);
   const { active, lastFireAt } = triggerActivity(tasks, trigger.id);
@@ -81,9 +82,9 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
         <button type="button" onClick={remove} style={smallButton}>{t("agentOps.trigger.delete")}</button>
       </div>
       {history.length > 0 && (
-        <details>
+        <details onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
           <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--text-muted)" }}>{t("agentOps.trigger.history", { count: history.length })}</summary>
-          <div style={{ marginTop: 6 }}><AgentTasks nested tasks={history} onOpenSession={onOpenSession} onChanged={onChanged} /></div>
+          {historyOpen && <div style={{ marginTop: 6 }}><AgentTasks nested tasks={history} onOpenSession={onOpenSession} onChanged={onChanged} /></div>}
         </details>
       )}
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
@@ -93,7 +94,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
 
 export function AgentTriggers({ triggers, tasks, cards, initialCwd, onOpenSession, onChanged }: {
   triggers: readonly PublicTrigger[];
-  tasks: readonly AgentTask[];
+  tasks: readonly AgentTaskListItem[];
   cards: readonly AgentCard[];
   initialCwd: string;
   onOpenSession: (sessionId: string) => void;

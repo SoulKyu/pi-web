@@ -4,16 +4,17 @@ import { allowFileRoot } from "@/lib/file-access";
 import { invalidateSessionListCache } from "@/lib/session-reader";
 import { resolveSubagentProfile } from "@/lib/subagents";
 import { kickRunner, recoverOnce } from "@/lib/agent-ops/kick";
+import { shapeTaskList } from "@/lib/agent-ops/task-list";
 import { createTask, listTasks } from "@/lib/agent-ops/task-store";
 
 export const dynamic = "force-dynamic";
 
 const TITLE_MAX = 80;
 
-// GET /api/agent-ops/tasks - All tasks, newest first.
+// GET /api/agent-ops/tasks - Every queued/running task plus the newest 200 others, newest first, without prompts and with bounded results (`truncated` when older tasks were cut).
 export async function GET() {
   recoverOnce();
-  return NextResponse.json({ tasks: listTasks() }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(shapeTaskList(listTasks()), { headers: { "Cache-Control": "no-store" } });
 }
 
 // POST /api/agent-ops/tasks  body: { profile, cwd, prompt } - Queue a task; the runner starts it.
