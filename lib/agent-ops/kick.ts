@@ -1,6 +1,7 @@
 import { runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
 import { recoverInterrupted } from "./task-store";
+import { triggerRunPin } from "./trigger-store";
 
 declare global { var __agentOpsRecovered: boolean | undefined; }
 
@@ -19,7 +20,7 @@ export function kickRunner(): Promise<void> {
     maxConcurrent: 2,
     start: (task) => {
       started++;
-      return startAgentProfileRun(task.profile, task.cwd, task.prompt, task.pinnedProfileSha256);
+      return startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task));
     },
   }).then(() => {
     // ponytail: a slot freed early waits for its pass's other runs or the next external kick.
