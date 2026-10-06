@@ -11,6 +11,8 @@ import { TabBar, type Tab } from "./TabBar";
 import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { AgentsPanel } from "./agents/AgentsPanel";
+import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
+import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { ProjectTrustDialog, type ProjectTrustFailure } from "./ProjectTrustDialog";
 import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
 import { SystemPromptPanel } from "./SystemPromptPanel";
@@ -174,6 +176,13 @@ export function AppShell() {
   const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
   const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [agentsPanelOpen, setAgentsPanelOpen] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<string | null>(initialNavigation.agentName);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- read by the unread divider, a later task
+  const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
+  const [newAgentOpen, setNewAgentOpen] = useState(false);
+  const pendingAgentSessionRef = useRef<string | null>(null);
+  const activeAgentNameRef = useRef<string | null>(null);
+  const { agents, reload: reloadAgents } = useAgentsPoll();
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -790,11 +799,16 @@ export function AppShell() {
       // onCwdChange effect firing after setSelectedCwd in the sidebar
       suppressCwdBumpRef.current = true;
     }
+    const agentSession = pendingAgentSessionRef.current === session.id;
+    if (!agentSession) setActiveAgent(null);
+    pendingAgentSessionRef.current = null;
     // Skip router.replace when the URL already has this session — calling
     // replace in production Next.js triggers a Suspense remount loop.
     // Tab-memory restore lands on `/` and must write `?session=` so reload
     // and copy-link keep this session.
-    if (!isRestore || new URLSearchParams(window.location.search).get("session") !== session.id) {
+    if (agentSession) {
+      router.replace(`?agent=${encodeURIComponent(activeAgentNameRef.current ?? "")}`, { scroll: false });
+    } else if (!isRestore || new URLSearchParams(window.location.search).get("session") !== session.id) {
       router.replace(`?session=${encodeURIComponent(session.id)}`, { scroll: false });
     }
   }, [activeCwd, activeFileTabId, invalidateWorkspaceRestore, router, isMobile, newSessionCwd, selectedSession]);
@@ -861,6 +875,26 @@ export function AppShell() {
       console.error("[pi-web] failed to open session:", error instanceof Error ? error.message : error);
     }
   }, [handleSelectSession, sessionCatalog]);
+
+  const openAgent = useCallback(async (name: string) => {
+    const response = await fetch(`/api/agents/${encodeURIComponent(name)}/thread`, { method: "POST" });
+    const data = await response.json() as { sessionId?: string; lastReadEntryId?: string | null; error?: string };
+    if (!response.ok || !data.sessionId) {
+      console.error("[pi-web] failed to open agent:", data.error);
+      return;
+    }
+    setActiveAgent(name);
+    activeAgentNameRef.current = name;
+    setAgentUnreadMarker(data.lastReadEntryId ?? null);
+    pendingAgentSessionRef.current = data.sessionId;
+    await handleOpenSession(data.sessionId);
+    if (!isMobile) setRightPanelOpen(true);
+  }, [handleOpenSession, isMobile]);
+
+  useEffect(() => {
+    if (initialNavigation.agentName) void openAgent(initialNavigation.agentName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the ?agent= the page loaded with
+  }, []);
 
   // Called by ChatWindow when a new session gets its real id from pi
   const handleSessionCreated = useCallback((session: SessionInfo, sourceDraftKey: string) => {
@@ -1951,6 +1985,15 @@ export function AppShell() {
         }}
       />
 
+      {!isMobile && <AgentRail
+        agents={agents}
+        activeAgent={activeAgent}
+        onSelectAgent={(name) => void openAgent(name)}
+        onNewAgent={() => setNewAgentOpen(true)}
+        onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
+        orientation={isMobile ? "horizontal" : "vertical"}
+      />}
+
       {/* Left sidebar */}
       <div
         ref={sidebarResizer.panelRef}
@@ -1984,6 +2027,14 @@ export function AppShell() {
 
       {/* Center: chat */}
       <div inert={rightPanelFullWidth} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        {isMobile && <AgentRail
+          agents={agents}
+          activeAgent={activeAgent}
+          onSelectAgent={(name) => void openAgent(name)}
+          onNewAgent={() => setNewAgentOpen(true)}
+          onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
+          orientation={isMobile ? "horizontal" : "vertical"}
+          />}
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
@@ -2578,6 +2629,12 @@ export function AppShell() {
         projectTrust={projectTrust}
         onOpenTrustDialog={openProjectTrustDialog}
         onProjectTrustChanged={handleProjectTrustChanged}
+      />
+    )}
+    {newAgentOpen && (
+      <NewAgentDialog
+        onClose={() => setNewAgentOpen(false)}
+        onCreated={(agent) => { reloadAgents(); void openAgent(agent.name); }}
       />
     )}
     {agentsPanelOpen && (

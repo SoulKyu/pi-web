@@ -3,6 +3,7 @@ import type { TabOpen } from "./tab-session";
 export interface InitialNavigation {
   requestedCwd: string | null;
   sessionId: string | null;
+  agentName: string | null;
   sidebarCollapsed: boolean;
 }
 
@@ -11,9 +12,12 @@ export function getInitialNavigation(
 ): InitialNavigation {
   const requestedCwd = searchParams.get("cwd")?.trim() || null;
 
+  const agentName = searchParams.get("agent")?.trim() || null;
+
   return {
-    requestedCwd,
-    sessionId: requestedCwd ? null : (searchParams.get("session") || null),
+    requestedCwd: agentName ? null : requestedCwd,
+    sessionId: agentName || requestedCwd ? null : (searchParams.get("session") || null),
+    agentName,
     sidebarCollapsed: searchParams.get("sidebar") === "collapsed",
   };
 }
@@ -35,7 +39,7 @@ export function withTabOpen(
   navigation: InitialNavigation,
   tabOpen: TabOpen | null,
 ): InitialNavigation {
-  if (navigation.requestedCwd || navigation.sessionId || !tabOpen) {
+  if (navigation.agentName || navigation.requestedCwd || navigation.sessionId || !tabOpen) {
     return navigation;
   }
   if (tabOpen.kind === "session") {

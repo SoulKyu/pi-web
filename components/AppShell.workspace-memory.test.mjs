@@ -88,6 +88,8 @@ test("New restores the draft after session navigation and workspace auto-restore
         activeProjectKeyRef: { current: cwd },
         workspaceRestoreTokenRef: { current: 0 },
         suppressCwdBumpRef: { current: false },
+        pendingAgentSessionRef: { current: null },
+        activeAgentNameRef: { current: null },
         branchLeafChangeFnRef: { current: null },
         liveFollowFrameRef: { current: null },
         bashRecoveryIdRef: { current: 0 },
