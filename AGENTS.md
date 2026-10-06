@@ -116,7 +116,8 @@ lib/
   agent-ops/prompt-run.ts   prompt send (not awaited), done from events, trigger tool check
   agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task
   agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
-  agent-ops/trigger-store.ts trigger tool allowlist and profile pin helpers
+  agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin
+  agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
   file-access.ts            allowed file roots for /api/files and worktrees
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check
