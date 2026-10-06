@@ -30,6 +30,12 @@ function validateToggleScope(scope: unknown): SubagentWritableScope | "builtin" 
   return scope;
 }
 
+/** The GET hides long-term agents, so the Settings UI cannot see a collision: refuse to touch their profile files. */
+function longTermConflict(cwd: string, name: string): NextResponse | null {
+  const taken = listSubagentProfileSources(cwd).some((profile) => profile.longTerm === true && profile.name.toLowerCase() === name.toLowerCase());
+  return taken ? NextResponse.json({ error: "long-term agent" }, { status: 409 }) : null;
+}
+
 export async function GET(req: Request) {
   try {
     const cwd = await validateCwd(new URL(req.url).searchParams.get("cwd"));
@@ -52,7 +58,11 @@ export async function PUT(req: Request) {
     if (!body.profile || typeof body.profile.name !== "string") {
       return NextResponse.json({ error: "profile required" }, { status: 400 });
     }
-    return NextResponse.json({ profile: saveSubagentProfile(cwd, scope, body.profile) });
+    const conflict = longTermConflict(cwd, body.profile.name);
+    if (conflict) return conflict;
+    const profile = { ...body.profile } as Record<string, unknown>;
+    delete profile.longTerm; // a body never mints a long-term profile
+    return NextResponse.json({ profile: saveSubagentProfile(cwd, scope, profile as unknown as Omit<SubagentProfile, "scope" | "filePath">) });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: message === "Access denied" ? 403 : 400 });
@@ -67,6 +77,8 @@ export async function PATCH(req: Request) {
     if (typeof body.name !== "string") return NextResponse.json({ error: "name required" }, { status: 400 });
     if (typeof body.enabled !== "boolean") return NextResponse.json({ error: "enabled required" }, { status: 400 });
     const name = body.name;
+    const conflict = longTermConflict(cwd, name);
+    if (conflict) return conflict;
     const source = listSubagentProfileSources(cwd).find((profile) =>
       profile.scope === scope && profile.name.toLowerCase() === name.toLowerCase()
     );
@@ -104,6 +116,8 @@ export async function DELETE(req: Request) {
     const cwd = await validateCwd(body.cwd);
     const scope = validateScope(body.scope);
     if (typeof body.name !== "string") return NextResponse.json({ error: "name required" }, { status: 400 });
+    const conflict = longTermConflict(cwd, body.name);
+    if (conflict) return conflict;
     deleteSubagentProfile(cwd, scope, body.name);
     return NextResponse.json({ ok: true });
   } catch (error) {

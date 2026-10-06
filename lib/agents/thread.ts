@@ -5,7 +5,7 @@ import { serializeByKey } from "../key-serializer";
 import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSessionWrapper } from "../rpc-manager";
 import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
 import type { SessionEntry } from "../types";
-import { getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
+import { AgentRegistryError, getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
 
 export interface ThreadDeps {
   start: typeof startRpcSession;
@@ -28,10 +28,16 @@ export function countUnread(entries: readonly SessionEntry[], lastReadEntryId: s
   return count;
 }
 
+/** Serializes the thread's start and its deletion, so a delete cannot race a reopen. */
+export function withThreadLock<T>(name: string, task: () => Promise<T>): Promise<T> {
+  return serializeByKey(THREAD_START, name, task);
+}
+
 /** The pinned session (D10): created trusted on the first open, reused forever. Concurrent opens share one start. */
 export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ sessionId: string; path: string }> {
-  return serializeByKey(THREAD_START, agent.name, async () => {
-    const current = deps.readAgent(agent.name) ?? agent; // re-read inside the lock: a parallel call may have just created it
+  return withThreadLock(agent.name, async () => {
+    const current = deps.readAgent(agent.name); // re-read inside the lock: a parallel call may have just created it, or a delete removed it
+    if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
     if (current.threadSessionId) {
       const path = await deps.resolvePath(current.threadSessionId);
       if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };

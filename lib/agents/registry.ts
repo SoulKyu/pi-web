@@ -16,6 +16,7 @@ const THINKING_LEVELS = new Set<string>(["off", "minimal", "low", "medium", "hig
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const EMOJI_MAX_CHARS = 8;
 const ROLE_MAX_CHARS = 20_000;
+export const AGENT_NAME_MAX = 64;
 
 export interface AgentAvatar { emoji: string; color: string }
 export interface AgentSpaceState { name: string; avatar: AgentAvatar; createdAt: string; threadSessionId?: string; lastReadEntryId?: string }
@@ -86,6 +87,7 @@ const KNOWN_FIELDS = new Set(["name", "role", "model", "thinking", "toolsPreset"
 export function validateCreateInput(body: unknown): { ok: true; input: CreateAgentInput } | { ok: false; error: string } {
   if (!isRecord(body)) return { ok: false, error: "Invalid JSON body" };
   if (typeof body.name !== "string" || !AGENT_NAME_RE.test(body.name.trim())) return { ok: false, error: "name may contain only letters, numbers, dots, underscores and hyphens" };
+  if (body.name.trim().length > AGENT_NAME_MAX) return { ok: false, error: `name must be at most ${AGENT_NAME_MAX} characters` };
   const fields = validateFields(body, true);
   if (!fields.ok) return fields;
   return { ok: true, input: { name: body.name.trim(), ...fields.input } as CreateAgentInput };
@@ -122,6 +124,11 @@ function longTermProfiles(): SubagentProfile[] {
   return listSubagentProfiles(agentsHomeDir()).filter((profile) => profile.scope === "global" && profile.longTerm === true);
 }
 
+/** Exact-name lookup of the global long-term profile: trusted threads never resolve through a project scope. */
+export function resolveLongTermProfile(name: string): SubagentProfile | undefined {
+  return longTermProfiles().find((profile) => profile.name === name && profile.enabled !== false);
+}
+
 function toAgent(profile: SubagentProfile): LongTermAgent {
   // A missing or malformed space file (manual edit) must not hide the agent: fall back to a neutral avatar.
   const space = readSpace(profile.name) ?? { name: profile.name, avatar: { emoji: profile.name[0].toUpperCase(), color: "#555555" }, createdAt: "" };
@@ -154,7 +161,7 @@ function writeProfile(input: CreateAgentInput, color: string): void {
 
 export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   const name = input.name.trim();
-  if (!AGENT_NAME_RE.test(name)) throw new AgentRegistryError("invalid", "invalid agent name");
+  if (!AGENT_NAME_RE.test(name) || name.length > AGENT_NAME_MAX) throw new AgentRegistryError("invalid", "invalid agent name");
   // Any profile of any scope, in any case: resolveSubagentProfile is case-insensitive, and a built-in must not be shadowed.
   const taken = listSubagentProfileSources(agentsHomeDir()).some((profile) => profile.name.toLowerCase() === name.toLowerCase());
   if (taken || existsSync(agentHome(name)) || existsSync(spacePath(name))) throw new AgentRegistryError("conflict", `name already used: ${name}`);

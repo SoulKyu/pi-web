@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after } from "node:test";
@@ -224,4 +224,31 @@ test("profiles route rejects missing paths, malformed profiles, and unsafe names
   response = await PATCH(jsonRequest("PATCH", { cwd, scope: "project", name: "api-test-agent" }));
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "enabled required" });
+});
+
+test("a long-term agent's profile cannot be written, toggled or deleted from Settings", async (t) => {
+  const cwd = await mkdtemp(join(tmpdir(), "pi-web-subagent-route-lt-"));
+  allowFileRoot(cwd);
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+  const file = join(testAgentDir, "agents", "leandro.md");
+  await mkdir(join(testAgentDir, "agents"), { recursive: true });
+  await writeFile(file, "---\ndescription: lt\nlong_term: true\n---\nrole\n");
+  const before = await readFile(file, "utf8");
+  for (const name of ["leandro", "Leandro"]) {
+    for (const response of [
+      await PUT(jsonRequest("PUT", { cwd, scope: "global", profile: profile({ name }) })),
+      await PUT(jsonRequest("PUT", { cwd, scope: "project", profile: profile({ name }) })),
+      await PATCH(jsonRequest("PATCH", { cwd, scope: "global", name, enabled: false })),
+      await DELETE(jsonRequest("DELETE", { cwd, scope: "global", name })),
+    ]) {
+      assert.equal(response.status, 409);
+      assert.deepEqual(await response.json(), { error: "long-term agent" });
+    }
+  }
+  assert.equal(await readFile(file, "utf8"), before);
+  assert.equal(existsSync(join(cwd, ".pi", "agents", "leandro.md")), false);
+
+  const response = await PUT(jsonRequest("PUT", { cwd, scope: "project", profile: profile({ name: "ordinary", longTerm: true }) }));
+  assert.equal(response.status, 200);
+  assert.doesNotMatch(await readFile(join(cwd, ".pi", "agents", "ordinary.md"), "utf8"), /long_term/);
 });

@@ -4,6 +4,7 @@ import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@e
 import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
+import { agentHome, resolveLongTermProfile } from "./agents/registry";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
@@ -2370,9 +2371,17 @@ export async function startRpcSession(
   const entries = sessionManager.getEntries() as unknown as SessionEntry[];
   // A new agent-profile session takes the same isolated resources a subagent does; its
   // snapshot is written below, once the profile's extension tools are known.
+  const trustedStart = !sessionFile && options.agentProfile !== undefined && options.agentProfileTrust === "trusted";
+  // A trusted thread runs only the global long-term profile, in its home: no project file may shadow it.
   const newSessionProfile = !sessionFile && options.agentProfile
-    ? resolveSubagentProfile(sessionCwd, options.agentProfile)
+    ? trustedStart ? resolveLongTermProfile(options.agentProfile) : resolveSubagentProfile(sessionCwd, options.agentProfile)
     : undefined;
+  if (trustedStart && (!newSessionProfile || sessionCwd !== agentHome(newSessionProfile.name))) {
+    throw new Error("trusted threads run only the global long-term profile in its home");
+  }
+  if (newSessionProfile?.longTerm && options.agentProfileTrust !== "trusted" && options.agentProfileTools === undefined) {
+    throw new Error(`Long-term agent ${newSessionProfile.name} runs only in its thread`);
+  }
   if (!sessionFile && options.agentProfile && !newSessionProfile) {
     throw new Error(`Unknown or disabled agent profile: ${options.agentProfile}`);
   }
@@ -2381,7 +2390,7 @@ export async function startRpcSession(
   // snapshot they were started with: their tools were narrowed on purpose (webhook runs).
   const reopenedProfileName = sessionFile ? readSessionAgentProfile(entries) : undefined;
   const reopenedLongTermProfile = reopenedProfileName && readSessionAgentTrust(entries) === "trusted"
-    ? resolveSubagentProfile(sessionCwd, reopenedProfileName)
+    ? resolveLongTermProfile(reopenedProfileName)
     : undefined;
   const snapshotProfile = newSessionProfile ?? (reopenedLongTermProfile?.longTerm ? reopenedLongTermProfile : undefined);
   const subagentResources = snapshotProfile
