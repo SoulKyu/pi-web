@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import {
   createAuthThrottleState, getAuthRetryAfterMs, recordAuthFailure, retryAfterSeconds, type AuthThrottleState,
 } from "../auth-throttle";
+import { hasJsonContentType } from "../request-security";
 import { ingestTriggerPayload } from "./scheduler";
 import { getTrigger } from "./trigger-store";
 
@@ -9,9 +10,25 @@ import { getTrigger } from "./trigger-store";
 export const HOOK_SECRET_HEADER = "x-agent-ops-secret";
 export const HOOK_BODY_MAX_BYTES = 64 * 1024;
 
-declare global { var __agentOpsHookThrottle: AuthThrottleState | undefined; }
-/** Dedicated state: wrong secrets on this exposed route must not raise the browser login's backoff. */
-export const hookThrottle = (): AuthThrottleState => (globalThis.__agentOpsHookThrottle ??= createAuthThrottleState());
+declare global {
+  var __agentOpsHookThrottles: Map<string, AuthThrottleState> | undefined;
+  var __agentOpsUnknownHookThrottle: AuthThrottleState | undefined;
+}
+const MAX_THROTTLE_ENTRIES = 256;
+/** Dedicated states, never the browser login's: wrong secrets on this exposed route must not raise its backoff.
+ *  One state per known trigger, so a flood aimed at one id (or at unknown ids, which share a separate state
+ *  no known trigger consults) cannot block another trigger's alerts. */
+export function hookThrottle(triggerId?: string): AuthThrottleState {
+  if (!triggerId) return (globalThis.__agentOpsUnknownHookThrottle ??= createAuthThrottleState());
+  const states = (globalThis.__agentOpsHookThrottles ??= new Map());
+  let state = states.get(triggerId);
+  if (!state) {
+    // ponytail: entries exist only for ids of real triggers; past the cap, drop those of deleted triggers. Cap-sized scan per new trigger.
+    if (states.size >= MAX_THROTTLE_ENTRIES) for (const id of states.keys()) if (!getTrigger(id)) states.delete(id);
+    states.set(triggerId, state = createAuthThrottleState());
+  }
+  return state;
+}
 
 const sha256 = (value: string): Buffer => createHash("sha256").update(value).digest();
 const json = (body: unknown, status: number, headers?: Record<string, string>): Response =>
@@ -33,19 +50,15 @@ async function readCapped(body: ReadableStream<Uint8Array> | null, max: number):
   return Buffer.concat(chunks).toString("utf8");
 }
 
-function isJsonContent(request: Request): boolean {
-  const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
-  return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
-}
-
 /** Fail closed: no secret configured, no way in. Never echoes the secret or the payload. */
 export async function handleHook(request: Request, id: string, kick: () => unknown): Promise<Response> {
-  const retryAfterMs = getAuthRetryAfterMs(Date.now(), hookThrottle());
-  if (retryAfterMs > 0) return json({ error: "Too many failed attempts" }, 429, { "Retry-After": String(retryAfterSeconds(retryAfterMs)) });
-  const fail = (error: string, status: number): Response => { recordAuthFailure(Date.now(), hookThrottle()); return json({ error }, status); };
-
   const trigger = getTrigger(id);
-  if (!trigger) return fail("Not found", 404); // counted: ids cannot be probed freely
+  const throttle = hookThrottle(trigger?.id);
+  const retryAfterMs = getAuthRetryAfterMs(Date.now(), throttle);
+  if (retryAfterMs > 0) return json({ error: "Too many failed attempts" }, 429, { "Retry-After": String(retryAfterSeconds(retryAfterMs)) });
+  const fail = (error: string, status: number): Response => { recordAuthFailure(Date.now(), throttle); return json({ error }, status); };
+
+  if (!trigger) return fail("Not found", 404); // counted on the shared unknown-id state: ids cannot be probed freely
   if (!trigger.webhookSecret) return fail("Webhook not enabled for this trigger", 403); // before any comparison
   // Digests have equal length; raw buffers of different lengths make timingSafeEqual throw.
   if (!timingSafeEqual(sha256(request.headers.get(HOOK_SECRET_HEADER) ?? ""), sha256(trigger.webhookSecret))) return fail("Unauthorized", 401);
@@ -53,7 +66,7 @@ export async function handleHook(request: Request, id: string, kick: () => unkno
   const text = await readCapped(request.body, HOOK_BODY_MAX_BYTES);
   if (text === null) return json({ error: "Payload too large" }, 413);
   let body: unknown = { text };
-  if (isJsonContent(request)) {
+  if (hasJsonContentType(request)) {
     try { body = JSON.parse(text); } catch { return json({ error: "Invalid JSON body" }, 400); }
   }
   const result = ingestTriggerPayload(trigger, body);
