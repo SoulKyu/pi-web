@@ -42,6 +42,8 @@ app/api/
   agent-ops/overview/route.ts      GET agent cards (profiles + their sessions)
   agent-ops/tasks/route.ts         GET list tasks | POST { profile, cwd, prompt } queue a task
   agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel
+  agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
+  agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
@@ -115,6 +117,7 @@ lib/
   agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task
   agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
   agent-ops/trigger-store.ts trigger tool allowlist and profile pin helpers
+  agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
   file-access.ts            allowed file roots for /api/files and worktrees
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check
   file-paths.ts             client/server path encoding helpers
@@ -170,7 +173,7 @@ components/
   OAuthPastePanel.tsx      paste box for a sign-in's redirected address or code (Models, MCP)
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
-  agents/AgentsPanel.tsx   Agents dialog: cards, task list, assign (AgentTasks, AssignTaskDialog, task-view)
+  agents/AgentsPanel.tsx   Agents dialog: cards, task list, assign, memory queue (AgentTasks, AgentMemory, AssignTaskDialog, task-view)
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
   McpConfig.tsx            Settings › MCP: servers, switches, exposure, remove/undo, Test, sign-in, Code mode, trust
