@@ -42,6 +42,9 @@ app/api/
   agent-ops/overview/route.ts      GET agent cards (profiles + their sessions)
   agent-ops/tasks/route.ts         GET list tasks | POST { profile, cwd, prompt } queue a task
   agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel
+  agent-ops/triggers/route.ts      GET list triggers (hasWebhookSecret, never the secret) | POST create; webhook: true returns the generated secret once
+  agent-ops/triggers/[id]/route.ts PATCH enabled/edit (re-pins on profile or cwd change) | DELETE
+  agent-ops/triggers/[id]/secret/route.ts POST rotate the webhook secret, returned once
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
@@ -120,7 +123,8 @@ lib/
   agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin
   agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
   agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
-  agent-ops/hook-path.ts    exact hook path the proxy lets through without a session
+  agent-ops/hook-path.ts    exact hook path the proxy lets through without a session + the secret header name (client-safe)
+  agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
   file-access.ts            allowed file roots for /api/files and worktrees
@@ -178,7 +182,7 @@ components/
   OAuthPastePanel.tsx      paste box for a sign-in's redirected address or code (Models, MCP)
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
-  agents/AgentsPanel.tsx   Agents dialog: cards, task list, assign, memory queue (AgentTasks, AgentMemory, AssignTaskDialog, task-view)
+  agents/AgentsPanel.tsx   Agents dialog: cards, triggers, task list, assign, memory queue (AgentTasks, AgentTriggers, TriggerDialog, TriggerSecretDialog, AgentMemory, AssignTaskDialog, task-view, trigger-view)
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
   McpConfig.tsx            Settings › MCP: servers, switches, exposure, remove/undo, Test, sign-in, Code mode, trust
