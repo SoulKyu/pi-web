@@ -1,0 +1,69 @@
+import { randomUUID } from "node:crypto";
+import { allowFileRoot } from "../file-access";
+import { serializeByKey } from "../key-serializer";
+import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSessionWrapper } from "../rpc-manager";
+import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
+import type { SessionEntry } from "../types";
+import { getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
+
+export interface ThreadDeps {
+  start: typeof startRpcSession;
+  resolvePath: typeof resolveSessionPath;
+  readAgent: typeof getLongTermAgent;
+}
+const defaultDeps = (): ThreadDeps => ({ start: startRpcSession, resolvePath: resolveSessionPath, readAgent: getLongTermAgent });
+const THREAD_START = Symbol.for("pi-web:agent-thread-start");
+
+/** What the badge counts: the agent's replies. The user's own messages are read by definition. Task 15 adds event cards. */
+export function isUnreadEntry(entry: SessionEntry): boolean {
+  return entry.type === "message" && (entry as { message?: { role?: string } }).message?.role === "assistant";
+}
+
+/** Entries after `lastReadEntryId` in file order. An unknown or absent marker counts everything: never hide activity. */
+export function countUnread(entries: readonly SessionEntry[], lastReadEntryId: string | undefined): number {
+  const at = lastReadEntryId ? entries.findIndex((entry) => entry.id === lastReadEntryId) : -1;
+  let count = 0;
+  for (let index = at + 1; index < entries.length; index += 1) if (isUnreadEntry(entries[index])) count += 1;
+  return count;
+}
+
+/** The pinned session (D10): created trusted on the first open, reused forever. Concurrent opens share one start. */
+export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ sessionId: string; path: string }> {
+  return serializeByKey(THREAD_START, agent.name, async () => {
+    const current = deps.readAgent(agent.name) ?? agent; // re-read inside the lock: a parallel call may have just created it
+    if (current.threadSessionId) {
+      const path = await deps.resolvePath(current.threadSessionId);
+      if (path) return { sessionId: current.threadSessionId, path };
+      // The file was deleted or moved by hand: start over rather than 404 forever.
+    }
+    const { session, realSessionId } = await deps.start(`__agent_thread__${agent.name}_${randomUUID()}`, "", agent.home, {
+      agentProfile: agent.name,
+      agentProfileTrust: "trusted",
+    });
+    allowFileRoot(agent.home);
+    invalidateSessionListCache();
+    setThreadSessionId(agent.name, realSessionId);
+    return { sessionId: realSessionId, path: session.sessionFile };
+  });
+}
+
+/** The live wrapper of the thread, reopened through the normal open-session path when the idle release closed it. */
+export async function openThread(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ session: AgentSessionWrapper; sessionId: string }> {
+  const { sessionId, path } = await ensureThread(agent, deps);
+  const { session } = await deps.start(sessionId, path, undefined, {});
+  return { session, sessionId };
+}
+
+export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): boolean {
+  return Boolean(agent.threadSessionId && getRunningRpcSessionIds().includes(agent.threadSessionId));
+}
+
+/** ponytail: reads the whole thread file on every rail poll; switch to a bounded tail read if files grow past a few MB. */
+export async function unreadCount(agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">): Promise<number> {
+  if (!agent.threadSessionId) return 0;
+  const live = getRpcSession(agent.threadSessionId);
+  const entries = live?.isAlive()
+    ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
+    : await resolveSessionPath(agent.threadSessionId).then((path) => (path ? getSessionEntries(path) : []));
+  return countUnread(entries, agent.lastReadEntryId);
+}
