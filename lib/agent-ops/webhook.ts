@@ -3,11 +3,10 @@ import {
   createAuthThrottleState, getAuthRetryAfterMs, recordAuthFailure, retryAfterSeconds, type AuthThrottleState,
 } from "../auth-throttle";
 import { hasJsonContentType } from "../request-security";
+import { HOOK_SECRET_HEADER } from "./hook-path";
 import { ingestTriggerPayload } from "./scheduler";
 import { getTrigger } from "./trigger-store";
 
-/** Header carrying the trigger's shared secret. */
-export const HOOK_SECRET_HEADER = "x-agent-ops-secret";
 export const HOOK_BODY_MAX_BYTES = 64 * 1024;
 
 declare global {
