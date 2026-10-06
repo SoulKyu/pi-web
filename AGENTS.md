@@ -39,6 +39,9 @@ app/api/
   sessions/[id]/state/route.ts     GET live wrapper state while running
   sessions/[id]/auto-name/route.ts POST generate a session title
   sessions/search/route.ts         GET session search
+  agent-ops/overview/route.ts      GET agent cards (profiles + their sessions)
+  agent-ops/tasks/route.ts         GET list tasks | POST { profile, cwd, prompt } queue a task
+  agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
@@ -105,6 +108,13 @@ lib/
   enabled-models.ts         pure minimal-edit engine for the enabledModels pattern list
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
+  agent-ops/overview.ts     agent cards: profiles + sessions, profile-ref cache, orphan flag
+  agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
+  agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
+  agent-ops/prompt-run.ts   prompt send (not awaited), done from events, trigger tool check
+  agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task
+  agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
+  agent-ops/trigger-store.ts trigger tool allowlist and profile pin helpers
   file-access.ts            allowed file roots for /api/files and worktrees
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check
   file-paths.ts             client/server path encoding helpers
@@ -160,6 +170,7 @@ components/
   OAuthPastePanel.tsx      paste box for a sign-in's redirected address or code (Models, MCP)
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
+  agents/AgentsPanel.tsx   Agents dialog: cards, task list, assign (AgentTasks, AssignTaskDialog, task-view)
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
   McpConfig.tsx            Settings › MCP: servers, switches, exposure, remove/undo, Test, sign-in, Code mode, trust
@@ -198,6 +209,7 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [files-and-access.md](docs/agents/files-and-access.md): worktrees and project grouping, the file access allow-list (the `/api/files` security boundary), file tree visibility, web password throttling. Files: `app/api/files/**`, `app/api/cwd/**`, `app/api/worktrees/**`, `app/api/file-index/**`, `app/api/web-auth/**`, `proxy.ts`, `lib/path-security.ts`, `lib/file-access.ts`, `lib/linked-directory.ts`, `lib/session-file-references*.ts`, `lib/file-tree-visibility.ts`, `lib/worktree.ts`, `lib/paths.ts`, `lib/auth-throttle.ts`, `components/FileExplorer.tsx`.
 - [settings-ui.md](docs/agents/settings-ui.md): Plugins and Skills routes, sidebar group switches, the shared `SettingsUi` blocks every settings panel and add pane uses. Files: `app/api/plugins/**`, `app/api/skills/**`, `components/SettingsUi.tsx`, `components/settings-ui-helpers.ts`, `components/SkillsConfig.tsx`, `components/PluginsConfig.tsx`; also before adding a settings section or add pane.
 - [subagents.md](docs/agents/subagents.md): the built-in subagent setting, profiles and their files, run status, completion notifications. Files: `lib/subagent*.ts`, `app/api/subagents/**`, `components/AgentsConfig.tsx`.
+- [agent-ops.md](docs/agents/agent-ops.md): agent cards, the task store and FIFO runner, cancel/steer ordering, the single deadline, the unawaited prompt send, trigger tool check. Files: `lib/agent-ops/**`, `app/api/agent-ops/**`, `components/agents/*`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
 
 ---
