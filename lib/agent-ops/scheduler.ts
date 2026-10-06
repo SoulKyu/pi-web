@@ -39,14 +39,19 @@ function claimFireToken(name: string): boolean {
   try { closeSync(openSync(join(triggersDir(), name), "wx", 0o600)); return true; } catch { return false; }
 }
 
-export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask): IngestResult {
-  if (!trigger.enabled) return { accepted: false, reason: "trigger disabled" };
-  // Pin check at ingestion: refuse drifted or vanished profiles before creating anything.
+/** Shared by webhook ingestion and scheduled fires. Returns the refusal reason, or null when the trigger may run. */
+function admissionRefusal(trigger: TriggerConfig): string | null {
+  if (!trigger.enabled) return "trigger disabled";
+  // Pin check before creating anything: refuse drifted or vanished profiles.
   const resolved = resolveSubagentProfile(trigger.cwd, trigger.profile);
-  if (!resolved) return { accepted: false, reason: "trigger profile not found or disabled" };
-  if (profilePinSha256(resolved) !== trigger.pinnedProfile.contentSha256) {
-    return { accepted: false, reason: "trigger profile drift" };
-  }
+  if (!resolved) return "trigger profile not found or disabled";
+  if (profilePinSha256(resolved) !== trigger.pinnedProfile.contentSha256) return "trigger profile drift";
+  return null;
+}
+
+export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask): IngestResult {
+  const refusal = admissionRefusal(trigger);
+  if (refusal) return { accepted: false, reason: refusal };
   // FinOps cap, before the dedup token so a refused payload does not consume it.
   // ponytail: check-then-act across processes; two processes can each admit one at the limit. Acceptable for a cost cap.
   if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) {
@@ -91,6 +96,16 @@ export function purgeStaleFireTokens(now = Date.now()): number {
 declare global {
   var __agentOpsScheduler: ReturnType<typeof setInterval> | undefined;
   var __agentOpsLastPrune: number | undefined;
+  var __agentOpsLoggedRefusals: Map<string, string> | undefined;
+}
+
+/** A refused scheduled fire is retried every tick: log its reason once per trigger and bucket. */
+function logRefusalOnce(trigger: TriggerConfig, bucket: number, reason: string): void {
+  const logged = (globalThis.__agentOpsLoggedRefusals ??= new Map());
+  const key = `${bucket}:${reason}`;
+  if (logged.get(trigger.id) === key) return;
+  logged.set(trigger.id, key); // ponytail: one entry per trigger id, never pruned
+  console.error(`[agent-ops] scheduled fire of trigger ${trigger.id} refused: ${reason}`);
 }
 
 /** One scheduler pass: purge, prune (hourly), fire due triggers, kick. Triggers are re-read every pass, no snapshot. */
@@ -102,13 +117,20 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
       pruneTasks();
     }
     for (const trigger of listTriggers()) {
-      if (!trigger.enabled || !trigger.everyMinutes) continue;
-      if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) continue; // a slow run does not pile up fires
-      // Scheduled fires bypass payload dedup: the .sched.<bucket> wx token is the only
-      // guard, else everyMinutes < dedupWindowMs swallows fires.
-      const bucket = Math.floor(Date.now() / (trigger.everyMinutes * 60_000));
-      if (!claimFireToken(`${trigger.id}.sched.${bucket}`)) continue;
-      createTriggerTask(trigger, "", create);
+      try {
+        if (!trigger.enabled || !trigger.everyMinutes) continue;
+        const bucket = Math.floor(Date.now() / (trigger.everyMinutes * 60_000));
+        // Checked before the token: a refused fire creates no task and keeps its bucket.
+        const refusal = admissionRefusal(trigger);
+        if (refusal) { logRefusalOnce(trigger, bucket, refusal); continue; }
+        if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) continue; // a slow run does not pile up fires
+        // Scheduled fires bypass payload dedup: the .sched.<bucket> wx token is the only
+        // guard, else everyMinutes < dedupWindowMs swallows fires.
+        if (!claimFireToken(`${trigger.id}.sched.${bucket}`)) continue;
+        createTriggerTask(trigger, "", create);
+      } catch (error) { // one trigger's failure must not stop the others
+        console.error(`[agent-ops] scheduled fire of trigger ${trigger.id} failed:`, error instanceof Error ? error.message : error);
+      }
     }
   } catch (error) {
     console.error("[agent-ops] scheduler tick failed:", error instanceof Error ? error.message : error); // a throw in a timer kills the process
