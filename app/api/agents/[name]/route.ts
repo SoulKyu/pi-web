@@ -57,9 +57,16 @@ export async function DELETE(_req: Request, { params }: Context) {
       if (!agent) return notFound();
       const id = agent.threadSessionId;
       const busy = () => Boolean(id && (isRpcSessionStarting(id) || getRpcSession(id)?.isAlive()));
-      if (busy()) return NextResponse.json({ error: "agent_running" }, { status: 409, headers });
+      const running = () => NextResponse.json({ error: "agent_running" }, { status: 409, headers });
+      if (id && isRpcSessionStarting(id)) return running();
+      const live = id ? getRpcSession(id) : undefined;
+      if (live?.isAlive()) {
+        if (live.isRunning()) return running();
+        await live.shutdown(); // idle wrapper kept by the idle release: close it, then delete
+      }
+      if (busy()) return running(); // it came back meanwhile
       const threadPath = id ? await resolveSessionPath(id) : null;
-      if (busy()) return NextResponse.json({ error: "agent_running" }, { status: 409, headers }); // started during the await
+      if (busy()) return running(); // started during the await
       const trash = deleteLongTermAgent(agent.name, threadPath ?? undefined);
       if (agent.threadSessionId) invalidateSessionPathCache(agent.threadSessionId);
       invalidateSessionListCache();

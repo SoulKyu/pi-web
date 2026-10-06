@@ -20,6 +20,8 @@ test("PATCH and DELETE refuse while the thread runs, and profile edits reach the
   assert.match(one, /withThreadLock\(name/);
   assert.match(one, /isRpcSessionStarting\(id\)/);
   assert.match(one, /re-read under the lock/);
+  assert.match(one, /await live\.shutdown\(\)/);
+  assert.match(one, /if \(busy\(\)\) return running\(\); \/\/ it came back meanwhile/);
   assert.match(one, /invalidateSessionPathCache\(/);
 });
 test("the sessions list leaves agent homes out, and long-term agents are never delegable", async () => {

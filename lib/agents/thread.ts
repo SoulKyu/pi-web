@@ -35,31 +35,37 @@ export function withThreadLock<T>(name: string, task: () => Promise<T>): Promise
 
 /** The pinned session (D10): created trusted on the first open, reused forever. Concurrent opens share one start. */
 export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ sessionId: string; path: string }> {
-  return withThreadLock(agent.name, async () => {
-    const current = deps.readAgent(agent.name); // re-read inside the lock: a parallel call may have just created it, or a delete removed it
-    if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
-    if (current.threadSessionId) {
-      const path = await deps.resolvePath(current.threadSessionId);
-      if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };
-      // Deleted or moved by hand, or never flushed before the idle release: start over.
-    }
-    const { session, realSessionId } = await deps.start(`__agent_thread__${agent.name}_${randomUUID()}`, "", agent.home, {
-      agentProfile: agent.name,
-      agentProfileTrust: "trusted",
-    });
-    session.persistSessionFile();
-    allowFileRoot(agent.home);
-    invalidateSessionListCache();
-    setThreadSessionId(agent.name, realSessionId);
-    return { sessionId: realSessionId, path: session.sessionFile };
+  return withThreadLock(agent.name, () => ensureThreadLocked(agent, deps));
+}
+
+/** The body of ensureThread; the caller holds the agent's thread lock. */
+async function ensureThreadLocked(agent: LongTermAgent, deps: ThreadDeps): Promise<{ sessionId: string; path: string }> {
+  const current = deps.readAgent(agent.name); // re-read inside the lock: a parallel call may have just created it, or a delete removed it
+  if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
+  if (current.threadSessionId) {
+    const path = await deps.resolvePath(current.threadSessionId);
+    if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };
+    // Deleted or moved by hand, or never flushed before the idle release: start over.
+  }
+  const { session, realSessionId } = await deps.start(`__agent_thread__${agent.name}_${randomUUID()}`, "", agent.home, {
+    agentProfile: agent.name,
+    agentProfileTrust: "trusted",
   });
+  session.persistSessionFile();
+  allowFileRoot(agent.home);
+  invalidateSessionListCache();
+  setThreadSessionId(agent.name, realSessionId);
+  return { sessionId: realSessionId, path: session.sessionFile };
 }
 
 /** The live wrapper of the thread, reopened through the normal open-session path when the idle release closed it. */
 export async function openThread(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ session: AgentSessionWrapper; sessionId: string }> {
-  const { sessionId, path } = await ensureThread(agent, deps);
-  const { session } = await deps.start(sessionId, path, undefined, {});
-  return { session, sessionId };
+  // The lock spans the start, so a delete (same lock) cannot move the file from under the reopen.
+  return withThreadLock(agent.name, async () => {
+    const { sessionId, path } = await ensureThreadLocked(agent, deps);
+    const { session } = await deps.start(sessionId, path, undefined, {});
+    return { session, sessionId };
+  });
 }
 
 export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): boolean {
