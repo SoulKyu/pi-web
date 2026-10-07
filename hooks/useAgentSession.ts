@@ -1387,6 +1387,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           if (messagesRef.current.some((message) => isSameEvent(message, data))) break;
           uiMessage = agentEventToUiMessage(data, Date.now());
         } else if (customType === RECALL_ENTRY_TYPE && isRecallEntryData(data)) {
+          if (entryIdsRef.current.includes(entryId)) break;
           uiMessage = recallEntryToUiMessage(data, Date.now());
         } else break;
         setMessages((prev) => [...prev, uiMessage]);

@@ -6,10 +6,13 @@ import { writePrivateFileAtomicSync } from "../atomic-file";
 import { AGENT_NAME_RE } from "./registry";
 
 export interface AgentMemoryItem { id: string; text: string; createdAt: string; source: string }
+/** One line of pi-mem0's journal (src/journal.ts), mirrored in the agent snapshot as `events`. */
+export interface JournalEvent { at: string; kind: "add" | "forget"; id: string; text: string; source: string; scope: string; sessionId?: string }
 export class MemoryNotFoundError extends Error {}
 const MEMORY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const REQUEST_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(json|processing)$/;
 const SNAPSHOT_LIMIT = 200;
+const JOURNAL_LIMIT = 100;
 const SNAPSHOT_MAX_BYTES = 1024 * 1024;
 
 // Layout owned by pi-mem0 (src/snapshot.ts): pi-web reads snapshots and writes requests, never the store.
@@ -42,6 +45,22 @@ export function readAgentMemorySnapshot(name: string, dir = mem0Dir()): AgentMem
       return typeof id === "string" && typeof text === "string" && typeof createdAt === "string" && typeof source === "string"
         ? [{ id, text, createdAt, source }] : [];
     }).slice(0, SNAPSHOT_LIMIT);
+  } catch { return []; }
+}
+
+export function readAgentMemoryEvents(name: string, dir = mem0Dir()): JournalEvent[] {
+  if (!AGENT_NAME_RE.test(name)) return [];
+  try {
+    const file = join(dir, "agents", `${name}.json`);
+    if (statSync(file).size > SNAPSHOT_MAX_BYTES) return [];
+    const raw = JSON.parse(readFileSync(file, "utf8")) as { agent?: unknown; events?: unknown };
+    if (raw.agent !== name || !Array.isArray(raw.events)) return [];
+    return raw.events.flatMap((item): JournalEvent[] => {
+      const { at, kind, id, text, source, scope, sessionId } = (item ?? {}) as Record<string, unknown>;
+      return typeof at === "string" && (kind === "add" || kind === "forget") && typeof id === "string" && typeof text === "string"
+        && typeof source === "string" && typeof scope === "string" && (sessionId === undefined || typeof sessionId === "string")
+        ? [{ at, kind, id, text, source, scope, ...(sessionId === undefined ? {} : { sessionId }) }] : [];
+    }).slice(0, JOURNAL_LIMIT);
   } catch { return []; }
 }
 

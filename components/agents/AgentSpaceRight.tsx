@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { StagedFactView } from "@/lib/agent-ops/memory-review";
-import type { AgentMemoryItem, Mem0Health } from "@/lib/agents/memory";
+import type { AgentMemoryItem, JournalEvent, Mem0Health } from "@/lib/agents/memory";
 import { AgentMemory } from "./AgentMemory";
 import { AgentMemoryRecent } from "./AgentMemoryRecent";
 import { AgentTasks } from "./AgentTasks";
@@ -13,8 +13,8 @@ import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
 import { formatCompact } from "@/lib/agents/format-usage";
 
-interface MemoryState { recent: AgentMemoryItem[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
-const EMPTY_MEMORY: MemoryState = { recent: [], pendingForget: [], staged: [] };
+interface MemoryState { recent: AgentMemoryItem[]; events: JournalEvent[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
+const EMPTY_MEMORY: MemoryState = { recent: [], events: [], pendingForget: [], staged: [] };
 const MEMORY_POLL_MS = 10_000;
 const ACTIVE_TASK_POLL_MS = 5_000;
 
@@ -153,7 +153,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       {tasks.length > 0 && <AgentTasks tasks={tasks} compact onOpenSession={onOpenSession} onChanged={reloadMemory} />}
       <div className="agent-space-section">{t("agents.space.memory")}</div>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
-      <AgentMemoryRecent agentName={agent.name} items={memory.recent} pending={memory.pendingForget} health={memory.health} onChanged={reloadMemory} />
+      <AgentMemoryRecent agentName={agent.name} items={memory.recent} events={memory.events} onOpenSession={onOpenSession} pending={memory.pendingForget} health={memory.health} onChanged={reloadMemory} />
       {queueOpen && <QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={reloadMemory} />}
     </div>
   );

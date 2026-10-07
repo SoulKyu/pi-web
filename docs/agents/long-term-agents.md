@@ -126,3 +126,8 @@
 ## Recall card
 
 Each run of an agent session shows a folded grey card "🧠 n memories recalled · ms" (`components/agents/RecallCard.tsx`) written by pi-mem0 as a `pi-mem0:recall` entry; see `sessions.md` § Recall card. Unfolded, each hit is a plain-text line with a forget button for `agent`-scope hits (the same `POST /api/agents/[name]/memory/forget` as the Memory panel).
+
+## Memory journal
+- pi-mem0 appends one line per memory mutation (`add` with source `auto` / `memory_save` / `staged`, `forget`) to its journal and mirrors the newest 100 of `agent-<name>` into the snapshot as `events`. `readAgentMemoryEvents(name)` (`lib/agents/memory.ts`) parses them with field guards (junk lines dropped, `[]` when absent); `GET agents/[name]/memory` returns them as `events`.
+- `AgentMemoryRecent` has tabs `Recent | Journal`. A journal line is plain text (local time, `+ source` / `− forget` badge, text, an "open session" button through `onOpenSession` when `sessionId` is set). The text was redacted and clipped by pi-mem0.
+- A `pi-mem0:recall` entry is ignored when its `entryId` is already in the thread (an SSE reconnect may replay it).
