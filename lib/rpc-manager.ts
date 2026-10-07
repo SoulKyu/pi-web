@@ -2640,7 +2640,11 @@ export async function startRpcSession(
       if (deferredModel) {
         try {
           await wrapper.waitUntilReady();
+          const levelBeforeSwitch = inner.agent.state?.thinkingLevel;
           await wrapper.send({ type: "set_model", provider: deferredModel.provider, modelId: deferredModel.id });
+          // setModel resets the thinking level to the global default.
+          const level = initial?.thinkingLevel ?? levelBeforeSwitch;
+          if (level) await wrapper.send({ type: "set_thinking_level", level });
         } catch (error) {
           console.error(`[pi-web] could not switch to ${deferredModel.provider}/${deferredModel.id}:`, error instanceof Error ? error.message : error);
         }
