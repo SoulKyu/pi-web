@@ -23,6 +23,8 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const [name, setName] = useState(trigger?.name ?? "");
   const [promptTemplate, setPromptTemplate] = useState(trigger?.promptTemplate ?? "");
   const [everyMinutes, setEveryMinutes] = useState(trigger?.everyMinutes?.toString() ?? "");
+  const [at, setAt] = useState(trigger?.at ?? "");
+  const [critical, setCritical] = useState(trigger?.critical ?? false);
   const [webhook, setWebhook] = useState(false);
   const [dedupMinutes, setDedupMinutes] = useState(String((trigger?.dedupWindowMs ?? 15 * MS_PER_MINUTE) / MS_PER_MINUTE));
   const [maxActiveTasks, setMaxActiveTasks] = useState(String(trigger?.maxActiveTasks ?? 1));
@@ -56,7 +58,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   }, [agentName]);
 
   const isWebhook = trigger ? trigger.hasWebhookSecret : webhook;
-  const isScheduled = everyMinutes.trim() !== "" && !isWebhook;
+  const isScheduled = (everyMinutes.trim() !== "" || at.trim() !== "") && !isWebhook;
   const isolated = isWebhook || (isScheduled && runTarget === "isolated");
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
 
@@ -72,6 +74,8 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
     // Absent on create, null on edit: a PATCH clears an optional field only with an explicit null.
     const unset = trigger ? null : undefined;
     const run = {
+      at: at.trim() || unset,
+      critical: critical ? true : unset,
       runTarget: isScheduled && runTarget === "isolated" ? "isolated" : unset,
       model: isolated && model ? model : unset,
       tools: isolated && tools.length && tools.length < TRIGGER_TOOL_NAMES.length ? tools : unset,
@@ -104,6 +108,14 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
         <label style={labelStyle}>
           {t("agentOps.trigger.everyMinutes")}
           <input type="number" min={1} step={1} value={everyMinutes} onChange={(event) => setEveryMinutes(event.target.value)} style={fieldStyle} />
+        </label>
+        <label style={labelStyle}>
+          {t("agentOps.trigger.dailyAt")}
+          <input type="time" value={at} onChange={(event) => setAt(event.target.value)} style={fieldStyle} />
+        </label>
+        <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={critical} onChange={(event) => setCritical(event.target.checked)} />
+          {t("agentOps.trigger.critical")}
         </label>
         {isScheduled && (
           <fieldset style={{ ...labelStyle, border: 0, padding: 0, margin: 0 }}>

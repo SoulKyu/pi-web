@@ -57,3 +57,32 @@ test("fire answers 202 with a task, then 409 at the cap", async () => {
   assert.equal((await refused.json()).reason, "too many active tasks for this trigger");
   assert.equal((await call(fire, "00000000-0000-4000-8000-0000000000ff")).status, 404);
 });
+
+let seq = 0;
+const scheduleTrigger = (over) => {
+  const id = `00000000-0000-4000-8000-${String(++seq).padStart(12, "1")}`;
+  const made = { id, name: "s", profile: "dry", enabled: true, promptTemplate: "raw template", dedupWindowMs: 60_000, maxActiveTasks: 5, pinnedProfile: trigger.pinnedProfile, ...over };
+  triggers.saveTrigger(made);
+  return made;
+};
+const planOf = async (t) => (await (await call(dryRun, t.id, {})).json()).plan;
+
+test("dry-run: paused refuses with agent paused; a disabled trigger keeps its own reason", async () => {
+  settings.updateAgentOpsSettings({ paused: true });
+  try {
+    assert.equal((await planOf(scheduleTrigger({ webhookSecretSha256: undefined }))).reason, "agent paused");
+    assert.equal((await planOf(scheduleTrigger({ enabled: false }))).reason, "trigger disabled");
+  } finally { settings.updateAgentOpsSettings({ paused: false }); }
+});
+test("dry-run: a schedule trigger shows the raw template and its tool subset", async () => {
+  const plan = await planOf(scheduleTrigger({ runTarget: "isolated", tools: ["read"] }));
+  assert.equal(plan.prompt, "raw template"); assert.equal(plan.target, "isolated"); assert.deepEqual(plan.tools, ["read"]);
+});
+test("dry-run: inside quiet hours the plan carries deferredUntil unless the trigger is critical", async () => {
+  settings.updateAgentOpsSettings({ quietHours: { from: "00:00", to: "23:59" } });
+  try {
+    const plan = await planOf(scheduleTrigger({}));
+    assert.ok(Date.parse(plan.deferredUntil) > Date.now());
+    assert.equal((await planOf(scheduleTrigger({ critical: true }))).deferredUntil, undefined);
+  } finally { settings.updateAgentOpsSettings({ quietHours: null }); }
+});

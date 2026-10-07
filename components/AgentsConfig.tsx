@@ -36,6 +36,7 @@ import {
   ConfigStatusDot,
   ConfigSwitch,
 } from "./SettingsUi";
+import { AgentOpsSettings } from "./agents/AgentOpsSettings";
 import { ModelSelector } from "./ModelSelector";
 import { projectTrustReloadKey } from "./settings-ui-helpers";
 
@@ -501,6 +502,7 @@ export function AgentsConfig({
           />
         </div>
       </div>
+      <AgentOpsSettings />
       <ConfigSplitView>
         <ConfigSidebar>
           <ConfigSidebarList>

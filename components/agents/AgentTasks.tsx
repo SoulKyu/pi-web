@@ -34,6 +34,9 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
         <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
+        {task.status === "queued" && task.notBefore && (
+          <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agentOps.task.waitsUntil", { time: new Date(task.notBefore).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</span>
+        )}
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>
       </div>

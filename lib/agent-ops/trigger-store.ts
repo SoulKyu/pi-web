@@ -13,6 +13,10 @@ export interface TriggerConfig {
   id: string; name: string; profile: string; enabled: boolean;
   /** Fire interval in minutes (v1 scheduler). Absent for pure-webhook triggers. */
   everyMinutes?: number;
+  /** Daily fire time, local server clock `HH:MM`; may coexist with `everyMinutes`. */
+  at?: string;
+  /** Ignores quiet hours: scheduled fires run and webhook tasks are not deferred. */
+  critical?: boolean;
   promptTemplate: string;
   /** Hex sha256 of the webhook secret: the plaintext is shown once at creation or rotation and never stored.
    *  A trigger file still holding a plaintext `webhookSecret` has no digest, so its webhook is refused until rotated. */
@@ -92,8 +96,9 @@ export function triggerRunPin(task: { origin: string; pinnedProfileSha256?: stri
 }
 
 export type TriggerInput = Pick<TriggerConfig, "name" | "profile" | "promptTemplate">
-  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs">>;
+  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs">>;
 
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MIN_RUN_MS = 60_000;
 const MAX_RUN_MS = 3_600_000;
 
@@ -109,6 +114,8 @@ export function validateTriggerFields(input: TriggerInput): string | null {
   for (const field of ["dedupWindowMs", "maxActiveTasks", "everyMinutes"] as const) {
     if (input[field] === null) return `${field} must be a number`;
   }
+  if (input.at !== undefined && (typeof input.at !== "string" || !HHMM.test(input.at))) return "at must be HH:MM";
+  if (input.critical !== undefined && typeof input.critical !== "boolean") return "critical must be a boolean";
   if (input.runTarget !== undefined && input.runTarget !== "thread" && input.runTarget !== "isolated") return "runTarget must be thread or isolated";
   if (input.model !== undefined && (typeof input.model !== "string" || !splitModel(input.model))) return "model must be provider/modelId";
   if (input.tools !== undefined && (!Array.isArray(input.tools) || !input.tools.length || input.tools.some((t) => !TRIGGER_TOOL_ALLOWLIST.has(t)))) {
@@ -145,6 +152,8 @@ export function buildTriggerConfig(
       enabled: input.enabled ?? true,
       ...(input.everyMinutes !== undefined ? { everyMinutes: input.everyMinutes } : {}),
       promptTemplate: input.promptTemplate,
+      ...(input.at !== undefined ? { at: input.at } : {}),
+      ...(input.critical !== undefined ? { critical: input.critical } : {}),
       ...(input.runTarget !== undefined ? { runTarget: input.runTarget } : {}),
       ...(input.model !== undefined ? { model: input.model } : {}),
       ...(input.tools !== undefined ? { tools: [...new Set(input.tools)] } : {}),

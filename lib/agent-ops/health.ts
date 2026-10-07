@@ -5,12 +5,14 @@ export interface AgentOpsHealth {
   freeMb: number | null;
   extensionErrors: Array<{ sessionId: string; key: string; text: string }>;
   paused: boolean;
+  /** The server clock is inside the quiet-hours window (the rail shows a moon). */
+  quietHours: boolean;
 }
 
 const TICK_STALE_MS = 3 * 60_000;
 const LOW_FREE_MB = 1500;
 
-export function collectHealth(deps: { lastTick?: number; running: { isolated: number; thread: number }; sessionsAlive: number; freeMb?: number; extensionErrors: AgentOpsHealth["extensionErrors"]; paused: boolean }): AgentOpsHealth {
+export function collectHealth(deps: { lastTick?: number; running: { isolated: number; thread: number }; sessionsAlive: number; freeMb?: number; extensionErrors: AgentOpsHealth["extensionErrors"]; paused: boolean; quietHours?: boolean }): AgentOpsHealth {
   return {
     lastTickAt: deps.lastTick === undefined ? null : new Date(deps.lastTick).toISOString(),
     running: deps.running,
@@ -18,6 +20,7 @@ export function collectHealth(deps: { lastTick?: number; running: { isolated: nu
     freeMb: deps.freeMb ?? null,
     extensionErrors: deps.extensionErrors,
     paused: deps.paused,
+    quietHours: deps.quietHours ?? false,
   };
 }
 

@@ -157,6 +157,7 @@ lib/
   agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
+  agent-ops/quiet-hours.ts  pure inQuietHours / quietHoursEnd / dailyBucket on the server clock (client-safe)
   agent-ops/health.ts       pure collectHealth / healthLevel (ok | warn | down) behind the rail dot
   agent-ops/settings.ts     ~/.pi/agent/agent-ops/settings.json: run cap, free-memory floor, pause, quiet hours; validated patches
   file-access.ts            allowed file roots for /api/files and worktrees
@@ -218,6 +219,7 @@ components/
   agents/AgentAvatar.tsx   agent avatar (color + glyph)
   agents/NewAgentDialog.tsx create a long-term agent
   agents/AgentProfileDialog.tsx edit a long-term agent's profile
+  agents/AgentOpsSettings.tsx quiet hours, run cap and memory floor in Settings › Agents
   agents/AgentEventCard.tsx event card in the thread (orange schedule/task, purple webhook)
   agents/QueueTaskDialog.tsx queue a task for an agent's thread
   agents/AgentMemoryRecent.tsx recent memories with forget

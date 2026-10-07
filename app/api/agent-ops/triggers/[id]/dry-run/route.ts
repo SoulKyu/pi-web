@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { activeTaskCount, planIngestion } from "@/lib/agent-ops/scheduler";
+import { inQuietHours, quietHoursEnd } from "@/lib/agent-ops/quiet-hours";
 import { readAgentOpsSettings, isPausedFor } from "@/lib/agent-ops/settings";
 import { getTrigger, triggerPinStatus, triggersDir, TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
 
@@ -24,12 +25,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const target = trigger.webhookSecretSha256 ? "isolated" : (trigger.runTarget ?? "thread");
   // A schedule trigger fires its raw template; only a webhook trigger fences a payload.
   const prompt = trigger.webhookSecretSha256 ? plan.prompt : trigger.promptTemplate;
-  const paused = isPausedFor(readAgentOpsSettings(), trigger.profile);
-  const shown = paused ? { ...plan, verdict: "refused" as const, reason: "agent paused" } : plan;
+  const settings = readAgentOpsSettings();
+  // Admission and cap refusals win over the pause: only an otherwise accepted plan is overridden.
+  const shown = plan.verdict === "accepted" && isPausedFor(settings, trigger.profile) ? { ...plan, verdict: "refused" as const, reason: "agent paused" } : plan;
+  const now = new Date();
+  const deferredUntil = shown.verdict === "accepted" && !trigger.critical && settings.quietHours && inQuietHours(settings.quietHours, now) ? quietHoursEnd(settings.quietHours, now).toISOString() : undefined;
   return Response.json({
     plan: {
       ...shown,
       ...(prompt !== undefined ? { prompt } : {}),
+      ...(deferredUntil ? { deferredUntil } : {}),
       tokenFree: !existsSync(join(triggersDir(), plan.tokenName ?? "")),
       tools: target === "isolated" ? (trigger.tools ?? [...TRIGGER_TOOL_ALLOWLIST]) : [],
       pinStatus: triggerPinStatus(trigger),
