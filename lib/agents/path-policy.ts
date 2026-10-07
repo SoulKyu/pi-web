@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
 import { hasParentDirectorySegment, isExistingPathWithinRoots } from "../path-security";
 
@@ -13,7 +13,7 @@ export function pathOfToolInput(toolName: string, input: unknown): string | unde
   return typeof path === "string" ? path : ".";
 }
 
-/** realpath-based: a symlink in the home that points outside is outside. A missing path is judged by its existing parent. */
+/** realpath-based: a symlink in the home that points outside is outside. A path that does not exist is blocked: pi retries a missing path with rewritten variants (NNBSP, NFD, curly quotes), which could open a different file than the one checked. */
 export function homePathBlockReason(toolName: string, path: string, home: string): string | null {
   // pi's tools normalize their path (@ strip, ~ expansion, file://, Unicode spaces) before use, and that is not exported:
   // reject what the normalizer would rewrite instead of judging a different path than the one pi opens.
@@ -23,7 +23,7 @@ export function homePathBlockReason(toolName: string, path: string, home: string
   const target = isAbsolute(path) ? path : resolve(home, path);
   const roots = new Set([home]);
   const ok = hasParentDirectorySegment(target) ? false
-    : existsSync(target) ? isExistingPathWithinRoots(target, roots) : isExistingPathWithinRoots(dirname(target), roots);
+    : existsSync(target) && isExistingPathWithinRoots(target, roots);
   return ok ? null : `This isolated run may only read inside the agent home (${home}); "${toolName}" on ${path} is outside the agent home and was blocked.`;
 }
 

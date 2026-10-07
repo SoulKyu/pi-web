@@ -33,7 +33,7 @@
 - **Out of scope.** An attacker on the LAN, multi-tenant use, root escalation.
 - **Barriers that hold when the model is tricked** (deterministic, enforced outside the model):
   - Sanitized bash environment and read-only MCP policy on every agent-profile session (`lib/agent-profile-extensions.ts`, `lib/project-command-env.ts`, `lib/mcp-read-only-policy.ts`).
-  - Home-only `read`/`grep`/`find`/`ls` for isolated runs, by realpath; `~`, `@`, `file:` prefixes and Unicode spaces are rejected (`lib/agents/path-policy.ts`).
+  - Home-only `read`/`grep`/`find`/`ls` for isolated runs, by realpath; `~`, `@`, `file:` prefixes and Unicode spaces are rejected, and so is any path that does not exist (pi retries a missing path with rewritten variants: a planted `a\u202FAM.b -> /` would open `/passwd`) (`lib/agents/path-policy.ts`).
   - Closed trigger tool allowlist, `TRIGGER_TOOL_ALLOWLIST` (`lib/agent-ops/trigger-store.ts`), checked on the live `get_tools` before the prompt. Per-trigger subsets that can only shrink it are (planned).
   - Global and per-agent pause (`lib/agent-ops/settings.ts`): the scheduler skips, the webhook answers 503, the selectors and the thread run refuse, and `abortRunningTasks` (`lib/agent-ops/kick.ts`) aborts what is running.
   - Per-agent MCP allowlist: every global server not listed is written `disabled` into the home (`lib/agents/mcp-access.ts`).
