@@ -32,7 +32,8 @@ export function modelPrices(provider: string, modelId: string, deps: PriceDeps =
   let config: Record<string, unknown>;
   try { config = (deps.readModelsConfig ?? readModelsConfigFile)(); } catch { config = {}; } // an unreadable models.json must not break a run record or the session read
   const providers = config.providers as Record<string, { models?: Array<{ id?: string; cost?: unknown }> }> | undefined;
-  const configured = providers?.[provider]?.models?.find((model) => model.id === modelId);
+  const models = providers?.[provider]?.models;
+  const configured = Array.isArray(models) ? models.find((model) => model.id === modelId) : undefined;
   const fromConfig = completePrices(configured?.cost);
   if (fromConfig) return fromConfig;
 
