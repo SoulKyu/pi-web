@@ -64,6 +64,7 @@ export function runsTodayCount(triggerId: string, now = Date.now()): number {
   return listTasks().filter((t) => t.triggerId === triggerId && Date.parse(t.createdAt) >= midnight).length;
 }
 
+// ponytail: check-then-act across processes, like the active cap; two processes can each admit one at the limit.
 const dailyCapReached = (trigger: TriggerConfig, runsToday: number): boolean => trigger.maxRunsPerDay !== undefined && runsToday >= trigger.maxRunsPerDay;
 
 /** Exclusive fire token: false when another process (or an earlier call) already holds it. */

@@ -1,4 +1,4 @@
-import { priceRecord } from "../cost-equivalent";
+import { billingOf, createEquivalentCostResolver } from "../cost-equivalent";
 import type { AgentTask } from "./task-store";
 
 /** What the panel receives: no prompt (the title is its first line) and a bounded result/error (the session holds the full text). */
@@ -17,13 +17,15 @@ export function shapeTaskList(tasks: readonly AgentTask[], recentLimit = TASK_LI
   const isActive = (task: AgentTask) => task.status === "queued" || task.status === "running";
   let others = 0;
   const kept = newestFirst.filter((task) => isActive(task) || others++ < recentLimit);
+  const equivalentOf = createEquivalentCostResolver(); // one models.json read per provider/model pair per call
   const items = kept.map((task): AgentTaskListItem => {
     const item: Partial<AgentTask> = { ...task, result: clip(task.result), error: clip(task.error) };
     delete item.prompt;
     if (item.result === undefined) delete item.result;
     if (item.error === undefined) delete item.error;
-    const costEquivalent = task.usage ? priceRecord(task.usage).costEquivalent : undefined;
-    return (costEquivalent === undefined ? item : { ...item, costEquivalent }) as AgentTaskListItem;
+    const { usage } = task;
+    const costEquivalent = usage?.provider && usage.model && billingOf(usage.provider) === "subscription" ? equivalentOf(usage.provider, usage.model, usage) : 0;
+    return (costEquivalent > 0 ? { ...item, costEquivalent } : item) as AgentTaskListItem;
   });
   return kept.length < tasks.length ? { tasks: items, truncated: true } : { tasks: items };
 }

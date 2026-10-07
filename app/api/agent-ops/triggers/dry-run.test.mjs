@@ -86,3 +86,12 @@ test("dry-run: inside quiet hours the plan carries deferredUntil unless the trig
     assert.equal((await planOf(scheduleTrigger({ critical: true }))).deferredUntil, undefined);
   } finally { settings.updateAgentOpsSettings({ quietHours: null }); }
 });
+
+test("dry-run: a trigger at its daily cap is refused like the real hook", async () => {
+  const capped = { ...trigger, id: "00000000-0000-4000-8000-000000000009", maxActiveTasks: 9, maxRunsPerDay: 1 };
+  triggers.saveTrigger(capped);
+  tasks.createTask({ agent: "dry", profile: "dry", cwd: "/tmp", origin: "trigger", triggerId: capped.id, target: "isolated", kind: "webhook", title: "x", prompt: "p", pinnedProfileSha256: capped.pinnedProfile.contentSha256 });
+  const { plan } = await (await call(dryRun, capped.id, { payload: { text: "a" } })).json();
+  assert.equal(plan.verdict, "refused");
+  assert.equal(plan.reason, "daily run cap reached");
+});
