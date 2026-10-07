@@ -1,13 +1,14 @@
 import { watchPromptRun, type PromptRunSession } from "../agent-ops/prompt-run";
 import type { RunHandle } from "../agent-ops/runner";
 import { getTask, TERMINAL, type AgentTask } from "../agent-ops/task-store";
+import { triggerBudgetRefusal } from "../agent-ops/budget-gate";
 import { isPausedFor, readAgentOpsSettings } from "../agent-ops/settings";
 import { AGENT_EVENT_ENTRY_TYPE, buildScheduleEvent, buildTaskEvent, type AgentEventData } from "./events";
 import { getLongTermAgent, type LongTermAgent } from "./registry";
 import { openThread } from "./thread";
 
 export interface ThreadSessionLike extends PromptRunSession { isRunning(): boolean; appendDisplayEntry(customType: string, data: unknown): string }
-export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent; readTask: typeof getTask }
+export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent; readTask: typeof getTask; budgetRefusal?: (task: AgentTask) => string | null }
 const defaultDeps = (): ThreadRunDeps => ({ open: openThread, readAgent: getLongTermAgent, readTask: getTask });
 
 export function eventOfTask(task: AgentTask): AgentEventData {
@@ -43,6 +44,8 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   const current = deps.readTask(task.id);
   if (!current || TERMINAL.has(current.status)) throw new Error(`task ${current?.status ?? "removed"} while waiting for the thread`);
   if (isPausedFor(readAgentOpsSettings(), task.agent)) throw new Error("agent paused");
+  const overBudget = (deps.budgetRefusal ?? triggerBudgetRefusal)(task);
+  if (overBudget) throw new Error(overBudget);
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
   const run = watchPromptRun(session, task.prompt);
   return { sessionId, done: run.done, abort: run.abort, usage: run.usage };

@@ -9,6 +9,7 @@ import { automaticCapacity, memAvailableMb } from "./capacity";
 import { runningCount, runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
 import { pushBudgetReachedOnce } from "./budget-push";
+import { failOverBudgetTriggerTasks } from "./budget-gate";
 import { assertTaskStillStartable } from "./start-guard";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
@@ -70,6 +71,7 @@ export function abortRunningTasks(filter: (task: AgentTask) => boolean): number 
  *  A finished run re-kicks, so a freed slot never idles until the next external kick.
  *  Isolated runs keep the 2 slots; thread events run one per agent; one cap and a free-memory floor bound both. Settings are read once per kick. */
 export function kickRunner(): Promise<void> {
+  try { failOverBudgetTriggerTasks(); } catch (error) { log(error); } // before selecting: a trigger task over its agent's daily budget never starts
   const settings = readAgentOpsSettings();
   const pausedNow = (agent?: string) => isPausedFor(settings, agent);
   const capacity = () => automaticCapacity({
