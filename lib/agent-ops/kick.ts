@@ -45,7 +45,7 @@ export function handleTaskEnd(task: AgentTask): void {
       title: agentName,
       body: localeText(locale, "agentRunFailed").replace("{name}", agentName).replace("{title}", task.title),
       url: `/?agent=${encodeURIComponent(agentName)}`,
-      tag: `pi-agent-failed:${task.id}`,
+      tag: `pi-agent:${agentName}`,
     })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
   }
   void pushBudgetReachedOnce(agentName); // a run that reaches the daily budget: one push per agent per day

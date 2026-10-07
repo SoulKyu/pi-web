@@ -307,6 +307,7 @@ export class AgentSessionWrapper {
   private activeToolEvents = new Map<string, AgentEvent>();
   private pendingUiResponses = new Map<string, PendingUiResponse>();
   private pendingUiRequests = new Map<string, AgentEvent>();
+  private pendingUiFirstAt: number | undefined;
   private activeCustomUis = new Map<string, ActiveCustomUi>();
   private extensionUiAbortController = new AbortController();
   private extensionStatuses = new Map<string, string>();
@@ -719,6 +720,25 @@ export class AgentSessionWrapper {
     // flushed after writing its own generated entries.
     (manager as unknown as { flushed: boolean }).flushed = true;
     cacheSessionPath(this.inner.sessionId, sessionFile);
+  }
+
+  private addPendingUiRequest(id: string, event: AgentEvent): void {
+    if (this.pendingUiRequests.size === 0) this.pendingUiFirstAt = Date.now();
+    this.pendingUiRequests.set(id, event);
+  }
+
+  hasPendingUiRequests(): boolean {
+    return this.pendingUiRequests.size > 0;
+  }
+
+  /** When the first of the currently pending extension requests was added; undefined once none is pending. */
+  pendingUiSince(): number | undefined {
+    return this.pendingUiRequests.size > 0 ? this.pendingUiFirstAt : undefined;
+  }
+
+  /** Live event listeners: 0 means no browser tab is watching this session. */
+  subscriberCount(): number {
+    return this.listeners.size;
   }
 
   onEvent(listener: EventListener): () => void {
@@ -1677,7 +1697,7 @@ export class AgentSessionWrapper {
       method: "custom",
       lines,
     } as ExtensionUiRequest as AgentEvent;
-    this.pendingUiRequests.set(id, event);
+    this.addPendingUiRequest(id, event);
     this.emit(event);
   }
 
@@ -1836,7 +1856,7 @@ export class AgentSessionWrapper {
       if (timeout) timeoutId = setTimeout(() => settle(defaultValue), timeout);
       abortSignal.addEventListener("abort", onAbort, { once: true });
 
-      this.pendingUiRequests.set(id, fullRequest as AgentEvent);
+      this.addPendingUiRequest(id, fullRequest as AgentEvent);
       this.pendingUiResponses.set(id, {
         resolve: (response) => settle(parseResponse(response)),
         cancel: () => settle(defaultValue),

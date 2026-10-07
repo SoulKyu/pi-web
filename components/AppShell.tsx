@@ -1303,7 +1303,9 @@ export function AppShell() {
 
   const activeFileTab = fileTabs.find((tab) => tab.id === activeFileTabId) ?? null;
   const activeCwdName = activeCwd ? getFileName(activeCwd) || activeCwd : null;
-  const windowTitle = activeAgent ? `${activeAgent} - Pi Web` : activeCwdName ? `${activeCwdName} - Pi Web` : "Pi Web";
+  const totalUnread = agents.reduce((sum, agent) => sum + agent.unread, 0);
+  const baseTitle = activeAgent ? `${activeAgent} - Pi Web` : activeCwdName ? `${activeCwdName} - Pi Web` : "Pi Web";
+  const windowTitle = totalUnread > 0 ? `(${totalUnread}) ${baseTitle}` : baseTitle;
 
   useEffect(() => {
     const syncWindowTitle = () => {

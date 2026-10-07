@@ -2,15 +2,21 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { AgentAvatar, LongTermAgent, ToolsPreset } from "./registry";
 import { pickRoadmapSettings, type AgentRoadmapSettings } from "./roadmap-settings";
 
-export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number; paused: boolean }
+export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number; paused: boolean; state: AgentState; lastPreview?: string; lastActivityAt?: string }
+export type AgentState = "idle" | "running" | "needs_input" | "failed"
+
+/** needs_input (a live request waits for the user) > running > failed (newest unread card) > idle. */
+export const agentState = (flags: { needsInput: boolean; running: boolean; failedUnread: boolean }): AgentState =>
+  flags.needsInput ? "needs_input" : flags.running ? "running" : flags.failedUnread ? "failed" : "idle";
 /** Server-computed paths and stats the client only displays or interpolates. */
 export interface AgentDetailExtras { memorySnapshotPath?: string; memoryMd?: { size: number } }
 export interface AgentDetail extends AgentListItem, AgentRoadmapSettings, AgentDetailExtras { role: string; lastReadEntryId?: string }
 
 /** Client-safe card: explicit allowlist, never the role. */
-export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: number, paused = false): AgentListItem {
+export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: number, paused = false, rail: { state?: AgentState; lastPreview?: string; lastActivityAt?: string } = {}): AgentListItem {
   return {
-    name: agent.name, avatar: agent.avatar, toolsPreset: agent.toolsPreset, mcpServers: agent.mcpServers, home: agent.home, createdAt: agent.createdAt, running, unread, paused,
+    name: agent.name, avatar: agent.avatar, toolsPreset: agent.toolsPreset, mcpServers: agent.mcpServers, home: agent.home, createdAt: agent.createdAt, running, unread, paused, state: rail.state ?? (running ? "running" : "idle"),
+    ...(rail.lastPreview ? { lastPreview: rail.lastPreview } : {}), ...(rail.lastActivityAt ? { lastActivityAt: rail.lastActivityAt } : {}),
     ...(agent.model ? { model: agent.model } : {}), ...(agent.thinking ? { thinking: agent.thinking } : {}),
     ...(agent.threadSessionId ? { threadSessionId: agent.threadSessionId } : {}),
   };

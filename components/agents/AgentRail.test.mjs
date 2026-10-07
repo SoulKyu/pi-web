@@ -32,3 +32,8 @@ test("?agent= skips the sidebar's project auto-selection and the thread is not r
   assert.match(shell, /skipInitialProjectSelection=\{initialNavigation\.requestedCwd !== null \|\| initialNavigation\.agentName !== null\}/);
   assert.match(shell, /if \(pendingAgentRef\.current\?\.sessionId !== selectedSession\.id\) setTabOpenSession\(selectedSession\.id\)/);
 });
+test("the rail shows the state dot and a preview tooltip; the title carries the total unread", () => {
+  assert.match(rail, /state=\{agent\.state\}/);
+  assert.match(rail, /formatRelativeTime\(agent\.lastActivityAt, locale\)/);
+  assert.match(shell, /const windowTitle = totalUnread > 0 \? `\(\$\{totalUnread\}\) \$\{baseTitle\}` : baseTitle/);
+});

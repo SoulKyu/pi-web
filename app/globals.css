@@ -1870,6 +1870,9 @@ span.token.table {
 .agent-rail-horizontal { width: auto; flex-direction: row; padding: 6px 8px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }
 .agent-badge { position: absolute; top: -4px; right: -6px; background: #e5484d; color: #fff; border-radius: 8px; font-size: 9px; line-height: 14px; padding: 0 4px; font-weight: 700; }
 .agent-running-dot { position: absolute; bottom: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: #30a46c; border: 2px solid var(--bg-panel); }
+.agent-dot-needs-input { background: #d29922; animation: agent-dot-pulse 1.2s ease-in-out infinite; }
+.agent-dot-failed { background: #f85149; }
+@keyframes agent-dot-pulse { 50% { opacity: 0.35; } }
 
 /* Mobile sidebar: slide in/out as overlay */
 @media (max-width: 640px) {

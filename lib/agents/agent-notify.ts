@@ -29,7 +29,7 @@ export function createAgentNotifyExtension(options: {
             title: options.agentName,
             body: text,
             url: `/?agent=${encodeURIComponent(options.agentName)}`,
-            tag: `pi-agent-notify:${options.agentName}:${Date.now()}`,
+            tag: `pi-agent:${options.agentName}`,
           }));
           return { content: [{ type: "text", text: "Notification sent." }], details: { kind: "agent-notify", text } };
         },

@@ -7,7 +7,7 @@ import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } fro
 import type { SessionEntry } from "../types";
 import { syncAgentMcpOverrides } from "./mcp-access";
 import { AgentRegistryError, getLongTermAgent, setThreadSessionId, writeMemoryMd, type LongTermAgent } from "./registry";
-import { AGENT_EVENT_ENTRY_TYPE, type AgentEventData } from "./events";
+import { AGENT_EVENT_ENTRY_TYPE, isAgentEventData, type AgentEventData } from "./events";
 
 export interface ThreadDeps {
   start: typeof startRpcSession;
@@ -30,6 +30,43 @@ export function countUnread(entries: readonly SessionEntry[], lastReadEntryId: s
   let count = 0;
   for (let index = at + 1; index < entries.length; index += 1) if (isUnreadEntry(entries[index])) count += 1;
   return count;
+}
+
+const PREVIEW_MAX = 80;
+
+export interface ThreadSummary { unread: number; failedUnread: boolean; lastPreview?: string; lastActivityAt?: string }
+
+function assistantText(entry: SessionEntry): string {
+  const content = (entry as { message?: { content?: unknown } }).message?.content;
+  if (typeof content === "string") return content;
+  return Array.isArray(content) ? content.map((part) => (part as { type?: string; text?: string })?.type === "text" ? part.text ?? "" : "").join(" ") : "";
+}
+
+/** One pass over the entries the unread count already needs: the rail preview, last activity and whether the newest unread entry is a failed webhook card. Display-only, never fed to a model. */
+export function threadSummary(agent: { lastReadEntryId?: string }, entries: readonly SessionEntry[]): ThreadSummary {
+  const at = agent.lastReadEntryId ? entries.findIndex((entry) => entry.id === agent.lastReadEntryId) : -1;
+  let unread = 0;
+  let newestUnread: SessionEntry | undefined;
+  let lastPreview: string | undefined;
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (index > at && isUnreadEntry(entry)) { unread += 1; newestUnread = entry; }
+    if (entry.type === "message" && (entry as { message?: { role?: string } }).message?.role === "assistant") {
+      const text = assistantText(entry).replace(/\s+/g, " ").trim();
+      if (text) lastPreview = text;
+    } else if (entry.type === "custom" && entry.customType === AGENT_EVENT_ENTRY_TYPE) {
+      const data = (entry as { data?: unknown }).data;
+      if (isAgentEventData(data)) lastPreview = data.title;
+    }
+  }
+  const last = entries[entries.length - 1];
+  const newestData = newestUnread?.type === "custom" ? (newestUnread as { data?: unknown }).data : undefined;
+  return {
+    unread,
+    failedUnread: isAgentEventData(newestData) && newestData.kind === "webhook" && newestData.status === "failed",
+    ...(lastPreview ? { lastPreview: lastPreview.slice(0, PREVIEW_MAX) } : {}),
+    ...(last?.timestamp ? { lastActivityAt: last.timestamp } : {}),
+  };
 }
 
 /** Serializes the thread's start and its deletion, so a delete cannot race a reopen. */
@@ -84,18 +121,22 @@ export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): bo
 }
 
 /** ponytail: reads the whole thread file on every rail poll; switch to a bounded tail read if files grow past a few MB. */
-export async function unreadCount(
+export async function threadStatus(
   agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">,
   deps: { resolvePath: typeof resolveSessionPath; readEntries: typeof getSessionEntries } = { resolvePath: resolveSessionPath, readEntries: getSessionEntries },
-): Promise<number> {
-  if (!agent.threadSessionId) return 0;
+): Promise<ThreadSummary> {
+  if (!agent.threadSessionId) return { unread: 0, failedUnread: false };
   try {
     const live = getRpcSession(agent.threadSessionId);
     const entries = live?.isAlive()
       ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
       : await deps.resolvePath(agent.threadSessionId).then((path) => (path && existsSync(path) ? deps.readEntries(path) : []));
-    return countUnread(entries, agent.lastReadEntryId);
+    return threadSummary(agent, entries);
   } catch {
-    return 0; // one unreadable thread must not blank the rail
+    return { unread: 0, failedUnread: false }; // one unreadable thread must not blank the rail
   }
+}
+
+export async function unreadCount(agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">, deps?: Parameters<typeof threadStatus>[1]): Promise<number> {
+  return (await threadStatus(agent, deps)).unread;
 }

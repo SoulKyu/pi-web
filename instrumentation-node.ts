@@ -15,4 +15,9 @@ export function registerNodeInstrumentation(): void {
   void Promise.all([import("@/lib/agent-ops/kick"), import("@/lib/agent-ops/scheduler")])
     .then(([{ kickRunner }, { startScheduler }]) => startScheduler({ kick: kickRunner }))
     .catch((error) => console.error("[agent-ops] scheduler not started:", error instanceof Error ? error.message : error));
+
+  // Same rule: a failure here must never keep the server from booting.
+  void import("@/lib/agents/needs-input-push")
+    .then(({ startNeedsInputPush }) => startNeedsInputPush())
+    .catch((error) => console.error("[agents] needs-input push not started:", error instanceof Error ? error.message : error));
 }

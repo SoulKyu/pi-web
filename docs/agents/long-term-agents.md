@@ -79,6 +79,9 @@
 - Deleting an agent (`handleAgentDeleted`) lands on a neutral draft and `router.replace("/")`.
 - Homes are left out of `GET /api/sessions` (`isAgentHomePath`) but resolvable by id, so the thread opens through the normal path.
 - Layout (`showAgentPanel`): the right panel shows the file viewer whenever a file/terminal tab is active, the agent panel otherwise. Mobile ⓘ toggles a drawer stacking `AgentSpaceLeft` then `AgentSpaceRight`.
+- Rail state (`AgentListItem.state`): `needs_input` (live thread wrapper `hasPendingUiRequests()`) > `running` > `failed` (newest unread entry is a failed webhook card) > `idle`. Dot: green running, amber pulsing needs_input, red failed. `threadStatus` computes unread, `failedUnread`, `lastPreview` (first 80 chars of the last assistant text or last card title, owner-only, never fed to a model) and `lastActivityAt` in the same entries read as the badge: `GET /api/agents` adds no file read per agent. Tooltip: `name`, then `preview · relative time`. `document.title` gets a `(n)` prefix with the total unread.
+- Grouped pushes: `agent_notify` and the run-failure push share the tag `pi-agent:<name>`, so the newest replaces the previous notification of the agent.
+- Needs-your-answer push (`lib/agents/needs-input-push.ts`, started in `instrumentation-node.ts`): every 60 s, for each alive thread wrapper with a pending request older than 60 s (`pendingUiSince()`) and no event listener (`subscriberCount() === 0`), one push per `(agent, since)`, tag `pi-agent-input:<name>:<since>`. Sent keys are pruned when the request clears. Degrades silently without Web Push.
 - Display entries come from `appendDisplayEntry` on the wrapper, which emits `custom_entry_appended`.
 
 ## MCP access

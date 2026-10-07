@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentListItem } from "@/lib/agents/agent-view";
 import type { AgentOpsHealth } from "@/lib/agent-ops/health";
@@ -98,7 +99,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   paused: boolean;
   onPauseChanged: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const vertical = orientation === "vertical";
   const healthState = useHealthPoll();
   const healthTitle = healthState && [
@@ -130,11 +131,11 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
           type="button"
           onClick={() => onSelectAgent(agent.name)}
           aria-current={agent.name === activeAgent ? "true" : undefined}
-          aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.running ? t("agents.rail.running") : ""].filter(Boolean).join(", ")}
-          title={agent.name}
+          aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.state === "needs_input" ? t("agents.rail.needsInput") : agent.running ? t("agents.rail.running") : agent.state === "failed" ? t("agents.rail.failed") : ""].filter(Boolean).join(", ")}
+          title={[agent.name, [agent.lastPreview, agent.lastActivityAt && formatRelativeTime(agent.lastActivityAt, locale)].filter(Boolean).join(" · ")].filter(Boolean).join("\n")}
           style={{ ...railButtonStyle, borderRadius: "50%" }}
         >
-          <AgentAvatar avatar={agent.avatar} running={agent.running} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />
+          <AgentAvatar avatar={agent.avatar} running={agent.running} state={agent.state} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />
         </button>
       ))}
       <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>

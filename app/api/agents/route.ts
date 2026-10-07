@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { allowFileRoot } from "@/lib/file-access";
-import { toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
+import { agentState, toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
 import { agentDetailExtras } from "@/lib/agents/agent-detail-extras";
 import { agentsHomeDir, createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
 import { registryErrorResponse } from "@/lib/agents/registry-response";
 import { isPausedFor, readAgentOpsSettings } from "@/lib/agent-ops/settings";
-import { threadRunning, unreadCount } from "@/lib/agents/thread";
+import { getRpcSession } from "@/lib/rpc-manager";
+import { threadRunning, threadStatus } from "@/lib/agents/thread";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
@@ -13,7 +14,13 @@ const headers = { "Cache-Control": "no-store" };
 // GET /api/agents - the rail: every long-term agent with running state and unread count.
 export async function GET() {
   const settings = readAgentOpsSettings();
-  const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0), isPausedFor(settings, agent.name))));
+  const agents = await Promise.all(listLongTermAgents().map(async (agent) => {
+    const summary = await threadStatus(agent);
+    const running = threadRunning(agent);
+    const live = agent.threadSessionId ? getRpcSession(agent.threadSessionId) : undefined;
+    const needsInput = Boolean(live?.isAlive() && live.hasPendingUiRequests());
+    return toAgentListItem(agent, running, summary.unread, isPausedFor(settings, agent.name), { state: agentState({ needsInput, running, failedUnread: summary.failedUnread }), lastPreview: summary.lastPreview, lastActivityAt: summary.lastActivityAt });
+  }));
   return NextResponse.json({ agents, agentsHomeDir: agentsHomeDir(), paused: settings.paused }, { headers });
 }
 

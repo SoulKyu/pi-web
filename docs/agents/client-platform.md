@@ -8,3 +8,6 @@
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.
 - Autoplay policy requires unlocking sound from a user gesture: `ChatInput` calls the unlock hook from interactive controls, and `ChatWindow` plays the tone from `onAgentEnd`.
+
+## Push and badges on iOS
+- Web Push and app badges need iOS/iPadOS 16.4+ (installed web app). Every push feature (agent notifications, needs-your-answer, failure pushes) degrades silently when push is unsupported or not configured; the rail dot and the `document.title` `(n)` prefix remain the in-page signal.
