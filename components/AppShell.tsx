@@ -1335,6 +1335,7 @@ export function AppShell() {
       onPauseChanged={reloadAgents}
       contextPercent={contextUsage?.percent ?? null}
       onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
+      onOpenFile={handleOpenFile}
     />
   ) : null;
 

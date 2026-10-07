@@ -140,3 +140,8 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 - Profile dialog button "Schedule a weekly memory curation" opens `TriggerDialog` with `prefill` (`name` "Memory curation", `everyMinutes` 10080, `runTarget` thread, template from `curationPrompt()` in `lib/agents/curation-prompt.ts`). No `at`: `everyMinutes` + `at` would fire daily.
 - The agent reads its own snapshot file (`<mem0>/agents/<name>.json`), not `memory_search`, which caps at 10 hits. The path needs `getAgentDir`, so the server adds it to every `AgentDetail` as `memorySnapshotPath` (`agentDetailExtras()`, `lib/agents/agent-detail-extras.ts`); the client only interpolates it.
 - The prompt lets the agent `memory_forget` exact duplicates only; outdated or one-off facts are listed for the user to decide.
+
+## MEMORY.md
+- `createLongTermAgent` writes `<home>/MEMORY.md` (0600, 6-line header, `writeMemoryMd`, `wx`: never overwritten). `withLongTermInstruction` (`lib/subagents.ts`, used by `profileSessionResources`) appends one fixed sentence to `appendSystemPrompt` of `longTerm` profiles only: `MEMORY_MD_INSTRUCTION`.
+- The file is never injected: profile sessions run with `noContextFiles`, and injecting content would invalidate the whole prompt cache at each edit of a long thread. The static sentence is cache-safe; the agent reads the file itself with its tools. The home is agent-writable and untrusted by pi.
+- `AgentSpaceRight` "Knowledge" section: `MEMORY.md (1.8 KB) [open]` through `onOpenFile`; `AgentDetail.memoryMd.size` comes from `lstat` in `agentDetailExtras()` (a symlink is omitted).

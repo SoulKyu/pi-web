@@ -19,7 +19,7 @@ const MEMORY_POLL_MS = 10_000;
 const ACTIVE_TASK_POLL_MS = 5_000;
 
 
-export function AgentSpaceRight({ agent, running, paused, allPaused, contextPercent, onOpenSession, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; allPaused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onPauseChanged: () => void }) {
+export function AgentSpaceRight({ agent, running, paused, allPaused, contextPercent, onOpenSession, onOpenFile, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; allPaused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onOpenFile: (filePath: string, fileName: string) => void; onPauseChanged: () => void }) {
   const { t } = useI18n();
   const [memory, setMemory] = useState<MemoryState>(EMPTY_MEMORY);
 
@@ -151,6 +151,15 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       <button type="button" onClick={() => setQueueOpen(true)} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", marginBottom: 6 }}>{t("agents.tasks.queue")}</button>
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.tasks.none")}</div>}
       {tasks.length > 0 && <AgentTasks tasks={tasks} compact onOpenSession={onOpenSession} onChanged={reloadMemory} />}
+      {agent.memoryMd && (
+        <>
+          <div className="agent-space-section">{t("agents.space.knowledge")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ flex: 1 }}>MEMORY.md ({(agent.memoryMd.size / 1024).toFixed(1)} KB)</span>
+            <button type="button" onClick={() => onOpenFile(`${agent.home}/MEMORY.md`, "MEMORY.md")} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.space.knowledgeOpen")}</button>
+          </div>
+        </>
+      )}
       <div className="agent-space-section">{t("agents.space.memory")}</div>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
       <AgentMemoryRecent agentName={agent.name} items={memory.recent} events={memory.events} onOpenSession={onOpenSession} pending={memory.pendingForget} health={memory.health} onChanged={reloadMemory} />

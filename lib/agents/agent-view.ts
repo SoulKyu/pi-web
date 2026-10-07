@@ -4,7 +4,7 @@ import { pickRoadmapSettings, type AgentRoadmapSettings } from "./roadmap-settin
 
 export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number; paused: boolean }
 /** Server-computed paths and stats the client only displays or interpolates. */
-export interface AgentDetailExtras { memorySnapshotPath?: string }
+export interface AgentDetailExtras { memorySnapshotPath?: string; memoryMd?: { size: number } }
 export interface AgentDetail extends AgentListItem, AgentRoadmapSettings, AgentDetailExtras { role: string; lastReadEntryId?: string }
 
 /** Client-safe card: explicit allowlist, never the role. */

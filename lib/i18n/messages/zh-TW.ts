@@ -1504,6 +1504,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.space.context": "上下文 {percent}%",
     "agents.space.panels": "智慧代理面板",
     "agents.space.tasks": "任務",
+    "agents.space.knowledge": "知識",
+    "agents.space.knowledgeOpen": "開啟",
     "agents.space.memory": "記憶（最近）",
     "agents.space.memoryToApprove": "待批准記憶（webhook）",
     "agents.profile.title": "{name} 的檔案",

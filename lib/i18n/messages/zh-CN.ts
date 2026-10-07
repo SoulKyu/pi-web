@@ -1504,6 +1504,8 @@ export const zhCNLocale: LocalePlugin = {
     "agents.space.context": "上下文 {percent}%",
     "agents.space.panels": "智能体面板",
     "agents.space.tasks": "任务",
+    "agents.space.knowledge": "知识",
+    "agents.space.knowledgeOpen": "打开",
     "agents.space.memory": "记忆（最近）",
     "agents.space.memoryToApprove": "待批准记忆（webhook）",
     "agents.profile.title": "{name} 的档案",

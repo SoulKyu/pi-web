@@ -1504,6 +1504,8 @@ export const enLocale: LocalePlugin = {
     "agents.space.context": "ctx {percent}%",
     "agents.space.panels": "Agent panels",
     "agents.space.tasks": "Tasks",
+    "agents.space.knowledge": "Knowledge",
+    "agents.space.knowledgeOpen": "open",
     "agents.space.memory": "Memory (recent)",
     "agents.space.memoryToApprove": "Memory to approve (webhook)",
     "agents.profile.title": "Profile of {name}",

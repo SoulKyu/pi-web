@@ -105,6 +105,11 @@ export interface MemoryPolicy {
   save: "direct" | "staged";
 }
 
+/** Static text on purpose: the file's content is never injected, so editing MEMORY.md never invalidates the prompt cache. */
+export const MEMORY_MD_INSTRUCTION = "Your home contains MEMORY.md: read it at the start of a task and keep it current (one line per fact, details in notes/).";
+export const withLongTermInstruction = (profile: { longTerm?: true }, appendSystemPrompt: string[]): string[] =>
+  profile.longTerm ? [...appendSystemPrompt, MEMORY_MD_INSTRUCTION] : appendSystemPrompt;
+
 export interface SubagentSessionResources {
   appendSystemPrompt: string[];
   tools: string[];

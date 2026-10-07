@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
@@ -195,6 +195,13 @@ function writeProfile(input: CreateAgentInput, color: string): void {
   });
 }
 
+/** The agent keeps its durable facts here; the profile prompt only points at it (MEMORY_MD_INSTRUCTION). Never overwrites. */
+export function writeMemoryMd(home: string, name: string): void {
+  const header = [`# ${name} memory`, "", "One line per fact you want to keep across tasks. Keep it short; put details in notes/.",
+    "Rule: read this file at the start of a task; update it when something durable changed.", "", "## Facts", ""].join("\n");
+  try { writeFileSync(join(home, "MEMORY.md"), header, { flag: "wx", mode: 0o600 }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+}
+
 export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   const name = input.name.trim();
   if (!AGENT_NAME_RE.test(name) || name.length > AGENT_NAME_MAX) throw new AgentRegistryError("invalid", "invalid agent name");
@@ -205,9 +212,10 @@ export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   mkdirSync(agentHome(name), { mode: 0o700 });
   writeSpace({ name, avatar: input.avatar, createdAt: new Date().toISOString() });
   try {
+    writeMemoryMd(agentHome(name), name);
     writeProfile({ ...input, name }, input.avatar.color); // last: the profile is what lists the agent
   } catch (error) {
-    rmSync(agentHome(name), { recursive: true, force: true }); // just created, so empty: a leftover would block the name for good
+    rmSync(agentHome(name), { recursive: true, force: true }); // just created, so at most MEMORY.md: a leftover would block the name for good
     rmSync(spacePath(name), { force: true });
     throw error;
   }

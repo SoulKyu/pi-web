@@ -45,6 +45,7 @@ import {
   readSessionAgentTrust,
   readSubagentRun,
   readSubagentSessionResources,
+  withLongTermInstruction,
   resolveSubagentProfile,
   sameResourceSnapshot,
   memoryPolicyOf,
@@ -2376,7 +2377,7 @@ function profileSessionResources(profile: SubagentProfile): SubagentSessionResou
     task: "",
   });
   return {
-    appendSystemPrompt: plan.appendSystemPrompt,
+    appendSystemPrompt: withLongTermInstruction(profile, plan.appendSystemPrompt),
     tools: [...profile.tools],
     loadSkills: profile.loadSkills,
     loadExtensions: profile.loadExtensions,
