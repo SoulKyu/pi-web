@@ -1143,7 +1143,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession }: { block: Tool
   if (block.toolName === AGENT_APPROVE_TOOL) {
     const input = block.input as { title?: unknown; summary?: unknown } | undefined;
     const answer = result?.content.map((part) => (part.type === "text" ? part.text : "")).join("").trim();
-    const decision = answer === "approved" || answer === "denied" ? answer : "pending";
+    const decision = answer === "approved" || answer === "denied" ? answer : result?.isError ? "denied" : "pending";
     return (
       <div className="agent-notify" role="note">
         🔒 <strong>{t("agents.approve.label")}:</strong> {String(input?.title ?? "")}

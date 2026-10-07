@@ -44,7 +44,12 @@ export function createAgentApproveExtension(options: {
           } catch (error) {
             console.error("[agent_approve] push failed:", error instanceof Error ? error.message : error);
           }
-          const approved = ctx?.ui ? await ctx.ui.confirm(title, summary, { timeout }) : false;
+          let approved = false;
+          try {
+            approved = ctx?.ui ? await ctx.ui.confirm(title, summary, { timeout }) : false;
+          } catch {
+            approved = false;
+          }
           const decision = approved ? "approved" : "denied";
           return { content: [{ type: "text", text: decision }], details: { kind: "agent-approve", title, decision } };
         },
