@@ -137,6 +137,8 @@ lib/
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
   agent-ops/prompt-run.ts   prompt send (not awaited), done from events, trigger tool check
+  agent-ops/run-usage.ts    usage collector: tokens, provider-reported cost, turns, tool calls from a run's own wrapper events
+  agent-ops/run-registry.ts runs.jsonl: append-only one line per finished run, tolerant read, rotation past 10 MiB
   agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task
   agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
   agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin

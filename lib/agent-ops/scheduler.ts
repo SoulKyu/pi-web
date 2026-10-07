@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { rotateRunRecords } from "./run-registry";
 import { redactSecrets, truncate } from "./redact";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { createTask, listTasks, pruneTasks, recoverInterrupted } from "./task-store";
@@ -119,6 +120,7 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
     if (Date.now() - (globalThis.__agentOpsLastPrune ?? 0) >= PRUNE_EVERY_MS) {
       globalThis.__agentOpsLastPrune = Date.now();
       pruneTasks();
+      rotateRunRecords();
     }
     const settings = readAgentOpsSettings();
     for (const trigger of listTriggers()) {

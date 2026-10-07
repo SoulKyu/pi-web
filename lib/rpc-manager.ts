@@ -5,6 +5,10 @@ import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { agentProfileExtensionFactories } from "./agent-profile-extensions";
+import type { WrapperEvent } from "./agent-ops/prompt-run";
+import { appendRunRecord } from "./agent-ops/run-registry";
+import { createUsageCollector, type UsageCollector } from "./agent-ops/run-usage";
+import { listTasks } from "./agent-ops/task-store";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
@@ -309,6 +313,7 @@ export class AgentSessionWrapper {
   private extensionWidgetGenerations = new Map<string, number>();
   private extensionWidgetsResetting = false;
   private pendingPromptCount = 0;
+  private turnUsage: { agent: string; collector: UsageCollector; lastStopReason?: string } | null = null;
   private activeMutatingCommands = 0;
   private sessionReplacement: "fork" | "clone" | null = null;
   private agentRunNeedsCompletion = false;
@@ -431,6 +436,26 @@ export class AgentSessionWrapper {
     return this.suppressCompletionNotifications;
   }
 
+  /** User turns of a trusted agent thread get a runs.jsonl record. Turns of a running thread task are skipped: the runner records those. */
+  private trackTrustedTurnUsage(event: AgentEvent): void {
+    if (event.type === "agent_start" && this.pendingPromptCount > 0) {
+      const info = this.agentProfileInfo();
+      this.turnUsage = info?.trust === "trusted" ? { agent: info.name, collector: createUsageCollector() } : null;
+    }
+    const turn = this.turnUsage;
+    if (!turn) return;
+    const wrapperEvent = event as unknown as WrapperEvent;
+    turn.collector.observe(wrapperEvent);
+    if (event.type === "message_end" && wrapperEvent.message?.role === "assistant") turn.lastStopReason = wrapperEvent.message.stopReason;
+    if (event.type !== "agent_end") return;
+    this.turnUsage = null;
+    if (listTasks().some((t) => t.status === "running" && t.target === "thread" && t.agent === turn.agent)) return;
+    appendRunRecord({
+      ts: new Date().toISOString(), agent: turn.agent, origin: "user", sessionId: this.sessionId,
+      status: turn.lastStopReason === "error" ? "failed" : "completed", usage: turn.collector.snapshot(), billing: "unknown",
+    });
+  }
+
   start(): void {
     this.unsubscribe = this.inner.subscribe((event: AgentEvent) => {
       if (event.type === "agent_start") this.agentRunNeedsCompletion = true;
@@ -440,6 +465,7 @@ export class AgentSessionWrapper {
         this.activeToolEvents.clear();
       }
       this.trackActiveToolEvent(event);
+      try { this.trackTrustedTurnUsage(event); } catch { this.turnUsage = null; } // accounting must never break the event stream
       if (IDLE_RESET_EVENT_TYPES.has(event.type)) this.resetIdleTimer();
       this.emit(event);
       if (event.type === "agent_settled") this.notifyAgentRunCompleteIfIdle();

@@ -1,7 +1,14 @@
 import type { RunOutcome } from "./runner";
+import { createUsageCollector, type RunUsage } from "./run-usage";
 import { checkActiveTriggerTools } from "./trigger-store";
 
-type WrapperEvent = { type: string; errorMessage?: string; message?: { role?: string; stopReason?: string; errorMessage?: string } };
+export type WrapperEvent = {
+  type: string; errorMessage?: string; toolCallId?: string; parentToolCallId?: string; toolName?: string; args?: unknown;
+  message?: {
+    role?: string; stopReason?: string; errorMessage?: string; model?: string; provider?: string;
+    usage?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number; cost?: { total?: number } };
+  };
+};
 
 /** The slice of AgentSessionWrapper (lib/rpc-manager.ts) these helpers rely on. */
 export interface PromptRunSession {
@@ -31,7 +38,7 @@ export async function enforceTriggerTools(session: PromptRunSession): Promise<vo
  *  must stay abortable through the returned handle instead of blocking start. */
 export function watchPromptRun(
   session: PromptRunSession, prompt: string,
-): { done: Promise<RunOutcome>; abort(): Promise<void> } {
+): { done: Promise<RunOutcome>; abort(): Promise<void>; usage(): RunUsage } {
   let resolveDone!: (value: RunOutcome) => void;
   let rejectDone!: (error: Error) => void;
   const done = new Promise<RunOutcome>((resolve, reject) => { resolveDone = resolve; rejectDone = reject; });
@@ -40,7 +47,9 @@ export function watchPromptRun(
   // assistant message (lib/subagent-runtime.ts:89-99). Auto-retry may emit several; the last wins.
   let lastAssistant: WrapperEvent["message"];
   const settle = (fn: () => void) => { if (!settled) { settled = true; unsubscribe(); fn(); } };
+  const collector = createUsageCollector();
   const unsubscribe = session.onEvent((event) => {
+    collector.observe(event);
     if (event.type === "message_end" && event.message?.role === "assistant") {
       lastAssistant = event.message;
     } else if (event.type === "prompt_done") {
@@ -64,5 +73,5 @@ export function watchPromptRun(
   // prompt_error (lib/rpc-manager.ts:833-836): settle `done` ourselves.
   session.send({ type: "prompt", message: prompt })
     .catch((error) => settle(() => rejectDone(error instanceof Error ? error : new Error(String(error)))));
-  return { done, abort: async () => { await session.send({ type: "abort" }); } };
+  return { done, abort: async () => { await session.send({ type: "abort" }); }, usage: collector.snapshot };
 }

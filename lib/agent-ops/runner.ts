@@ -1,3 +1,5 @@
+import { appendRunRecord, type RunRecord } from "./run-registry";
+import { EMPTY_RUN_USAGE, type RunUsage } from "./run-usage";
 import { attachSession, claimTask, getTask, listTasks, releaseClaim, TERMINAL, updateTask, type AgentTask } from "./task-store";
 
 export type RunOutcome = { status: "completed"; result?: string } | { status: "cancelled" };
@@ -7,6 +9,8 @@ export interface RunHandle {
    *  prompt_error, stopReason "error", or a preflight rejection of the prompt send. */
   done: Promise<RunOutcome>;
   abort(): Promise<void>;
+  /** Usage counted so far from this run's own events. */
+  usage?(): RunUsage;
 }
 export interface RunnerDeps {
   start(task: AgentTask): Promise<RunHandle>;
@@ -68,14 +72,15 @@ async function runOne(task: AgentTask, deps: RunnerDeps, key: SlotKey): Promise<
     if (current && TERMINAL.has(current.status)) {
       // Cancelled while the session was starting: the route had no session to abort yet.
       void handle.abort().catch(() => {});
+      recordRun(task, handle, current.status as RunRecord["status"]);
       return;
     }
     const outcome = await Promise.race([handle.done, deadline]);
-    finish(task.id, outcome.status === "cancelled" ? { status: "cancelled" } : { status: "completed", result: outcome.result });
+    finish(task, handle, outcome.status === "cancelled" ? { status: "cancelled" } : { status: "completed", result: outcome.result });
   } catch (error) {
     // A concurrent cancel may already have written a terminal status.
     // Never throw from this catch: runOne runs fire-and-forget.
-    finish(task.id, { status: "failed", error: error instanceof Error ? error.message : String(error) });
+    finish(task, handle, { status: "failed", error: error instanceof Error ? error.message : String(error) });
     if (error instanceof RunTimeoutError) {
       if (handle) void handle.abort().catch(() => {});
       else abortLateSession(starting);
@@ -96,11 +101,22 @@ function abortLateSession(starting: Promise<RunHandle> | undefined): void {
   starting?.then((late) => { late.done.catch(() => {}); return late.abort(); }, () => {}).catch(() => {});
 }
 
-/** Terminal-safe write: re-reads the status, skips if a racing writer already finished. */
-function finish(id: string, patch: Partial<AgentTask>): void {
+/** Terminal-safe write: re-reads the status, skips if a racing writer already finished. Either way the run is recorded. */
+function finish(task: AgentTask, handle: RunHandle | undefined, patch: Partial<AgentTask> & { status: RunRecord["status"] }): void {
+  const usage = handle?.usage?.() ?? EMPTY_RUN_USAGE;
+  let status = patch.status;
   try {
-    const current = getTask(id);
-    if (!current || TERMINAL.has(current.status)) return;
-    updateTask(id, { ...patch, completedAt: new Date().toISOString() });
+    const current = getTask(task.id);
+    if (current && TERMINAL.has(current.status)) status = current.status as RunRecord["status"];
+    else if (current) updateTask(task.id, { ...patch, usage, completedAt: new Date().toISOString() });
   } catch { /* a racing writer won; the task already has a terminal status */ }
+  recordRun(task, handle, status, usage);
+}
+
+function recordRun(task: AgentTask, handle: RunHandle | undefined, status: RunRecord["status"], usage = handle?.usage?.() ?? EMPTY_RUN_USAGE): void {
+  appendRunRecord({
+    ts: new Date().toISOString(), agent: task.agent, origin: task.origin, kind: task.kind, target: task.target,
+    triggerId: task.triggerId, taskId: task.id, sessionId: handle?.sessionId, status,
+    durationMs: Date.now() - Date.parse(getTask(task.id)?.startedAt ?? task.createdAt), usage, billing: "unknown",
+  });
 }

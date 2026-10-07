@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
+import type { RunUsage } from "./run-usage";
 
 export type AgentTaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export interface AgentTask {
@@ -16,6 +17,8 @@ export interface AgentTask {
   agent?: string;
   target?: "thread" | "isolated";
   kind?: "schedule" | "task" | "webhook";
+  /** Counted from the run's own wrapper events; the same numbers go to runs.jsonl. */
+  usage?: RunUsage;
 }
 const RANK: Record<AgentTaskStatus, number> = { queued: 0, running: 1, completed: 2, failed: 2, cancelled: 2 };
 export const TERMINAL: ReadonlySet<AgentTaskStatus> = new Set(["completed", "failed", "cancelled"]);
