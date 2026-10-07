@@ -23,8 +23,15 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
   }
 
+  let body: unknown;
   try {
-    const checked = validateAgentOpsSettingsPatch(await req.json());
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
+    const checked = validateAgentOpsSettingsPatch(body);
     if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
     return NextResponse.json({ settings: updateAgentOpsSettings(checked.patch) });
   } catch (error) {
