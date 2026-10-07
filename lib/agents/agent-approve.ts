@@ -31,7 +31,7 @@ export function createAgentApproveExtension(options: {
           summary: Type.String({ description: "What it changes and why" }),
         }),
         annotations: { readOnlyHint: true },
-        async execute(toolCallId, params, _signal, _onUpdate, ctx) {
+        async execute(_toolCallId, params, signal, _onUpdate, ctx) {
           const title = String(params.title).trim().slice(0, TITLE_MAX);
           const summary = String(params.summary).trim().slice(0, SUMMARY_MAX);
           try {
@@ -39,14 +39,14 @@ export function createAgentApproveExtension(options: {
               title: options.agentName,
               body: localeText(locale, "agentApprove").replace("{name}", options.agentName).replace("{title}", title),
               url: `/?agent=${encodeURIComponent(options.agentName)}`,
-              tag: `pi-agent-approve:${options.agentName}:${toolCallId}`,
+              tag: `pi-agent-approve:${options.agentName}`, // one tag per agent: a newer request replaces the older push
             }));
           } catch (error) {
             console.error("[agent_approve] push failed:", error instanceof Error ? error.message : error);
           }
           let approved = false;
           try {
-            approved = ctx?.ui ? await ctx.ui.confirm(title, summary, { timeout }) : false;
+            approved = ctx?.ui ? await ctx.ui.confirm(title, summary, { timeout, signal }) : false;
           } catch {
             approved = false;
           }
