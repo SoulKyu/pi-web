@@ -61,6 +61,8 @@ app/api/
   agents/[name]/memory/route.ts    GET the agent's recent memories
   agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
   agents/[name]/memory/forget/route.ts POST request a forget
+  memory/route.ts                  GET ?scope=user|project:<id>|agent:<name> pi-mem0 scope snapshot + { scopes, health } (400 on a bad scope)
+  memory/forget/route.ts           POST { scope, memoryIds } (1-50) queue forget requests: 202 { requestIds } | 404 unknown id
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
@@ -232,6 +234,7 @@ components/
   agents/dialog-styles.ts  shared styles of the agent dialogs
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
+  MemoryConfig.tsx         Settings › Memory: scope selector, filter, source badge, forget selected
   McpConfig.tsx            Settings › MCP: servers, switches, exposure, remove/undo, Test, sign-in, Code mode, trust
   mcp-config-helpers.ts    pure helpers and requests for McpConfig
   McpSignIn.tsx            a server's Sign-in row in Settings › MCP

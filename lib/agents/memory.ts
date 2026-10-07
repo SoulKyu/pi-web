@@ -85,3 +85,61 @@ export function requestForget(name: string, memoryId: string, dir = mem0Dir()): 
   writePrivateFileAtomicSync(join(dir, "forget", `${id}.json`), JSON.stringify({ memoryId, agent: name }));
   return id;
 }
+
+const SCOPE_KEY_RE = /^(user|project-[A-Za-z0-9._-]+)$/;
+const REQUEST_SCOPE_RE = /^(user|project:[A-Za-z0-9._-]+|agent:[A-Za-z0-9._-]+)$/;
+const PROJECT_ID_RE = /^[A-Za-z0-9._-]+$/;
+
+/** Snapshot of the user scope (`user`) or one project (`project-<id>`) written by pi-mem0 (src/snapshot.ts): newest first, 200 at most. */
+export function readScopeSnapshot(scopeKey: string, dir = mem0Dir()): AgentMemoryItem[] {
+  if (!SCOPE_KEY_RE.test(scopeKey) || scopeKey.includes("..")) return [];
+  try {
+    const file = join(dir, "scopes", `${scopeKey}.json`);
+    if (statSync(file).size > SNAPSHOT_MAX_BYTES) return [];
+    const raw = JSON.parse(readFileSync(file, "utf8")) as { scope?: unknown; memories?: unknown };
+    if (raw.scope !== scopeKey || !Array.isArray(raw.memories)) return [];
+    return raw.memories.flatMap((item) => {
+      const { id, text, createdAt, source } = (item ?? {}) as Record<string, unknown>;
+      return typeof id === "string" && typeof text === "string" && typeof createdAt === "string" && typeof source === "string"
+        ? [{ id, text, createdAt, source }] : [];
+    }).slice(0, SNAPSHOT_LIMIT);
+  } catch { return []; }
+}
+
+/** Project names for the memory browser (`scopes/index.json`); never trusts an entry whose id could not be a scope key. */
+export function readScopeIndex(dir = mem0Dir()): { projects: Record<string, { label: string; cwd: string }> } {
+  const projects: Record<string, { label: string; cwd: string }> = {};
+  try {
+    const file = join(dir, "scopes", "index.json");
+    if (statSync(file).size > SNAPSHOT_MAX_BYTES) return { projects };
+    const raw = JSON.parse(readFileSync(file, "utf8")) as { projects?: unknown };
+    if (!raw.projects || typeof raw.projects !== "object" || Array.isArray(raw.projects)) return { projects };
+    for (const [id, entry] of Object.entries(raw.projects)) {
+      const { label, cwd } = (entry ?? {}) as Record<string, unknown>;
+      if (PROJECT_ID_RE.test(id) && !id.includes("..") && typeof label === "string" && typeof cwd === "string") projects[id] = { label, cwd };
+    }
+  } catch { /* absent or unreadable */ }
+  return { projects };
+}
+
+export function isRequestScope(scope: unknown): scope is string {
+  return typeof scope === "string" && REQUEST_SCOPE_RE.test(scope) && !scope.includes("..");
+}
+
+/** The browser's items for one scope: `user`, `project:<id>` or `agent:<name>`. */
+export function readSnapshotForScope(scope: string, dir = mem0Dir()): AgentMemoryItem[] {
+  if (!isRequestScope(scope)) return [];
+  if (scope.startsWith("agent:")) return readAgentMemorySnapshot(scope.slice(6), dir);
+  return readScopeSnapshot(scope === "user" ? "user" : `project-${scope.slice(8)}`, dir);
+}
+
+/** Same contract as requestForget for any scope; pi-mem0 refuses a memory whose owner is not exactly that scope. */
+export function requestScopeForget(scope: string, memoryId: string, dir = mem0Dir()): string {
+  if (!isRequestScope(scope)) throw new Error("invalid scope");
+  if (!MEMORY_ID_RE.test(memoryId)) throw new Error("invalid memory id");
+  if (!readSnapshotForScope(scope, dir).some((item) => item.id === memoryId)) throw new MemoryNotFoundError("memory not found");
+  mkdirSync(join(dir, "forget"), { recursive: true, mode: 0o700 });
+  const id = randomUUID();
+  writePrivateFileAtomicSync(join(dir, "forget", `${id}.json`), JSON.stringify({ memoryId, scope }));
+  return id;
+}

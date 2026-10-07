@@ -11,5 +11,8 @@
 - **Why a control is unavailable is visible text** — a scope switch's `disabledReason` (under the switch's whole line, so controls passed as its `children` stay level with it), the note under a detail header, a footer summary that opens its diagnostics — never only a `title` tooltip, which a touch screen cannot show.
 - `ConfigTrustNotice` shows its button only when given `onTrust`; Settings › MCP passes AppShell's trust dialog through `SettingsPanel` (see **Trust from Settings** in [mcp-settings.md](mcp-settings.md)). Skills and Plugins take the page's `trust` and reload after a decision but have no Trust button; adding one needs `onOpenTrustDialog` passed to them and `mcpProjectTrustable()`'s rule.
 
+## Memory section
+- Settings › Memory (`components/MemoryConfig.tsx`, id `memory` in `SETTINGS_SECTION_VALUES`, global: no project needed) is built from `ConfigPanelShell`, `ConfigNotice`, `ConfigDetail`, `ConfigEmptyState`, `ConfigFooter(Status)` and `ConfigButton`; it has no sidebar, the scope is a `<select>` (user, projects by label, agents). Health notes reuse the `agents.memory.watcherStale` / `captureError` keys. Reads and writes go through `/api/memory*` only (pi-mem0 snapshots and forget request files, never the mem0 store).
+
 ## Languages
 - Supported locales: en, fr, zh-CN, zh-TW. Key parity and placeholder preservation are enforced by `lib/i18n/messages.test.mjs`.
