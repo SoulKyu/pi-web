@@ -2,7 +2,7 @@ import type { AgentTask } from "../agent-ops/task-store";
 
 /** The runner's 2 slots serve isolated runs only; legacy tasks without a target are isolated. */
 export const selectIsolatedTasks = (queued: readonly AgentTask[], isPaused: (agent?: string) => boolean = () => false): AgentTask[] =>
-  queued.filter((task) => task.target !== "thread" && !isPaused(task.agent));
+  queued.filter((task) => task.target !== "thread" && !isPaused(task.agent ?? task.profile));
 
 /**
  * D12: one event at a time per agent, oldest first, never while the thread runs (a user turn, or

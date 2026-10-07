@@ -35,7 +35,7 @@ export async function PUT(req: Request) {
     const checked = validateAgentOpsSettingsPatch(body);
     if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
     const settings = updateAgentOpsSettings(checked.patch);
-    const aborted = "paused" in checked.patch || "pausedAgents" in checked.patch ? abortRunningTasks((task) => isPausedFor(settings, task.agent)) : 0;
+    const aborted = "paused" in checked.patch || "pausedAgents" in checked.patch ? abortRunningTasks((task) => isPausedFor(settings, task.agent ?? task.profile)) : 0;
     return NextResponse.json({ settings, aborted });
   } catch (error) {
     return NextResponse.json(
