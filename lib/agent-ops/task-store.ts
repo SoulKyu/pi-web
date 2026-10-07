@@ -17,7 +17,7 @@ export interface AgentTask {
   agent?: string;
   target?: "thread" | "isolated";
   kind?: "schedule" | "task" | "webhook";
-  /** Counted from the run's own wrapper events; the same numbers go to runs.jsonl. */
+  /** Counted from the run's own wrapper events; the same numbers go to runs.jsonl. Absent when a cancel won the terminal write: runs.jsonl is the source of truth. */
   usage?: RunUsage;
 }
 const RANK: Record<AgentTaskStatus, number> = { queued: 0, running: 1, completed: 2, failed: 2, cancelled: 2 };
