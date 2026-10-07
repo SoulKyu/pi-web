@@ -8,6 +8,7 @@
 - The name is the id and cannot be renamed. Every route resolves the name through `getLongTermAgent` first; `agentHome`, `spacePath`, `setThreadSessionId` and `setLastReadEntryId` take the registry's own names. The name is refused if any profile of any scope matches it case-insensitively (a built-in must not be shadowed) or the home / space file exists.
 - `createLongTermAgent` writes space state and home first and the profile last, since the profile is what lists the agent. A failed profile write removes the home and the space file, otherwise the name stays blocked.
 - A project profile under a home is never offered: homes are not project cwds.
+- The agent view's home tree accepts dropped files and has a Browse button, both through FileExplorer's existing upload flow (`POST /api/files/<home>?type=upload`, server unchanged). Dropped folders are refused client-side (`useDragDrop` skips directory entries).
 
 ## Thread
 - The thread is one pinned session, started `trusted` (`agentProfileTrust: "trusted"`) with the agent's home as cwd. `ensureThread` is serialized per agent (`serializeByKey`) and re-reads the agent inside the lock, so concurrent opens share one start.

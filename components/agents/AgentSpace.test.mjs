@@ -7,7 +7,11 @@ const dialog = await readFile(new URL("./AgentProfileDialog.tsx", import.meta.ur
 const shell = await readFile(new URL("../AppShell.tsx", import.meta.url), "utf8");
 
 test("AgentSpaceLeft mounts the home explorer and the profile dialog", () => {
-  assert.match(left, /<FileExplorer cwd=\{agent\.home\}/);
+  assert.match(left, /<FileExplorer ref=\{explorerRef\} cwd=\{agent\.home\}/);
+  assert.match(left, /onUploadBusyChange=\{setUploadBusy\}/);
+  assert.match(left, /openUploadPicker\(\)/);
+  assert.match(left, /agents\.space\.browse/);
+  assert.match(left, /disabled=\{uploadBusy\}/);
   assert.match(left, /<AgentProfileDialog/);
   assert.match(left, /agents\.space\.triggers/);
   assert.match(left, /\/api\/agent-ops\/triggers\?agent=\$\{encodeURIComponent\(name\)\}/);

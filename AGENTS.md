@@ -220,7 +220,7 @@ components/
 hooks/
   useAgentSession.ts       messages, streaming, SSE, fork/navigate, reconciliation; built-in slash commands (/session, bare /mcp)
   useAudio.ts              completion sound + AudioContext unlock
-  useDragDrop.ts           shared drag/drop state
+  useDragDrop.ts           shared drag/drop state (accept predicate, default image-only; skips dropped folders)
   useIsMobile.ts           responsive breakpoint
   useKeyboardShortcuts.ts  Esc stops the running agent unless a field or nearer handler took it; Ctrl+Alt+N
   useTheme.ts              theme state
