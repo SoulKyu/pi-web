@@ -1513,5 +1513,6 @@ export const frLocale: LocalePlugin = {
     "agents.memory.watcherStale": "Observateur mémoire inactif : l'oubli et les approbations attendent qu'une session d'agent tourne",
     "agents.memory.captureError": "Dernière capture mémoire en échec : {error}",
     "agents.push.failed": "{name} : une exécution a échoué ({title})",
+    "agents.push.digest": "Heures calmes : {runs} exécutions, {failed} échouée(s) ({agents})",
   },
 };

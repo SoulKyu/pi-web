@@ -159,6 +159,7 @@ lib/
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
   agent-ops/quiet-hours.ts  pure inQuietHours / quietHoursEnd / dailyBucket on the server clock (client-safe)
+  agent-ops/digest.ts       buildDigest / digestBody: deterministic quiet-hours end push text from finished tasks (server-only)
   agent-ops/health.ts       pure collectHealth / healthLevel (ok | warn | down) behind the rail dot
   agent-ops/settings.ts     ~/.pi/agent/agent-ops/settings.json: run cap, free-memory floor, pause, quiet hours; validated patches
   file-access.ts            allowed file roots for /api/files and worktrees

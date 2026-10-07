@@ -1513,5 +1513,6 @@ export const zhTWLocale: LocalePlugin = {
     "agents.memory.watcherStale": "記憶監視器未執行：遺忘與核准將等到有代理會話執行時才會處理",
     "agents.memory.captureError": "上次記憶擷取失敗：{error}",
     "agents.push.failed": "{name}：一次執行失敗（{title}）",
+    "agents.push.digest": "靜默時段：{runs} 次執行，{failed} 次失敗（{agents}）",
   },
 };

@@ -1513,5 +1513,6 @@ export const zhCNLocale: LocalePlugin = {
     "agents.memory.watcherStale": "记忆监视器未运行：遗忘和审批将等到有智能体会话运行时才会处理",
     "agents.memory.captureError": "上次记忆捕获失败：{error}",
     "agents.push.failed": "{name}：一次运行失败（{title}）",
+    "agents.push.digest": "静默时段：{runs} 次运行，{failed} 次失败（{agents}）",
   },
 };

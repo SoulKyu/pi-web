@@ -1513,5 +1513,6 @@ export const enLocale: LocalePlugin = {
     "agents.memory.watcherStale": "Memory watcher inactive: forget and approvals wait until an agent session runs",
     "agents.memory.captureError": "Last memory capture failed: {error}",
     "agents.push.failed": "{name}: a run failed ({title})",
+    "agents.push.digest": "Quiet hours: {runs} runs, {failed} failed ({agents})",
   },
 };

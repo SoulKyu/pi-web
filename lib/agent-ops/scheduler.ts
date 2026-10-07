@@ -2,13 +2,15 @@ import { createHash } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { mapPayload, payloadText, type MappedPayload, type PayloadFormat } from "./payload-formats";
+import { buildDigest, digestBody } from "./digest";
 import { rotateRunRecords } from "./run-registry";
 import { redactSecrets, truncate } from "./redact";
 import { appendTriggerLog, type TriggerLogEntry } from "./trigger-log";
 import { dailyBucket, inQuietHours, quietHoursEnd } from "./quiet-hours";
-import { readAgentOpsSettings, isPausedFor } from "./settings";
+import { readAgentOpsSettings, isPausedFor, type QuietHours } from "./settings";
 import { createTask, listTasks, pruneTasks, recoverInterrupted } from "./task-store";
 import { isWaiting } from "../agents/queue";
+import { notifyAgent } from "../web-push";
 import { listTriggers, triggerHome, triggerPinStatus, triggersDir, type TriggerConfig } from "./trigger-store";
 
 export type TaskCreator = typeof createTask;
@@ -145,7 +147,9 @@ export function fireTriggerNow(trigger: TriggerConfig, create: TaskCreator = cre
 const PAYLOAD_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.\d+_[0-9a-f]{16}$/;
 const SCHED_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.sched\.\d+$/;
 const DAILY_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.daily\.\d{4}-\d{2}-\d{2}$/;
+const DIGEST_TOKEN = /^digest\.\d{4}-\d{2}-\d{2}$/;
 const DAILY_RETENTION_MS = 2 * DAY_MS;
+const DIGEST_WINDOW_MS = 60 * 60_000;
 
 /** A token only has to outlive its window to dedup; keep it at least a day and twice its window, then delete.
  *  Tokens of a deleted trigger go after a day. `<uuid>.json` and anything else in the directory is left alone. */
@@ -155,6 +159,14 @@ export function purgeStaleFireTokens(now = Date.now()): number {
   const triggers = new Map(listTriggers().map((t) => [t.id, t]));
   let purged = 0;
   for (const name of names) {
+    if (DIGEST_TOKEN.test(name)) {
+      try {
+        if (now - statSync(join(triggersDir(), name)).mtimeMs <= DAILY_RETENTION_MS) continue;
+        unlinkSync(join(triggersDir(), name));
+        purged++;
+      } catch { /* gone, or raced by another process */ }
+      continue;
+    }
     const payload = PAYLOAD_TOKEN.exec(name);
     const sched = payload ? null : SCHED_TOKEN.exec(name);
     const daily = payload || sched ? null : DAILY_TOKEN.exec(name);
@@ -206,8 +218,27 @@ function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: numb
   appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "schedule", verdict: "accepted", bucket, taskId });
 }
 
+/** One push per day, only while `now` is within 60 minutes after the end of quiet hours (a tick missed past that, e.g. a server down, skips the day).
+ *  The `digest.<date>` token is claimed even when nothing ran: one check per day. */
+function sendDigestIfDue(quietHours: QuietHours | undefined, quiet: boolean, now: Date, notify: typeof notifyAgent): void {
+  if (!quietHours || quiet) return;
+  const [toH, toM] = quietHours.to.split(":").map(Number);
+  const [fromH, fromM] = quietHours.from.split(":").map(Number);
+  const windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), toH, toM);
+  if (now.getTime() < windowEnd.getTime() || now.getTime() >= windowEnd.getTime() + DIGEST_WINDOW_MS) return;
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (!claimFireToken(`digest.${date}`)) return;
+  const toMin = toH * 60 + toM;
+  const fromMin = fromH * 60 + fromM;
+  const lengthMs = (toMin > fromMin ? toMin - fromMin : toMin - fromMin + 24 * 60) * 60_000;
+  const digest = buildDigest({ tasks: listTasks(), since: new Date(windowEnd.getTime() - lengthMs).toISOString(), now });
+  if (digest.runs === 0) return;
+  notify((locale) => ({ title: "pi-web", body: digestBody(digest, locale), url: "/", tag: `pi-digest:${date}` }))
+    .catch((error) => console.error("[agent-ops] digest push:", error instanceof Error ? error.message : error));
+}
+
 /** One scheduler pass: purge, prune (hourly), fire due triggers, kick. Triggers are re-read every pass, no snapshot. */
-export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator = createTask): void {
+export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator = createTask, deps: { notify?: typeof notifyAgent } = {}): void {
   try {
     purgeStaleFireTokens();
     if (Date.now() - (globalThis.__agentOpsLastPrune ?? 0) >= PRUNE_EVERY_MS) {
@@ -231,6 +262,7 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
         console.error(`[agent-ops] scheduled fire of trigger ${trigger.id} failed:`, error instanceof Error ? error.message : error);
       }
     }
+    sendDigestIfDue(settings.quietHours, quiet, now, deps.notify ?? notifyAgent);
   } catch (error) {
     console.error("[agent-ops] scheduler tick failed:", error instanceof Error ? error.message : error); // a throw in a timer kills the process
   }

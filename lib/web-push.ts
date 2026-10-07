@@ -122,8 +122,8 @@ function pushStatusCode(error: unknown): number | undefined {
  * Locale lookup for push payloads. The browser reports its UI locale when it
  * subscribes; unknown locales fall back to English.
  */
-export function localeText(locale: string, key: "sessionComplete" | "taskFinished" | "agentRunFailed"): string {
-  const id = { sessionComplete: "i18n.sessionComplete", taskFinished: "i18n.taskFinished", agentRunFailed: "agents.push.failed" }[key] as keyof typeof enLocale.messages;
+export function localeText(locale: string, key: "sessionComplete" | "taskFinished" | "agentRunFailed" | "agentsDigest"): string {
+  const id = { sessionComplete: "i18n.sessionComplete", taskFinished: "i18n.taskFinished", agentRunFailed: "agents.push.failed", agentsDigest: "agents.push.digest" }[key] as keyof typeof enLocale.messages;
   if (locale === "fr") {
     const message = frLocale.messages[id];
     if (message) return message;
@@ -133,7 +133,7 @@ export function localeText(locale: string, key: "sessionComplete" | "taskFinishe
     if (message) return message;
   }
   const message = enLocale.messages[id];
-  return message ?? { sessionComplete: "Session complete", taskFinished: "Task finished.", agentRunFailed: "{name}: a run failed ({title})" }[key];
+  return message ?? { sessionComplete: "Session complete", taskFinished: "Task finished.", agentRunFailed: "{name}: a run failed ({title})", agentsDigest: "Quiet hours: {runs} runs, {failed} failed ({agents})" }[key];
 }
 
 export function createWebPushNotifier(environment: WebPushEnvironment): WebPushNotifier {
