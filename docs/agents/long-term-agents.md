@@ -152,3 +152,11 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 - `createLongTermAgent` writes `<home>/MEMORY.md` (0600, 6-line header, `writeMemoryMd`, `wx`: never overwritten). `withLongTermInstruction` (`lib/subagents.ts`, used by `profileSessionResources`) appends one fixed sentence to `appendSystemPrompt` of `longTerm` profiles only: `MEMORY_MD_INSTRUCTION`.
 - The file is never injected: profile sessions run with `noContextFiles`, and injecting content would invalidate the whole prompt cache at each edit of a long thread. The static sentence is cache-safe; the agent reads the file itself with its tools. The home is agent-writable and untrusted by pi.
 - `AgentSpaceRight` "Knowledge" section: `MEMORY.md (1.8 KB) [open]` through `onOpenFile`; `AgentDetail.memoryMd.size` comes from `lstat` in `agentDetailExtras()` (a symlink is omitted).
+
+## Prompt chips
+
+- Source: `.md` files directly under `<home>/prompts/` (`lib/agents/prompt-chips.ts`: names without extension, sorted, max 12). `components/agents/PromptChips.tsx` lists the folder once per home (no polling) above the composer of a trusted agent thread; a 404 or an error shows no chips.
+- A click reads the file (`?type=read`, capped at 16 KB client-side) and inserts it with `ChatInputHandle.insertText`. Nothing is sent. URLs are built from the home only.
+- Why not `.pi/prompts`: `prompts` is a trust-requiring project entry (`lib/project-trust.ts`) and a home is never trusted.
+- The "+" chip is always shown; without an `onOpenFolder` handler (the file tree has no reveal API) it only carries the hint `agents.prompts.hint` as its title. The chip bar never writes to the server.
+- The role field of the create and profile dialogs has a folded help (`agents.new.roleHelp`).

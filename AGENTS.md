@@ -145,6 +145,7 @@ lib/
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
+  agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
   agents/memory.ts          mem0 snapshot reader + forget requests
   agents/curation-prompt.ts curationPrompt(): weekly memory curation trigger template
   agents/agent-detail-extras.ts server-only AgentDetail fields (memorySnapshotPath)
@@ -234,6 +235,7 @@ components/
   agents/AgentOpsSettings.tsx quiet hours, run cap and memory floor in Settings › Agents
   agents/AgentEventCard.tsx event card in the thread (orange schedule/task, purple webhook)
   agents/QueueTaskDialog.tsx queue a task for an agent's thread
+  agents/PromptChips.tsx   prompt chips above the agent composer, from <home>/prompts
   agents/AgentMemoryRecent.tsx recent memories with forget
   agents/AgentSpaceLeft.tsx / AgentSpaceRight.tsx  agent view panels (home files; profile and status)
   agents/dialog-styles.ts  shared styles of the agent dialogs

@@ -118,6 +118,10 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
           {t("agents.new.role")}
           <textarea value={role} onChange={(event) => setRole(event.target.value)} required rows={5} placeholder={t("agents.new.rolePlaceholder")} style={{ ...fieldStyle, fontFamily: "inherit", resize: "vertical" }} />
         </label>
+        <details style={{ fontSize: 12, color: "var(--text-muted)" }}>
+          <summary style={{ cursor: "pointer" }}>?</summary>
+          {t("agents.new.roleHelp")}
+        </details>
         <label style={labelStyle}>
           {t("agents.new.model")}
           <select value={model} onChange={(event) => setModel(event.target.value)} style={fieldStyle}>
