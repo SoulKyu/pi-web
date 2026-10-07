@@ -33,20 +33,18 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   const loadMemory = useCallback(async (signal?: AbortSignal) => {
     const base = `/api/agents/${encodeURIComponent(agent.name)}`;
     try {
-      const [memoryResponse, tasksResponse, usageResponse] = await Promise.all([
+      const [memoryResponse, tasksResponse, usageData] = await Promise.all([
         fetch(`${base}/memory`, { cache: "no-store", signal }),
         fetch(`${base}/tasks`, { cache: "no-store", signal }),
-        fetch(`${base}/usage`, { cache: "no-store", signal }),
+        fetch(`${base}/usage`, { cache: "no-store", signal }).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<{ usage?: AgentUsageSummary } | null>,
       ]);
       const data = await memoryResponse.json() as MemoryState & { error?: string };
       const taskData = await tasksResponse.json() as { tasks?: AgentTaskListItem[]; error?: string };
-      const usageData = await usageResponse.json() as { usage?: AgentUsageSummary; error?: string };
       if (signal?.aborted) return;
       if (!memoryResponse.ok) throw new Error(data.error ?? `HTTP ${memoryResponse.status}`);
       if (!tasksResponse.ok) throw new Error(taskData.error ?? `HTTP ${tasksResponse.status}`);
-      if (!usageResponse.ok) throw new Error(usageData.error ?? `HTTP ${usageResponse.status}`);
       setMemory(data);
-      setUsage(usageData.usage ?? null);
+      if (usageData?.usage) setUsage(usageData.usage);
       setTasks(taskData.tasks ?? []);
       setError(null);
     } catch (cause) {
@@ -94,9 +92,10 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
 
   const bucketLine = (bucket: UsageBucket) => {
     const head = `${t("agents.usage.runs", { runs: bucket.runs })} · ${formatCompact(bucket.tokens)} tok`;
-    if (bucket.cost > 0) return `${head} · $${bucket.cost.toFixed(2)}`;
-    if (bucket.costEquivalent > 0) return `${head} · ≈ $${bucket.costEquivalent.toFixed(2)} ${t("agents.usage.equivalent")}`;
-    return head;
+    const parts = [head];
+    if (bucket.cost > 0) parts.push(`$${bucket.cost.toFixed(2)}`);
+    if (bucket.costEquivalent > 0) parts.push(`≈ $${bucket.costEquivalent.toFixed(2)} ${t("agents.usage.equivalent")}`);
+    return parts.join(" · ");
   };
   const usageHasRuns = usage !== null && usage.days30.runs > 0;
 

@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const emptyBucket = (): UsageBucket => ({ runs: 0, tokens: 0, cost: 0, costEquivalent: 0, cacheRead: 0, input: 0 });
 
 function add(bucket: UsageBucket, record: RunRecord): void {
-  const { input, output, cacheRead, cacheWrite, cost } = record.usage;
+  const { input = 0, output = 0, cacheRead = 0, cacheWrite = 0, cost = 0 } = record.usage;
   bucket.runs += 1;
   bucket.tokens += input + output + cacheRead + cacheWrite;
   bucket.cost += cost;
