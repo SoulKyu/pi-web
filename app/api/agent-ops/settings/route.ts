@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readAgentOpsSettings, updateAgentOpsSettings, validateAgentOpsSettingsPatch } from "@/lib/agent-ops/settings";
+import { abortRunningTasks } from "@/lib/agent-ops/kick";
+import { isPausedFor, readAgentOpsSettings, updateAgentOpsSettings, validateAgentOpsSettingsPatch } from "@/lib/agent-ops/settings";
 import { hasJsonContentType, isApiRequestAllowed } from "@/lib/request-security";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,9 @@ export async function PUT(req: Request) {
   try {
     const checked = validateAgentOpsSettingsPatch(body);
     if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
-    return NextResponse.json({ settings: updateAgentOpsSettings(checked.patch) });
+    const settings = updateAgentOpsSettings(checked.patch);
+    const aborted = "paused" in checked.patch || "pausedAgents" in checked.patch ? abortRunningTasks((task) => isPausedFor(settings, task.agent)) : 0;
+    return NextResponse.json({ settings, aborted });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },

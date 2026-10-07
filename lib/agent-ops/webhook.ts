@@ -5,6 +5,7 @@ import {
 import { hasJsonContentType } from "../request-security";
 import { HOOK_SECRET_HEADER } from "./hook-path";
 import { ingestTriggerPayload } from "./scheduler";
+import { isPausedFor, readAgentOpsSettings } from "./settings";
 import { getTrigger } from "./trigger-store";
 
 export const HOOK_BODY_MAX_BYTES = 64 * 1024;
@@ -68,6 +69,8 @@ export async function handleHook(request: Request, id: string, kick: () => unkno
   if (!trigger.webhookSecretSha256 || !HEX_SHA256.test(trigger.webhookSecretSha256)) return fail("Webhook not enabled for this trigger", 403);
   // Both are 32-byte digests; raw buffers of different lengths make timingSafeEqual throw.
   if (!timingSafeEqual(sha256(request.headers.get(HOOK_SECRET_HEADER) ?? ""), Buffer.from(trigger.webhookSecretSha256, "hex"))) return fail("Unauthorized", 401);
+
+  if (isPausedFor(readAgentOpsSettings(), trigger.profile)) return json({ error: "paused" }, 503, { "Retry-After": "600" }); // after the secret check: fail closed; before ingestion: no dedup token
 
   const text = await readCapped(request.body, HOOK_BODY_MAX_BYTES);
   if (text === undefined) return json({ error: "Request body unreadable" }, 400);

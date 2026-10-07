@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { redactSecrets, truncate } from "./redact";
+import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { createTask, listTasks, pruneTasks, recoverInterrupted } from "./task-store";
 import { listTriggers, triggerHome, triggerPinStatus, triggersDir, type TriggerConfig } from "./trigger-store";
 
@@ -119,9 +120,10 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
       globalThis.__agentOpsLastPrune = Date.now();
       pruneTasks();
     }
+    const settings = readAgentOpsSettings();
     for (const trigger of listTriggers()) {
       try {
-        if (!trigger.enabled || !trigger.everyMinutes) continue;
+        if (!trigger.enabled || !trigger.everyMinutes || isPausedFor(settings, trigger.profile)) continue;
         const bucket = Math.floor(Date.now() / (trigger.everyMinutes * 60_000));
         // Checked before the token: a refused fire creates no task and keeps its bucket.
         const refusal = admissionRefusal(trigger);

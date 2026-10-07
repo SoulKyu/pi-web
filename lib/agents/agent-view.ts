@@ -1,13 +1,13 @@
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { AgentAvatar, LongTermAgent, ToolsPreset } from "./registry";
 
-export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number }
+export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number; paused: boolean }
 export interface AgentDetail extends AgentListItem { role: string; lastReadEntryId?: string }
 
 /** Client-safe card: explicit allowlist, never the role. */
-export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: number): AgentListItem {
+export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: number, paused = false): AgentListItem {
   return {
-    name: agent.name, avatar: agent.avatar, toolsPreset: agent.toolsPreset, mcpServers: agent.mcpServers, home: agent.home, createdAt: agent.createdAt, running, unread,
+    name: agent.name, avatar: agent.avatar, toolsPreset: agent.toolsPreset, mcpServers: agent.mcpServers, home: agent.home, createdAt: agent.createdAt, running, unread, paused,
     ...(agent.model ? { model: agent.model } : {}), ...(agent.thinking ? { thinking: agent.thinking } : {}),
     ...(agent.threadSessionId ? { threadSessionId: agent.threadSessionId } : {}),
   };

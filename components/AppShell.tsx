@@ -1330,6 +1330,8 @@ export function AppShell() {
     <AgentSpaceRight
       agent={agentDetail}
       running={Boolean(selectedSession && runningSessionIds.has(selectedSession.id))}
+      paused={agents.find((item) => item.name === agentDetail.name)?.paused ?? false}
+      onPauseChanged={reloadAgents}
       contextPercent={contextUsage?.percent ?? null}
       onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
     />
@@ -2078,6 +2080,8 @@ export function AppShell() {
         onNewAgent={() => setNewAgentOpen(true)}
         onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
         orientation={isMobile ? "horizontal" : "vertical"}
+        paused={agents.length > 0 && agents.every((item) => item.paused)}
+        onPauseChanged={reloadAgents}
       />}
 
       {/* Left sidebar */}
@@ -2120,6 +2124,8 @@ export function AppShell() {
           onNewAgent={() => setNewAgentOpen(true)}
           onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
           orientation={isMobile ? "horizontal" : "vertical"}
+          paused={agents.length > 0 && agents.every((item) => item.paused)}
+          onPauseChanged={reloadAgents}
           />}
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>

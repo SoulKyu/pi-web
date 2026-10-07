@@ -49,16 +49,24 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
 
-export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, orientation }: {
+export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, orientation, paused, onPauseChanged }: {
   agents: readonly AgentListItem[];
   activeAgent: string | null;
   onSelectAgent: (name: string) => void;
   onNewAgent: () => void;
   onShowSessions: () => void;
   orientation: "vertical" | "horizontal";
+  paused: boolean;
+  onPauseChanged: () => void;
 }) {
   const { t } = useI18n();
   const vertical = orientation === "vertical";
+  const togglePause = async () => {
+    if (!paused && !window.confirm(t("agentOps.pause.confirm"))) return;
+    try {
+      await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(paused ? { paused: false, pausedAgents: [] } : { paused: true }) });
+    } finally { onPauseChanged(); }
+  };
   return (
     <nav aria-label={t("agents.rail")} className={vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
       {agents.map((agent) => (
@@ -75,6 +83,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
         </button>
       ))}
       <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>
+      <button type="button" onClick={() => void togglePause()} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
       <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto" }), color: activeAgent === null ? "var(--accent)" : "var(--text-muted)" }}>☰</button>
     </nav>
   );

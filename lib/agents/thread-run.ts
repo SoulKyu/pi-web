@@ -1,6 +1,7 @@
 import { watchPromptRun, type PromptRunSession } from "../agent-ops/prompt-run";
 import type { RunHandle } from "../agent-ops/runner";
 import { getTask, TERMINAL, type AgentTask } from "../agent-ops/task-store";
+import { isPausedFor, readAgentOpsSettings } from "../agent-ops/settings";
 import { AGENT_EVENT_ENTRY_TYPE, buildScheduleEvent, buildTaskEvent, type AgentEventData } from "./events";
 import { getLongTermAgent, type LongTermAgent } from "./registry";
 import { openThread } from "./thread";
@@ -41,6 +42,7 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   await waitUntilIdle(session);
   const current = deps.readTask(task.id);
   if (!current || TERMINAL.has(current.status)) throw new Error(`task ${current?.status ?? "removed"} while waiting for the thread`);
+  if (isPausedFor(readAgentOpsSettings(), task.agent)) throw new Error("agent paused");
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
   const { done, abort } = watchPromptRun(session, task.prompt);
   return { sessionId, done, abort };

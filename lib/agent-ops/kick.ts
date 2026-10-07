@@ -7,7 +7,8 @@ import { getRpcSession, isRpcSessionStarting } from "../rpc-manager";
 import { redactSecrets } from "./redact";
 import { runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
-import { recoverInterrupted, type AgentTask } from "./task-store";
+import { readAgentOpsSettings, isPausedFor } from "./settings";
+import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
 import { triggerRunPin } from "./trigger-store";
 import { localeText, notifyAgent } from "../web-push";
 
@@ -50,18 +51,35 @@ export function handleTaskEnd(task: AgentTask): void {
   }
 }
 
+/** Pause: running tasks of the scope are aborted (cancelled), queued ones wait. */
+export function abortRunningTasks(filter: (task: AgentTask) => boolean): number {
+  let count = 0;
+  for (const task of listTasks().filter((t) => t.status === "running" && filter(t))) {
+    try { updateTask(task.id, { status: "cancelled", completedAt: new Date().toISOString() }); } catch { continue; }
+    if (task.sessionId) void getRpcSession(task.sessionId)?.send({ type: "abort" }).catch(() => {});
+    count += 1;
+  }
+  return count;
+}
+
+/** Read once per kick, not per task. */
+function pausedNow(): (agent?: string) => boolean {
+  const settings = readAgentOpsSettings();
+  return (agent) => isPausedFor(settings, agent);
+}
+
 /** Single runner entry point: the task route, the webhook and the scheduler all call it.
  *  A finished run re-kicks, so a freed slot never idles until the next external kick.
  *  Isolated runs keep the 2 slots; thread events run one per agent. */
 export function kickRunner(): Promise<void> {
   const isolated = runPendingTasks({
-    maxConcurrent: 2, slotKey: "__agentOpsRunning", select: selectIsolatedTasks,
+    maxConcurrent: 2, slotKey: "__agentOpsRunning", select: (queued) => selectIsolatedTasks(queued, pausedNow()),
     start: (task) => startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task)),
     onRunEnd: () => void kickRunner(), onTaskEnd: handleTaskEnd,
   });
   const thread = runPendingTasks({
     maxConcurrent: Number.POSITIVE_INFINITY, slotKey: "__agentOpsThreadRunning",
-    select: (queued, all) => selectThreadTasks(queued, all, isThreadBusy),
+    select: (queued, all) => selectThreadTasks(queued, all, isThreadBusy, pausedNow()),
     start: startThreadEventRun, onRunEnd: () => void kickRunner(), onTaskEnd: handleTaskEnd,
   });
   return Promise.all([isolated, thread]).then(() => undefined, log);

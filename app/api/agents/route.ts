@@ -3,6 +3,7 @@ import { allowFileRoot } from "@/lib/file-access";
 import { toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
 import { agentsHomeDir, createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
 import { registryErrorResponse } from "@/lib/agents/registry-response";
+import { isPausedFor, readAgentOpsSettings } from "@/lib/agent-ops/settings";
 import { threadRunning, unreadCount } from "@/lib/agents/thread";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,8 @@ const headers = { "Cache-Control": "no-store" };
 
 // GET /api/agents - the rail: every long-term agent with running state and unread count.
 export async function GET() {
-  const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0))));
+  const settings = readAgentOpsSettings();
+  const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0), isPausedFor(settings, agent.name))));
   return NextResponse.json({ agents, agentsHomeDir: agentsHomeDir() }, { headers });
 }
 
