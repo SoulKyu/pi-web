@@ -307,6 +307,7 @@ export class AgentSessionWrapper {
   private activeToolEvents = new Map<string, AgentEvent>();
   private pendingUiResponses = new Map<string, PendingUiResponse>();
   private pendingUiRequests = new Map<string, AgentEvent>();
+  private watchers = new Set<EventListener>();
   private pendingUiFirstAt: number | undefined;
   private activeCustomUis = new Map<string, ActiveCustomUi>();
   private extensionUiAbortController = new AbortController();
@@ -736,17 +737,19 @@ export class AgentSessionWrapper {
     return this.pendingUiRequests.size > 0 ? this.pendingUiFirstAt : undefined;
   }
 
-  /** Live event listeners: 0 means no browser tab is watching this session. */
+  /** Browser event streams only (onEvent with watcher): internal listeners such as a runner's prompt watch do not count. 0 means no tab is watching. */
   subscriberCount(): number {
-    return this.listeners.size;
+    return this.watchers.size;
   }
 
-  onEvent(listener: EventListener): () => void {
+  onEvent(listener: EventListener, options: { watcher?: boolean } = {}): () => void {
     this.listeners.add(listener);
+    if (options.watcher) this.watchers.add(listener);
     for (const event of this.pendingUiRequests.values()) listener(event);
     for (const event of this.activeToolEvents.values()) listener(event);
     return () => {
       this.listeners.delete(listener);
+      this.watchers.delete(listener);
     };
   }
 

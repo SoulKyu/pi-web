@@ -11,6 +11,7 @@ export interface NeedsInputDeps {
   intervalMs?: number;
 }
 const GRACE_MS = 60_000;
+declare global { var __needsInputPushStop: (() => void) | undefined }
 
 /** One push per (agent, request start) when a trusted thread waits for the user for over a minute with no tab watching. Returns the stop function. */
 export function startNeedsInputPush(deps: NeedsInputDeps = {
@@ -19,6 +20,7 @@ export function startNeedsInputPush(deps: NeedsInputDeps = {
   push: notifyAgent,
   now: Date.now,
 }): () => void {
+  if (globalThis.__needsInputPushStop) return globalThis.__needsInputPushStop; // one interval per process, even if register() runs twice
   const sent = new Set<string>();
   const tick = () => {
     const live = new Set<string>();
@@ -45,5 +47,7 @@ export function startNeedsInputPush(deps: NeedsInputDeps = {
   };
   const timer = setInterval(tick, deps.intervalMs ?? 60_000);
   timer.unref();
-  return () => clearInterval(timer);
+  const stop = () => { clearInterval(timer); globalThis.__needsInputPushStop = undefined; };
+  globalThis.__needsInputPushStop = stop;
+  return stop;
 }

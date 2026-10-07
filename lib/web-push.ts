@@ -6,6 +6,7 @@ import { writePrivateFileAtomicSync } from "./atomic-file";
 import { enLocale } from "./i18n/messages/en";
 import { frLocale } from "./i18n/messages/fr";
 import { zhCNLocale } from "./i18n/messages/zh-CN";
+import { zhTWLocale } from "./i18n/messages/zh-TW";
 import { getAgentDir } from "./session-reader";
 
 export interface PushSubscriptionRecord {
@@ -126,6 +127,10 @@ export function localeText(locale: string, key: "sessionComplete" | "taskFinishe
   const id = { sessionComplete: "i18n.sessionComplete", taskFinished: "i18n.taskFinished", agentRunFailed: "agents.push.failed", agentsDigest: "agents.push.digest", agentApprove: "agents.push.approve", agentBudget: "agents.push.budget", agentNeedsInput: "agents.push.needsInput" }[key] as keyof typeof enLocale.messages;
   if (locale === "fr") {
     const message = frLocale.messages[id];
+    if (message) return message;
+  }
+  if (locale === "zh-TW") {
+    const message = zhTWLocale.messages[id];
     if (message) return message;
   }
   if (locale === "zh-CN") {
