@@ -24,6 +24,7 @@
 - Settings › Sub-agents (PUT, PATCH toggle, DELETE) answers 409 `long-term agent` for a long-term name, and PUT strips `longTerm` from the body.
 - DELETE runs inside `withThreadLock` (the lock `ensureThread` uses) and re-checks the live wrapper before moving files; `ensureThread` throws `not_found` when the agent vanished.
 - Names are at most 64 characters (`AGENT_NAME_MAX`).
+- Agent-profile sessions load the sanitized bash (`lib/project-command-env.ts`, no `PORT`, `NEXT_*`, `PI_WEB_PASSWORD`) and the read-only MCP policy, composed in `lib/agent-profile-extensions.ts`; `preferUserBashExtension` applies.
 
 ## Unread
 - Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. No divider is drawn for an absent or unknown marker although the badge counts everything. The divider count includes non-message entries; the badge counts assistant replies only. Event cards count on both sides (`isUnreadEntry`).

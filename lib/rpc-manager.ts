@@ -4,7 +4,7 @@ import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@e
 import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
-import { createAgentNotifyExtension } from "./agents/agent-notify";
+import { agentProfileExtensionFactories } from "./agent-profile-extensions";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
@@ -2491,10 +2491,12 @@ export async function startRpcSession(
                 }
               : {}),
             appendSystemPrompt: subagentResources.appendSystemPrompt,
-            extensionFactories: [
-              ...(usesExactSystemPrompt ? [exactSystemPromptExtension] : []),
-              ...(trustedThread && snapshotProfile ? [createAgentNotifyExtension({ agentName: snapshotProfile.name })] : []),
-            ],
+            extensionFactories: agentProfileExtensionFactories({
+              cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
+              agentName: snapshotProfile?.name, exactSystemPrompt: usesExactSystemPrompt ? exactSystemPromptExtension : undefined,
+            }),
+            // The profile loads user extensions: a user bash extension wins over the host one, like a normal session.
+            extensionsOverride: (base) => preferUserBashExtension(base),
           }
         : chatOnly
           ? { ...CHAT_ONLY_RESOURCE_LOADER_OPTIONS, extensionFactories: [exactSystemPromptExtension] }

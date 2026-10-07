@@ -1,0 +1,22 @@
+import type { InlineExtension } from "@earendil-works/pi-coding-agent";
+import { createAgentNotifyExtension } from "./agents/agent-notify";
+import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
+import { createProjectCommandBashExtension } from "./project-command-env";
+
+type ProjectShellSettings = { getShellCommandPrefix(): string | undefined; getShellPath(): string | undefined };
+
+/**
+ * The extensions every agent-profile session (trusted thread or isolated run) loads. Review of 2026-10-07:
+ * without the sanitized bash the thread's shell inherited the whole process environment, and without the
+ * read-only MCP policy a read-only preset could still call writing MCP tools.
+ */
+export function agentProfileExtensionFactories(options: {
+  cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension;
+}): InlineExtension[] {
+  return [
+    ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),
+    createReadOnlyMcpPolicyExtension(),
+    createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
+    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName })] : []),
+  ];
+}

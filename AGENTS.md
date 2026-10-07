@@ -121,6 +121,7 @@ lib/
   enabled-models.ts         pure minimal-edit engine for the enabledModels pattern list
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
+  agent-profile-extensions.ts extensions of every agent-profile session: sanitized bash, read-only MCP policy, agent_notify (trusted thread)
   agents/registry.ts        long-term agent files: profile, space state, home, trash; AGENT_NAME_RE
   agents/mcp-access.ts      per-agent MCP allowlist: lists global adapter servers, writes <home>/.pi/mcp-adapter.json
   agents/registry-response.ts registry errors to HTTP responses
