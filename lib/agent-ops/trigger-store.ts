@@ -5,6 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { agentHome, resolveLongTermProfile } from "../agents/registry";
 import { TRIGGER_TOOL_NAMES } from "./trigger-tools";
+import { PAYLOAD_FORMATS, type PayloadFormat } from "./payload-formats";
 import { splitModel } from "../agents/agent-view";
 import type { SubagentProfile, SubagentScope } from "../subagents";
 
@@ -17,6 +18,8 @@ export interface TriggerConfig {
   at?: string;
   /** Ignores quiet hours: scheduled fires run and webhook tasks are not deferred. */
   critical?: boolean;
+  /** How a webhook body is read: `raw` (default), or an alerts[] mapper that dedups on fingerprints and reports severity. */
+  payloadFormat?: PayloadFormat;
   promptTemplate: string;
   /** Hex sha256 of the webhook secret: the plaintext is shown once at creation or rotation and never stored.
    *  A trigger file still holding a plaintext `webhookSecret` has no digest, so its webhook is refused until rotated. */
@@ -96,7 +99,7 @@ export function triggerRunPin(task: { origin: string; pinnedProfileSha256?: stri
 }
 
 export type TriggerInput = Pick<TriggerConfig, "name" | "profile" | "promptTemplate">
-  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs">>;
+  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs" | "payloadFormat">>;
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MIN_RUN_MS = 60_000;
@@ -116,6 +119,7 @@ export function validateTriggerFields(input: TriggerInput): string | null {
   }
   if (input.at !== undefined && (typeof input.at !== "string" || !HHMM.test(input.at))) return "at must be HH:MM";
   if (input.critical !== undefined && typeof input.critical !== "boolean") return "critical must be a boolean";
+  if (input.payloadFormat !== undefined && !PAYLOAD_FORMATS.includes(input.payloadFormat)) return "payloadFormat must be raw, alertmanager or grafana";
   if (input.runTarget !== undefined && input.runTarget !== "thread" && input.runTarget !== "isolated") return "runTarget must be thread or isolated";
   if (input.model !== undefined && (typeof input.model !== "string" || !splitModel(input.model))) return "model must be provider/modelId";
   if (input.tools !== undefined && (!Array.isArray(input.tools) || !input.tools.length || input.tools.some((t) => !TRIGGER_TOOL_ALLOWLIST.has(t)))) {
@@ -154,6 +158,7 @@ export function buildTriggerConfig(
       promptTemplate: input.promptTemplate,
       ...(input.at !== undefined ? { at: input.at } : {}),
       ...(input.critical !== undefined ? { critical: input.critical } : {}),
+      ...(input.payloadFormat !== undefined ? { payloadFormat: input.payloadFormat } : {}),
       ...(input.runTarget !== undefined ? { runTarget: input.runTarget } : {}),
       ...(input.model !== undefined ? { model: input.model } : {}),
       ...(input.tools !== undefined ? { tools: [...new Set(input.tools)] } : {}),

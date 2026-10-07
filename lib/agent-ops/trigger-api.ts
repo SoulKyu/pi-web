@@ -12,9 +12,9 @@ export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 
 
 /** Not a stored field: `repin: true` re-resolves the profile and renews the pin. */
 const PATCH_ONLY_FIELDS = ["repin"] as const;
-const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "at", "critical", "dedupWindowMs", "maxActiveTasks", "runTarget", "model", "tools", "maxRunMs"] as const;
+const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "at", "critical", "dedupWindowMs", "maxActiveTasks", "runTarget", "model", "tools", "maxRunMs", "payloadFormat"] as const;
 /** Optional fields a PATCH clears with an explicit null. */
-const CLEARABLE_FIELDS = ["at", "critical", "runTarget", "model", "tools", "maxRunMs"] as const;
+const CLEARABLE_FIELDS = ["at", "critical", "runTarget", "model", "tools", "maxRunMs", "payloadFormat"] as const;
 const NOT_FOUND = { ok: false, status: 404, error: "Trigger not found" } as const;
 const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);

@@ -11,6 +11,15 @@ test("hookUrl and hookCurl point at the hook route with the secret header", () =
   assert.match(curl, /-H 'x-agent-ops-secret: s3cret'/);
 });
 
+test("hookCurl shows an example body per payload format", () => {
+  assert.match(hookCurl("https://pi.example", "abc", "s"), /-d '\{"text":"alert text"\}'/);
+  assert.match(hookCurl("https://pi.example", "abc", "s", "raw"), /"text":"alert text"/);
+  const am = hookCurl("https://pi.example", "abc", "s", "alertmanager");
+  assert.match(am, /"alertname":"HighCPU"/);
+  assert.equal(am.match(/"fingerprint"/g).length, 2);
+  assert.match(hookCurl("https://pi.example", "abc", "s", "grafana"), /"title":/);
+});
+
 test("tasksOfTrigger keeps only the trigger's tasks; triggerActivity counts active ones and finds the newest fire", () => {
   const tasks = [
     task("1", "a", "completed", "2026-01-01T00:00:00.000Z"),

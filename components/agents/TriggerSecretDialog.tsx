@@ -6,6 +6,7 @@ import { copyText } from "@/lib/clipboard";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./dialog-styles";
 import { HOOK_SECRET_HEADER } from "../../lib/agent-ops/hook-path";
+import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { hookCurl, hookUrl } from "./trigger-view";
 
 const labelStyle: CSSProperties = { display: "grid", gap: 4, fontSize: 12, color: "var(--text-muted)" };
@@ -30,10 +31,11 @@ function CopyField({ label, value, rows }: { label: string; value: string; rows?
 }
 
 /** Shows a freshly generated webhook secret. The server never returns it again; closing the dialog drops it from memory. */
-export function TriggerSecretDialog({ triggerId, triggerName, secret, onClose }: {
+export function TriggerSecretDialog({ triggerId, triggerName, secret, payloadFormat, onClose }: {
   triggerId: string;
   triggerName: string;
   secret: string;
+  payloadFormat?: PayloadFormat;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -50,7 +52,7 @@ export function TriggerSecretDialog({ triggerId, triggerName, secret, onClose }:
         <CopyField label={t("agentOps.trigger.secret")} value={secret} />
         <CopyField label={t("agentOps.trigger.hookUrl")} value={hookUrl(window.location.origin, triggerId)} />
         <CopyField label={t("agentOps.trigger.header")} value={HOOK_SECRET_HEADER} />
-        <CopyField label={t("agentOps.trigger.example")} value={hookCurl(window.location.origin, triggerId, secret)} rows={4} />
+        <CopyField label={t("agentOps.trigger.example")} value={hookCurl(window.location.origin, triggerId, secret, payloadFormat)} rows={payloadFormat && payloadFormat !== "raw" ? 8 : 4} />
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>{t("i18n.close")}</button>
         </div>

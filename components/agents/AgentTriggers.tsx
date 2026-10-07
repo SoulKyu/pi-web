@@ -8,6 +8,7 @@ import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { AgentTasks } from "./AgentTasks";
 import { TriggerDialog } from "./TriggerDialog";
+import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
 import { requestTrigger, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
 
@@ -76,7 +77,7 @@ function TriggerTestPanel({ plan, template, onClose }: { plan: DryRunPlan; templ
   );
 }
 
-interface Reveal { triggerId: string; triggerName: string; secret: string }
+interface Reveal { triggerId: string; triggerName: string; secret: string; payloadFormat?: PayloadFormat }
 
 function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged }: {
   trigger: PublicTrigger;
@@ -110,7 +111,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   const rotate = async () => {
     if (trigger.hasWebhookSecret && !window.confirm(t("agentOps.trigger.rotateConfirm", { name: trigger.name }))) return;
     const data = await run({ method: "POST" }, `${url}/secret`);
-    if (data?.webhookSecret) onReveal({ triggerId: trigger.id, triggerName: trigger.name, secret: data.webhookSecret });
+    if (data?.webhookSecret) onReveal({ triggerId: trigger.id, triggerName: trigger.name, secret: data.webhookSecret, payloadFormat: trigger.payloadFormat });
   };
   const repin = () => {
     if (window.confirm(t("agentOps.trigger.repinConfirm", { name: trigger.name, profile: trigger.profile }))) {
@@ -187,7 +188,7 @@ export function AgentTriggers({ agentName, triggers, tasks, onOpenSession, onCha
 
   const saved = (response: Partial<TriggerResponse>) => {
     onChanged();
-    if (response.trigger && response.webhookSecret) setReveal({ triggerId: response.trigger.id, triggerName: response.trigger.name, secret: response.webhookSecret });
+    if (response.trigger && response.webhookSecret) setReveal({ triggerId: response.trigger.id, triggerName: response.trigger.name, secret: response.webhookSecret, payloadFormat: response.trigger.payloadFormat });
   };
 
   return (

@@ -29,10 +29,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Admission and cap refusals win over the pause: only an otherwise accepted plan is overridden.
   const shown = plan.verdict === "accepted" && isPausedFor(settings, trigger.profile) ? { ...plan, verdict: "refused" as const, reason: "agent paused" } : plan;
   const now = new Date();
-  const deferredUntil = shown.verdict === "accepted" && !trigger.critical && settings.quietHours && inQuietHours(settings.quietHours, now) ? quietHoursEnd(settings.quietHours, now).toISOString() : undefined;
+  const deferredUntil = shown.verdict === "accepted" && !trigger.critical && plan.severity !== "critical" && settings.quietHours && inQuietHours(settings.quietHours, now) ? quietHoursEnd(settings.quietHours, now).toISOString() : undefined;
   return Response.json({
     plan: {
-      ...shown,
+      ...shown, // carries the mapped text and its severity
       ...(prompt !== undefined ? { prompt } : {}),
       ...(deferredUntil ? { deferredUntil } : {}),
       tokenFree: !existsSync(join(triggersDir(), plan.tokenName ?? "")),

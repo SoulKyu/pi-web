@@ -1,4 +1,5 @@
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
+import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { HOOK_SECRET_HEADER } from "../../lib/agent-ops/hook-path";
 import { isActiveTask } from "./task-view";
@@ -9,12 +10,20 @@ export function hookUrl(origin: string, triggerId: string): string {
   return `${origin}/api/agent-ops/triggers/${triggerId}/hook`;
 }
 
-export function hookCurl(origin: string, triggerId: string, secret: string): string {
+const ALERT_EXAMPLE = (labels: string, summary: string, fingerprint: string) =>
+  `{"status":"firing","labels":${labels},"annotations":{"summary":"${summary}"},"fingerprint":"${fingerprint}"}`;
+const HOOK_EXAMPLES: Record<PayloadFormat, string> = {
+  raw: `{"text":"alert text"}`,
+  alertmanager: `{"version":"4","status":"firing","alerts":[${ALERT_EXAMPLE(`{"alertname":"HighCPU","severity":"warning","instance":"web-1"}`, "CPU above 90%", "b1f2c3d4e5a60718")},${ALERT_EXAMPLE(`{"alertname":"DiskFull","severity":"critical","instance":"web-2"}`, "Disk is 98% full", "0a9b8c7d6e5f4321")}]}`,
+  grafana: `{"status":"firing","title":"[FIRING:1] LatencyHigh","alerts":[${ALERT_EXAMPLE(`{"alertname":"LatencyHigh","severity":"critical","instance":"api-1"}`, "p99 over 2s", "11aa22bb33cc44dd")}]}`,
+};
+
+export function hookCurl(origin: string, triggerId: string, secret: string, format: PayloadFormat = "raw"): string {
   return [
     `curl -X POST '${hookUrl(origin, triggerId)}'`,
     `  -H '${HOOK_SECRET_HEADER}: ${secret}'`,
     `  -H 'Content-Type: application/json'`,
-    `  -d '{"text":"alert text"}'`,
+    `  -d '${HOOK_EXAMPLES[format]}'`,
   ].join(" \\\n");
 }
 

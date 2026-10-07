@@ -4,6 +4,7 @@ import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from 
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
+import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { TRIGGER_TOOL_NAMES } from "@/lib/agent-ops/trigger-tools";
 import type { ModelOption } from "./NewAgentDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./dialog-styles";
@@ -26,6 +27,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const [at, setAt] = useState(trigger?.at ?? "");
   const [critical, setCritical] = useState(trigger?.critical ?? false);
   const [webhook, setWebhook] = useState(false);
+  const [payloadFormat, setPayloadFormat] = useState<PayloadFormat>(trigger?.payloadFormat ?? "raw");
   const [dedupMinutes, setDedupMinutes] = useState(String((trigger?.dedupWindowMs ?? 15 * MS_PER_MINUTE) / MS_PER_MINUTE));
   const [maxActiveTasks, setMaxActiveTasks] = useState(String(trigger?.maxActiveTasks ?? 1));
   const [runTarget, setRunTarget] = useState<"thread" | "isolated">(trigger?.runTarget ?? "thread");
@@ -76,6 +78,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
     const run = {
       at: at.trim() || unset,
       critical: critical ? true : unset,
+      payloadFormat: isWebhook && payloadFormat !== "raw" ? payloadFormat : unset,
       runTarget: isScheduled && runTarget === "isolated" ? "isolated" : unset,
       model: isolated && model ? model : unset,
       tools: isolated && tools.length && tools.length < TRIGGER_TOOL_NAMES.length ? tools : unset,
@@ -134,6 +137,16 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
           <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" checked={webhook} onChange={(event) => setWebhook(event.target.checked)} />
             {t("agentOps.trigger.webhookField")}
+          </label>
+        )}
+        {isWebhook && (
+          <label style={labelStyle}>
+            {t("agentOps.trigger.payloadFormat")}
+            <select value={payloadFormat} onChange={(event) => setPayloadFormat(event.target.value as PayloadFormat)} style={fieldStyle}>
+              <option value="raw">{t("agentOps.trigger.payloadFormat.raw")}</option>
+              <option value="alertmanager">{t("agentOps.trigger.payloadFormat.alertmanager")}</option>
+              <option value="grafana">{t("agentOps.trigger.payloadFormat.grafana")}</option>
+            </select>
           </label>
         )}
         {isolated && (

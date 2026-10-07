@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { mapPayload, payloadText, type MappedPayload, type PayloadFormat } from "./payload-formats";
 import { rotateRunRecords } from "./run-registry";
 import { redactSecrets, truncate } from "./redact";
 import { appendTriggerLog, type TriggerLogEntry } from "./trigger-log";
@@ -14,7 +15,7 @@ export type TaskCreator = typeof createTask;
 export type IngestResult = { accepted: true; taskId: string } | { accepted: false; reason: string };
 
 export type FireReason = { source: TriggerLogEntry["source"]; bucket?: number; payloadHash?: string; /** Local `YYYY-MM-DD` of a daily (`at`) fire; its `bucket` is the local midnight in ms. */ daily?: string };
-export interface IngestionPlan { verdict: "accepted" | "refused"; reason?: string; prompt?: string; tokenName?: string; payloadHash: string; bucket: number; text: string }
+export interface IngestionPlan { verdict: "accepted" | "refused"; reason?: string; prompt?: string; tokenName?: string; payloadHash: string; bucket: number; text: string; severity?: string; formatFallback?: true }
 
 const QUIET_REASON = "quiet hours";
 const CAP_REASON = "too many active tasks for this trigger";
@@ -70,24 +71,29 @@ function admissionRefusal(trigger: TriggerConfig): string | null {
   return pin === "drift" ? "trigger profile drift" : null;
 }
 
-const payloadText = (body: unknown): string => typeof (body as { text?: unknown })?.text === "string" ? (body as { text: string }).text : JSON.stringify(body ?? null);
+/** A mapper that throws on a hostile body must not lose the alert: fall back to raw and flag it for the journal. */
+function safeMap(format: PayloadFormat, body: unknown): MappedPayload & { fallback?: true } {
+  try { return mapPayload(format, body); } catch { return { text: payloadText(body), fallback: true }; }
+}
 
 /** Pure: no file, no token. Callers pass the active-task count so dry-runs and caps share one decision. */
 export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number): IngestionPlan {
-  const raw = payloadText(body);
-  const payloadHash = createHash("sha256").update(redactSecrets(raw)).digest("hex").slice(0, 16);
+  const mapped = safeMap(trigger.payloadFormat ?? "raw", body);
+  const raw = mapped.text;
+  const payloadHash = createHash("sha256").update(redactSecrets(mapped.dedupKey ?? raw)).digest("hex").slice(0, 16);
+  const extra = { ...(mapped.severity ? { severity: mapped.severity } : {}), ...(mapped.fallback ? { formatFallback: true as const } : {}) };
   const bucket = Math.floor(now / trigger.dedupWindowMs);
   const tokenName = `${trigger.id}.${bucket}_${payloadHash}`;
-  const refused = (reason: string): IngestionPlan => ({ verdict: "refused", reason, tokenName, payloadHash, bucket, text: raw });
+  const refused = (reason: string): IngestionPlan => ({ verdict: "refused", reason, tokenName, payloadHash, bucket, text: raw, ...extra });
   const refusal = admissionRefusal(trigger);
   if (refusal) return refused(refusal);
   // FinOps cap, decided before the dedup token so a refused payload does not consume it.
   // ponytail: check-then-act across processes; two processes can each admit one at the limit. Acceptable for a cost cap.
   if (activeTasks >= trigger.maxActiveTasks) return refused(CAP_REASON);
-  return { verdict: "accepted", prompt: buildWebhookPrompt(trigger, raw), tokenName, payloadHash, bucket, text: raw };
+  return { verdict: "accepted", prompt: buildWebhookPrompt(trigger, raw), tokenName, payloadHash, bucket, text: raw, ...extra };
 }
 
-/** `severity` comes from the payload mapper (Task 19); "critical" bypasses quiet hours like `trigger.critical`. */
+/** The mapped payload severity ("critical") bypasses quiet hours like `trigger.critical`; `severity` overrides it (tests). */
 export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask, severity?: string): IngestResult {
   const plan = planIngestion(trigger, body, Date.now(), activeTaskCount(trigger.id));
   const refuse = (reason: string): IngestResult => {
@@ -99,9 +105,9 @@ export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, crea
   if (!claimFireToken(plan.tokenName!)) return refuse("duplicate within dedup window");
   const quiet = readAgentOpsSettings().quietHours;
   const now = new Date();
-  const deferredUntil = !trigger.critical && severity !== "critical" && quiet && inQuietHours(quiet, now) ? quietHoursEnd(quiet, now).toISOString() : undefined;
+  const deferredUntil = !trigger.critical && (severity ?? plan.severity) !== "critical" && quiet && inQuietHours(quiet, now) ? quietHoursEnd(quiet, now).toISOString() : undefined;
   const taskId = createTriggerTask(trigger, plan.text, create, "webhook", { source: "webhook", bucket: plan.bucket, payloadHash: plan.payloadHash }, deferredUntil);
-  appendTriggerLog(trigger.id, { at: now.toISOString(), source: "webhook", verdict: "accepted", bucket: plan.bucket, payloadHash: plan.payloadHash, taskId, ...(deferredUntil ? { reason: "deferred to quiet hours end" } : {}) });
+  appendTriggerLog(trigger.id, { at: now.toISOString(), source: "webhook", verdict: "accepted", bucket: plan.bucket, payloadHash: plan.payloadHash, taskId, ...(deferredUntil ? { reason: "deferred to quiet hours end" } : plan.formatFallback ? { reason: "payload format fallback" } : {}) });
   return { accepted: true, taskId };
 }
 

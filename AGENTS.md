@@ -153,6 +153,7 @@ lib/
   agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
   agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
   agent-ops/hook-path.ts    exact hook path the proxy lets through without a session + the secret header name (client-safe)
+  agent-ops/payload-formats.ts mapPayload(format, body): raw / Alertmanager / Grafana alerts[] to one line per alert, dedupKey on fingerprints, severity
   agent-ops/trigger-log.ts  per-trigger fire journal (<id>.log.jsonl): appendTriggerLog, readTriggerLog, trimmed to 500 lines
   agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
