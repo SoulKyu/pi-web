@@ -2555,6 +2555,7 @@ export function AppShell() {
               playDoneSound={playDoneSound}
               unlockAudio={unlockAudio}
               unreadMarkerEntryId={activeAgent ? agentUnreadMarker : null}
+              unreadCount={activeAgent ? agents.find((agent) => agent.name === activeAgent)?.unread : undefined}
               onLatestEntryViewed={activeAgent ? markAgentRead : undefined}
             />
           ) : initialCwdStatus === "validating" ? (

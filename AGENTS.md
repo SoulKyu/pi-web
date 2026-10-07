@@ -134,6 +134,7 @@ lib/
   agents/mcp-access.ts      per-agent MCP allowlist: lists global adapter servers, writes <home>/.pi/mcp-adapter.json
   agents/registry-response.ts registry errors to HTTP responses
   agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
+  agents/visit-digest.ts    digestSince / digestLine: deterministic counts of what happened after the unread marker (client-safe)
   agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)
   agents/events.ts          pi-web:agent-event entries: builders, guard, UI mapping, folded-prompt indexes (client-safe)
   agents/queue.ts           isolated / thread task selectors for the two runners

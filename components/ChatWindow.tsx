@@ -11,6 +11,7 @@ import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-fi
 import { buildQuotedSelection } from "@/lib/quoted-selection";
 import { eventPromptIndexes } from "@/lib/agents/events";
 import { firstUnreadIndex } from "@/lib/agents/agent-view";
+import { digestLine, digestSince } from "@/lib/agents/visit-digest";
 import { MessageView } from "./MessageView";
 import { MarkdownBody } from "./MarkdownBody";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
@@ -77,6 +78,8 @@ interface Props {
   unlockAudio?: () => void;
   /** Long-term agent thread: the divider goes before the first entry after this one. */
   unreadMarkerEntryId?: string | null;
+  /** The rail's unread count: the pill label while the marker is on an older, unloaded page. */
+  unreadCount?: number;
   /** Called (debounced 1 s) when the newest entry changes while the page is visible. */
   onLatestEntryViewed?: (entryId: string) => void;
 }
@@ -235,7 +238,10 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
   );
 }
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, onLatestEntryViewed }: Props) {
+/** Upper bound of `before=` pages one click on the unread pill may load. */
+const JUMP_UNREAD_MAX_PAGES = 20;
+
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -295,9 +301,25 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   const sessionBusy = agentRunning || bashRunning;
   const eventPrompts = useMemo(() => eventPromptIndexes(messages), [messages]);
   const unreadAt = useMemo(() => firstUnreadIndex(entryIds, unreadMarkerEntryId ?? null), [entryIds, unreadMarkerEntryId]);
-  const unreadDivider = (
-    <div key="agent-unread-divider" className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
+  const digestText = useMemo(
+    () => (unreadAt > 0 ? digestLine(digestSince(messages, entryIds, unreadMarkerEntryId ?? null), t) : ""),
+    [messages, entryIds, unreadMarkerEntryId, unreadAt, t],
   );
+  const unreadDivider = (
+    <Fragment key="agent-unread-divider">
+      {digestText && <div className="agent-unread-digest">{digestText}</div>}
+      <div className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
+    </Fragment>
+  );
+  // The rail count shrinks once the thread is auto-read: keep the largest one seen for this marker.
+  const railUnreadRef = useRef({ marker: unreadMarkerEntryId ?? null, count: 0 });
+  if (railUnreadRef.current.marker !== (unreadMarkerEntryId ?? null)) railUnreadRef.current = { marker: unreadMarkerEntryId ?? null, count: 0 };
+  railUnreadRef.current.count = Math.max(railUnreadRef.current.count, unreadCount ?? 0);
+  const showUnreadPill = unreadAt > 0 || (Boolean(unreadMarkerEntryId) && !entryIds.includes(unreadMarkerEntryId as string) && hasEarlierMessages);
+  const unreadPillCount = unreadAt > 0 ? entryIds.length - unreadAt : railUnreadRef.current.count;
+  const [jumpPending, setJumpPending] = useState(false);
+  const [jumping, setJumping] = useState(false);
+  const jumpAbortRef = useRef<AbortController | null>(null);
   const latestEntryId = entryIds[entryIds.length - 1];
   useEffect(() => {
     if (!onLatestEntryViewed || !latestEntryId || typeof document === "undefined") return;
@@ -494,6 +516,45 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     : undefined;
   const searchHistoryRef = useRef({ entryIds, historyCursor, hasEarlierMessages });
   searchHistoryRef.current = { entryIds, historyCursor, hasEarlierMessages };
+
+  useEffect(() => () => jumpAbortRef.current?.abort(), [session?.id]);
+
+  const jumpToUnread = useCallback(async () => {
+    if (!session || !unreadMarkerEntryId || jumpAbortRef.current) return;
+    const controller = new AbortController();
+    jumpAbortRef.current = controller;
+    setJumping(true);
+    try {
+      let { entryIds: loaded, historyCursor: before, hasEarlierMessages: hasMore } = searchHistoryRef.current;
+      let pages = 0;
+      while (!loaded.includes(unreadMarkerEntryId) && hasMore && before && pages < JUMP_UNREAD_MAX_PAGES && !controller.signal.aborted) {
+        const context = await loadContext(session.id, activeLeafId, before, { signal: controller.signal });
+        if (!context) return;
+        pages++;
+        loaded = context.entryIds;
+        before = context.oldestEntryId;
+        hasMore = context.hasMore;
+      }
+      if (!controller.signal.aborted) setJumpPending(true);
+    } finally {
+      if (jumpAbortRef.current === controller) jumpAbortRef.current = null;
+      setJumping(false);
+    }
+  }, [session, unreadMarkerEntryId, loadContext, activeLeafId]);
+
+  useLayoutEffect(() => {
+    if (!jumpPending || unreadAt < 1) {
+      if (jumpPending) setJumpPending(false);
+      return;
+    }
+    setVisibleCount((current) => Math.max(current, entryIds.length - unreadAt + 1));
+    const container = scrollContainerRef.current;
+    const element = container?.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(entryIds[unreadAt])}"]`)
+      ?? container?.querySelector<HTMLElement>(".agent-unread-divider");
+    if (!element) return;
+    scrollToMessage(element);
+    setJumpPending(false);
+  }, [jumpPending, unreadAt, entryIds, visibleCount, scrollContainerRef, scrollToMessage]);
 
   useLayoutEffect(() => {
     const sessionId = session?.id;
@@ -1383,6 +1444,11 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
               zIndex: 20,
             }}
           >
+            {showUnreadPill && (
+              <button type="button" className="agent-jump-unread" disabled={jumping} aria-busy={jumping} onClick={() => void jumpToUnread()}>
+                {t("agents.thread.jumpUnread", { count: unreadPillCount })}
+              </button>
+            )}
             <button
               type="button"
               className={`chat-scroll-to-bottom${showScrollToBottom && !pendingScrollRestore ? " is-visible" : ""}`}
