@@ -140,6 +140,7 @@ lib/
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
   agent-ops/prompt-run.ts   prompt send (not awaited), done from events, trigger tool check
   cost-equivalent.ts        billingOf, modelPrices (models.json then catalog), equivalentCost: API-equivalent cost of subscription providers
+  agent-ops/run-guard.ts    createRunGuard(): aborts a run on 5 identical tool calls, 150 tool calls or 60 turns (RunGuardError)
   agent-ops/run-usage.ts    usage collector: tokens, provider-reported cost, turns, tool calls from a run's own wrapper events
   agent-ops/run-registry.ts runs.jsonl: append-only one line per finished run, tolerant read, rotation past 10 MiB
   agent-ops/spawn.ts        startAgentProfileRun: session start for a profile task

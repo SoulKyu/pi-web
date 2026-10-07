@@ -1,4 +1,5 @@
 import type { RunOutcome } from "./runner";
+import { createRunGuard } from "./run-guard";
 import { createUsageCollector, type RunUsage } from "./run-usage";
 import { checkActiveTriggerTools } from "./trigger-store";
 
@@ -48,7 +49,14 @@ export function watchPromptRun(
   let lastAssistant: WrapperEvent["message"];
   const settle = (fn: () => void) => { if (!settled) { settled = true; unsubscribe(); fn(); } };
   const collector = createUsageCollector();
+  const guard = createRunGuard();
   const unsubscribe = session.onEvent((event) => {
+    const tripped = guard.observe(event);
+    if (tripped) {
+      settle(() => rejectDone(tripped));
+      void session.send({ type: "abort" }).catch(() => {});
+      return;
+    }
     collector.observe(event);
     if (event.type === "message_end" && event.message?.role === "assistant") {
       lastAssistant = event.message;
