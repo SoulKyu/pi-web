@@ -33,7 +33,7 @@ export async function startAgentProfileRun(
   const tempKey = `__agentops__${randomUUID()}`; // unique: same-key callers coalesce onto one session
   const { session, realSessionId } = await deps.startRpcSession(tempKey, "", cwd, {
     agentProfile: profile, // trust stays absent: the run is untrusted and narrowed to the allowlist
-    ...(pin !== undefined ? { agentProfileTools: task.tools ?? [...TRIGGER_TOOL_ALLOWLIST] } : {}),
+    ...(pin !== undefined ? { agentProfileTools: (task.tools ?? [...TRIGGER_TOOL_ALLOWLIST]).filter((t) => TRIGGER_TOOL_ALLOWLIST.has(t)) } : {}),
     ...(initialModel ? { initialModel } : {}),
   });
   invalidateSessionListCache(); // the route's call at queue time ran before this session existed

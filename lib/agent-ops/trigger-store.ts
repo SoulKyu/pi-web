@@ -58,7 +58,7 @@ export const TRIGGER_TOOL_ALLOWLIST: ReadonlySet<string> = new Set<string>(TRIGG
 /** Authoritative check, run in start() on the tools the session actually activated
  *  (`get_tools`, lib/rpc-manager.ts:1104), extension tools included. */
 export function checkActiveTriggerTools(activeTools: readonly string[], allowed: ReadonlySet<string> = TRIGGER_TOOL_ALLOWLIST): string | null {
-  const outside = activeTools.filter((t) => !allowed.has(t));
+  const outside = activeTools.filter((t) => !TRIGGER_TOOL_ALLOWLIST.has(t) || !allowed.has(t)); // a hand-edited subset can only shrink the closed allowlist
   return outside.length ? `trigger run refused: tools outside the allowlist: ${outside.join(", ")}` : null;
 }
 
