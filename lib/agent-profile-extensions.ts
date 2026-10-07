@@ -3,6 +3,7 @@ import { createAgentNotifyExtension } from "./agents/agent-notify";
 import { createHomePathPolicyExtension } from "./agents/path-policy";
 import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
 import { createProjectCommandBashExtension } from "./project-command-env";
+import { readSubagentSessionResources } from "./subagents";
 
 type ProjectShellSettings = { getShellCommandPrefix(): string | undefined; getShellPath(): string | undefined };
 
@@ -16,7 +17,7 @@ export function agentProfileExtensionFactories(options: {
 }): InlineExtension[] {
   return [
     ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),
-    createReadOnlyMcpPolicyExtension(),
+    createReadOnlyMcpPolicyExtension({ selection: (entries) => readSubagentSessionResources(entries)?.tools }),
     ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
     createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
     ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName })] : []),
