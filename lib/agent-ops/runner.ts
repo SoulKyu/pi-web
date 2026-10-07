@@ -11,7 +11,7 @@ export interface RunHandle {
   done: Promise<RunOutcome>;
   abort(): Promise<void>;
   /** Usage counted so far from this run's own events. */
-  usage?(): RunUsage;
+  usage(): RunUsage;
 }
 export interface RunnerDeps {
   start(task: AgentTask): Promise<RunHandle>;
@@ -104,20 +104,22 @@ function abortLateSession(starting: Promise<RunHandle> | undefined): void {
 
 /** Terminal-safe write: re-reads the status, skips if a racing writer already finished. Either way the run is recorded. */
 function finish(task: AgentTask, handle: RunHandle | undefined, patch: Partial<AgentTask> & { status: RunRecord["status"] }): void {
-  const usage = handle?.usage?.() ?? EMPTY_RUN_USAGE;
+  const usage = handle?.usage() ?? EMPTY_RUN_USAGE;
   let status = patch.status;
   try {
     const current = getTask(task.id);
     if (current && TERMINAL.has(current.status)) status = current.status as RunRecord["status"];
     else if (current) updateTask(task.id, { ...patch, usage, completedAt: new Date().toISOString() });
-  } catch { /* a racing writer won; the task already has a terminal status */ }
+  } catch { status = (getTask(task.id)?.status as RunRecord["status"] | undefined) ?? status; } // a racing writer won: the record follows the stored status
   recordRun(task, handle, status, usage);
 }
 
-function recordRun(task: AgentTask, handle: RunHandle | undefined, status: RunRecord["status"], usage = handle?.usage?.() ?? EMPTY_RUN_USAGE): void {
+function recordRun(task: AgentTask, handle: RunHandle | undefined, status: RunRecord["status"], usage = handle?.usage() ?? EMPTY_RUN_USAGE): void {
+  let pricing: ReturnType<typeof priceRecord> = { billing: "unknown" };
+  try { pricing = priceRecord(usage); } catch (error) { console.error("[agent-ops] pricing:", error instanceof Error ? error.message : error); }
   appendRunRecord({
     ts: new Date().toISOString(), agent: task.agent, origin: task.origin, kind: task.kind, target: task.target,
     triggerId: task.triggerId, taskId: task.id, sessionId: handle?.sessionId, status,
-    durationMs: Date.now() - Date.parse(getTask(task.id)?.startedAt ?? task.createdAt), usage, ...priceRecord(usage),
+    durationMs: Date.now() - Date.parse(getTask(task.id)?.startedAt ?? task.createdAt), usage, ...pricing,
   });
 }

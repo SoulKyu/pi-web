@@ -51,13 +51,13 @@ export function watchPromptRun(
   const collector = createUsageCollector();
   const guard = createRunGuard();
   const unsubscribe = session.onEvent((event) => {
+    collector.observe(event); // before the guard: the turn that trips a rule is still counted
     const tripped = guard.observe(event);
     if (tripped) {
       settle(() => rejectDone(tripped));
       void session.send({ type: "abort" }).catch(() => {});
       return;
     }
-    collector.observe(event);
     if (event.type === "message_end" && event.message?.role === "assistant") {
       lastAssistant = event.message;
     } else if (event.type === "prompt_done") {
@@ -79,7 +79,7 @@ export function watchPromptRun(
   });
   // A preflight rejection rejects the send and emits neither prompt_done nor
   // prompt_error (lib/rpc-manager.ts:833-836): settle `done` ourselves.
-  session.send({ type: "prompt", message: prompt })
+  session.send({ type: "prompt", message: prompt, origin: "agent-ops" })
     .catch((error) => settle(() => rejectDone(error instanceof Error ? error : new Error(String(error)))));
   return { done, abort: async () => { await session.send({ type: "abort" }); }, usage: collector.snapshot };
 }

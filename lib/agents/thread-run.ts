@@ -44,6 +44,6 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   if (!current || TERMINAL.has(current.status)) throw new Error(`task ${current?.status ?? "removed"} while waiting for the thread`);
   if (isPausedFor(readAgentOpsSettings(), task.agent)) throw new Error("agent paused");
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
-  const { done, abort } = watchPromptRun(session, task.prompt);
-  return { sessionId, done, abort };
+  const run = watchPromptRun(session, task.prompt);
+  return { sessionId, done: run.done, abort: run.abort, usage: run.usage };
 }
