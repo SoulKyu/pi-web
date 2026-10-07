@@ -8,7 +8,7 @@ import type { RunHandle } from "./runner";
 import { profilePinSha256, TRIGGER_TOOL_ALLOWLIST } from "./trigger-store";
 
 export async function startAgentProfileRun(
-  profile: string, cwd: string, prompt: string, expectedPinSha256?: string,
+  profile: string, cwd: string, prompt: string, expectedPinSha256?: string, beforePrompt?: () => void,
 ): Promise<RunHandle> {
   const isTriggerRun = expectedPinSha256 !== undefined;
   if (isTriggerRun) {
@@ -30,6 +30,7 @@ export async function startAgentProfileRun(
   });
   invalidateSessionListCache(); // the route's call at queue time ran before this session existed
   if (isTriggerRun) await enforceTriggerTools(session);
+  beforePrompt?.();
   const { done, abort } = watchPromptRun(session, prompt);
   return { sessionId: realSessionId, done, abort };
 }

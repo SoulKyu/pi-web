@@ -8,6 +8,7 @@ import { redactSecrets } from "./redact";
 import { automaticCapacity, memAvailableMb } from "./capacity";
 import { runningCount, runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
+import { assertTaskStillStartable } from "./start-guard";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
 import { triggerRunPin } from "./trigger-store";
@@ -75,7 +76,7 @@ export function kickRunner(): Promise<void> {
   });
   const isolated = runPendingTasks({
     maxConcurrent: 2, capacity, slotKey: "__agentOpsRunning", select: (queued) => selectIsolatedTasks(queued, pausedNow),
-    start: (task) => startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task)),
+    start: (task) => startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task), () => assertTaskStillStartable(task)),
     onRunEnd: () => void kickRunner(), onTaskEnd: handleTaskEnd,
   });
   const thread = runPendingTasks({
