@@ -43,6 +43,7 @@ app/api/
   agent-ops/triggers/route.ts      GET [?agent=] list triggers (hasWebhookSecret, never the secret) | POST create; webhook: true returns the generated secret once
   agent-ops/triggers/[id]/route.ts PATCH enabled/edit (re-pins on profile or cwd change) | DELETE
   agent-ops/triggers/[id]/secret/route.ts POST rotate the webhook secret, returned once
+  agent-ops/triggers/[id]/log/route.ts GET ?limit= fire journal newest first + rejectedUnauthenticated count
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/health/route.ts        GET { health, level } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
@@ -150,6 +151,7 @@ lib/
   agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
   agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
   agent-ops/hook-path.ts    exact hook path the proxy lets through without a session + the secret header name (client-safe)
+  agent-ops/trigger-log.ts  per-trigger fire journal (<id>.log.jsonl): appendTriggerLog, readTriggerLog, trimmed to 500 lines
   agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)

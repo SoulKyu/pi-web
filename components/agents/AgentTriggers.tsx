@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties, useState } from "react";
+import type { TriggerLogEntry } from "@/lib/agent-ops/trigger-log";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
@@ -11,6 +12,44 @@ import { TriggerSecretDialog } from "./TriggerSecretDialog";
 import { requestTrigger, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
+
+const SOURCE_ICON: Record<TriggerLogEntry["source"], string> = { schedule: "⏱", webhook: "🪝", manual: "▶" };
+
+interface Journal { entries: TriggerLogEntry[]; rejectedUnauthenticated: number }
+
+function TriggerJournal({ triggerId }: { triggerId: string }) {
+  const { locale, t } = useI18n();
+  const [journal, setJournal] = useState<Journal | null>(null);
+  const [failed, setFailed] = useState(false);
+  const load = async () => {
+    try {
+      const response = await fetch(`/api/agent-ops/triggers/${triggerId}/log?limit=50`);
+      if (!response.ok) throw new Error(String(response.status));
+      setJournal(await response.json() as Journal);
+      setFailed(false);
+    } catch { setFailed(true); }
+  };
+  return (
+    <details onToggle={(event) => { if (event.currentTarget.open) void load(); }}>
+      <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--text-muted)" }}>{t("agentOps.trigger.journal")}</summary>
+      <div style={{ marginTop: 6, display: "grid", gap: 2, fontSize: 11, color: "var(--text-muted)" }}>
+        {failed && <div role="alert">{t("agentOps.actionFailed", { error: "log" })}</div>}
+        {journal && journal.entries.length === 0 && <div>{t("agentOps.trigger.journalEmpty")}</div>}
+        {journal?.entries.map((entry, index) => (
+          <div key={`${entry.at}-${index}`} style={{ display: "flex", gap: 6, minWidth: 0 }}>
+            <span aria-hidden>{SOURCE_ICON[entry.source]}</span>
+            <span aria-label={entry.verdict}>{entry.verdict === "accepted" ? "✓" : "✗"}</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.reason ?? ""}</span>
+            <span style={{ marginLeft: "auto", flexShrink: 0, color: "var(--text-dim)" }}>
+              {entry.taskId ? `${entry.taskId.slice(0, 8)} · ` : ""}{formatRelativeTime(entry.at, locale)}
+            </span>
+          </div>
+        ))}
+        {journal && journal.rejectedUnauthenticated > 0 && <div style={{ color: "var(--text-dim)" }}>{t("agentOps.trigger.journalRejected", { count: journal.rejectedUnauthenticated })}</div>}
+      </div>
+    </details>
+  );
+}
 
 interface Reveal { triggerId: string; triggerName: string; secret: string }
 
@@ -85,6 +124,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
           {historyOpen && <div style={{ marginTop: 6 }}><AgentTasks nested tasks={history} onOpenSession={onOpenSession} onChanged={onChanged} /></div>}
         </details>
       )}
+      <TriggerJournal triggerId={trigger.id} />
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
     </li>
   );

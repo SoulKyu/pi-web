@@ -19,6 +19,13 @@ export function AgentEventCard({ message, onOpenSession }: { message: CustomMess
           <button type="button" onClick={() => onOpenSession(data.runSessionId!)} className="agent-event-link">{t("agents.event.seeRun")}</button>
         )}
       </div>
+      {!webhook && data.fireReason && (
+        <div className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+          {data.fireReason.payloadHash
+            ? t("agents.event.firedByHash", { source: data.fireReason.source, hash: data.fireReason.payloadHash.slice(0, 8) })
+            : t("agents.event.firedBy", { source: data.fireReason.source })}
+        </div>
+      )}
       {webhook && <div className="agent-event-summary" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{data.summary}</div>}
     </div>
   );

@@ -12,6 +12,7 @@ export const HOOK_BODY_MAX_BYTES = 64 * 1024;
 
 declare global {
   var __agentOpsHookThrottles: Map<string, AuthThrottleState> | undefined;
+  var __agentOpsRejectedHooks: Map<string, number> | undefined;
   var __agentOpsUnknownHookThrottle: AuthThrottleState | undefined;
 }
 const MAX_THROTTLE_ENTRIES = 256;
@@ -28,6 +29,13 @@ export function hookThrottle(triggerId?: string): AuthThrottleState {
     states.set(triggerId, state = createAuthThrottleState());
   }
   return state;
+}
+
+/** Unauthenticated refusals are only counted, in memory: callers without the secret must not fill the journal. */
+export const rejectedUnauthenticatedCount = (triggerId: string): number => globalThis.__agentOpsRejectedHooks?.get(triggerId) ?? 0;
+function countRejected(triggerId: string): void {
+  const counts = (globalThis.__agentOpsRejectedHooks ??= new Map());
+  counts.set(triggerId, (counts.get(triggerId) ?? 0) + 1);
 }
 
 const HEX_SHA256 = /^[0-9a-f]{64}$/;
@@ -62,7 +70,11 @@ export async function handleHook(request: Request, id: string, kick: () => unkno
   const throttle = hookThrottle(trigger?.id);
   const retryAfterMs = getAuthRetryAfterMs(Date.now(), throttle);
   if (retryAfterMs > 0) return json({ error: "Too many failed attempts" }, 429, { "Retry-After": String(retryAfterSeconds(retryAfterMs)) });
-  const fail = (error: string, status: number): Response => { recordAuthFailure(Date.now(), throttle); return json({ error }, status); };
+  const fail = (error: string, status: number): Response => {
+    recordAuthFailure(Date.now(), throttle);
+    if (trigger) countRejected(trigger.id); // unknown ids are never counted: the map stays bounded by real triggers
+    return json({ error }, status);
+  };
 
   if (!trigger) return fail("Not found", 404); // counted on the shared unknown-id state: ids cannot be probed freely
   // Before any comparison. A legacy plaintext `webhookSecret` has no digest: refused until the secret is rotated.
@@ -74,7 +86,7 @@ export async function handleHook(request: Request, id: string, kick: () => unkno
 
   const text = await readCapped(request.body, HOOK_BODY_MAX_BYTES);
   if (text === undefined) return json({ error: "Request body unreadable" }, 400);
-  if (text === null) return json({ error: "Payload too large" }, 413);
+  if (text === null) { countRejected(trigger.id); return json({ error: "Payload too large" }, 413); }
   let body: unknown = { text };
   if (hasJsonContentType(request)) {
     try { body = JSON.parse(text); } catch { return json({ error: "Invalid JSON body" }, 400); }

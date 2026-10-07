@@ -7,8 +7,10 @@ export const AGENT_NOTIFY_TOOL = "agent_notify";
 export const EVENT_TEXT_MAX = 2000;
 const TITLE_MAX = 80;
 
+export type EventFireReason = { source: "schedule" | "webhook" | "manual"; bucket?: number; payloadHash?: string };
+
 export type AgentEventData =
-  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string }
+  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason }
   | { version: 1; kind: "webhook"; taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
@@ -17,14 +19,18 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 export function isAgentEventData(value: unknown): value is AgentEventData {
   if (!isRecord(value) || value.version !== 1 || typeof value.taskId !== "string" || typeof value.title !== "string") return false;
-  if (value.kind === "schedule" || value.kind === "task") return value.triggerId === undefined || typeof value.triggerId === "string";
+  if (value.kind === "schedule" || value.kind === "task") {
+    const reason = value.fireReason;
+    const reasonOk = reason === undefined || (isRecord(reason) && (reason.source === "schedule" || reason.source === "webhook" || reason.source === "manual"));
+    return reasonOk && (value.triggerId === undefined || typeof value.triggerId === "string");
+  }
   if (value.kind !== "webhook") return false;
   return typeof value.triggerId === "string" && (value.status === "completed" || value.status === "failed") && typeof value.summary === "string"
     && (value.runSessionId === undefined || typeof value.runSessionId === "string");
 }
 
-export const buildScheduleEvent = (input: { taskId: string; triggerId: string; title: string }): AgentEventData =>
-  ({ version: 1, kind: "schedule", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title) });
+export const buildScheduleEvent = (input: { taskId: string; triggerId: string; title: string; fireReason?: EventFireReason }): AgentEventData =>
+  ({ version: 1, kind: "schedule", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), ...(input.fireReason ? { fireReason: input.fireReason } : {}) });
 export const buildTaskEvent = (input: { taskId: string; title: string }): AgentEventData =>
   ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title) });
 /** Display-only (D11): the summary never enters the model context, so clipping loses nothing the agent needs. */

@@ -12,7 +12,7 @@ const defaultDeps = (): ThreadRunDeps => ({ open: openThread, readAgent: getLong
 
 export function eventOfTask(task: AgentTask): AgentEventData {
   return task.kind === "schedule" && task.triggerId
-    ? buildScheduleEvent({ taskId: task.id, triggerId: task.triggerId, title: task.title })
+    ? buildScheduleEvent({ taskId: task.id, triggerId: task.triggerId, title: task.title, fireReason: task.fireReason })
     : buildTaskEvent({ taskId: task.id, title: task.title });
 }
 
