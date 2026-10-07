@@ -221,7 +221,7 @@ function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: numb
 /** One push per day, only while `now` is within 60 minutes after the end of quiet hours (a tick missed past that, e.g. a server down, skips the day).
  *  The `digest.<date>` token is claimed even when nothing ran: one check per day. */
 function sendDigestIfDue(quietHours: QuietHours | undefined, quiet: boolean, now: Date, notify: typeof notifyAgent): void {
-  if (!quietHours || quiet) return;
+  if (!quietHours || quiet || quietHours.from === quietHours.to) return;
   const [toH, toM] = quietHours.to.split(":").map(Number);
   const [fromH, fromM] = quietHours.from.split(":").map(Number);
   const windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), toH, toM);
