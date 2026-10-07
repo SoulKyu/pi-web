@@ -5,6 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { isPathWithinRoots } from "../path-security";
 import { listSubagentProfiles, listSubagentProfileSources, saveSubagentProfile, type SubagentProfile } from "../subagents";
+import { syncAgentMcpOverrides } from "./mcp-access";
 import { PRESET_DEFAULT, PRESET_FULL, PRESET_READ_ONLY } from "../tool-presets";
 
 /** Same rule as profile names (lib/subagents.ts assertProfileName): the name is also a folder and a memory scope. */
@@ -16,12 +17,16 @@ const THINKING_LEVELS = new Set<string>(["off", "minimal", "low", "medium", "hig
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const EMOJI_MAX_CHARS = 8;
 const ROLE_MAX_CHARS = 20_000;
+const MCP_SERVERS_MAX = 100;
+const MCP_SERVER_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+/** A route segment under /api/agents (the global MCP server list), so no agent may take it. */
+const RESERVED_AGENT_NAMES = new Set(["mcp-servers"]);
 export const AGENT_NAME_MAX = 64;
 
 export interface AgentAvatar { emoji: string; color: string }
 export interface AgentSpaceState { name: string; avatar: AgentAvatar; createdAt: string; threadSessionId?: string; lastReadEntryId?: string }
-export interface LongTermAgent extends AgentSpaceState { role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; home: string }
-export interface CreateAgentInput { name: string; role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; avatar: AgentAvatar }
+export interface LongTermAgent extends AgentSpaceState { role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string }
+export interface CreateAgentInput { name: string; role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; avatar: AgentAvatar; mcpServers?: string[] }
 export type UpdateAgentInput = Partial<Omit<CreateAgentInput, "name">>;
 
 export class AgentRegistryError extends Error {
@@ -79,15 +84,21 @@ function validateFields(body: Record<string, unknown>, require: boolean): { ok: 
     if (body.thinking !== undefined && body.thinking !== null && !(typeof body.thinking === "string" && THINKING_LEVELS.has(body.thinking))) return fail("thinking must be a reasoning level");
     input.thinking = typeof body.thinking === "string" ? body.thinking : undefined;
   }
+  if ("mcpServers" in body) {
+    const list = body.mcpServers;
+    if (!Array.isArray(list) || list.length > MCP_SERVERS_MAX || !list.every((entry) => typeof entry === "string" && MCP_SERVER_NAME_RE.test(entry))) return fail("mcpServers must be a list of server names");
+    input.mcpServers = [...new Set(list as string[])];
+  }
   return { ok: true, input };
 }
 
-const KNOWN_FIELDS = new Set(["name", "role", "model", "thinking", "toolsPreset", "avatar"]);
+const KNOWN_FIELDS = new Set(["name", "role", "model", "thinking", "toolsPreset", "avatar", "mcpServers"]);
 
 export function validateCreateInput(body: unknown): { ok: true; input: CreateAgentInput } | { ok: false; error: string } {
   if (!isRecord(body)) return { ok: false, error: "Invalid JSON body" };
   if (typeof body.name !== "string" || !AGENT_NAME_RE.test(body.name.trim())) return { ok: false, error: "name may contain only letters, numbers, dots, underscores and hyphens" };
   if (body.name.trim().length > AGENT_NAME_MAX) return { ok: false, error: `name must be at most ${AGENT_NAME_MAX} characters` };
+  if (RESERVED_AGENT_NAMES.has(body.name.trim().toLowerCase())) return { ok: false, error: "name is reserved" };
   const fields = validateFields(body, true);
   if (!fields.ok) return fields;
   return { ok: true, input: { name: body.name.trim(), ...fields.input } as CreateAgentInput };
@@ -133,7 +144,7 @@ function toAgent(profile: SubagentProfile): LongTermAgent {
   // A missing or malformed space file (manual edit) must not hide the agent: fall back to a neutral avatar.
   const space = readSpace(profile.name) ?? { name: profile.name, avatar: { emoji: profile.name[0].toUpperCase(), color: "#555555" }, createdAt: "" };
   return {
-    ...space, role: profile.systemPrompt, toolsPreset: presetFromTools(profile.tools), home: agentHome(profile.name),
+    ...space, role: profile.systemPrompt, toolsPreset: presetFromTools(profile.tools), mcpServers: profile.mcpServers ?? [], home: agentHome(profile.name),
     ...(profile.model ? { model: profile.model } : {}), ...(profile.thinking ? { thinking: profile.thinking } : {}),
   };
 }
@@ -156,7 +167,9 @@ function writeProfile(input: CreateAgentInput, color: string): void {
     tools: [...TOOLS_BY_PRESET[input.toolsPreset]], loadSkills: true, loadExtensions: true,
     ...(input.model ? { model: input.model } : {}), ...(input.thinking ? { thinking: input.thinking } : {}),
     inheritContext: false, runInBackground: false, promptMode: "append", color, enabled: true, longTerm: true,
+    ...(input.mcpServers?.length ? { mcpServers: input.mcpServers } : {}),
   });
+  syncAgentMcpOverrides(agentHome(input.name), input.mcpServers ?? []);
 }
 
 export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
@@ -184,6 +197,7 @@ export function updateLongTermAgent(name: string, patch: UpdateAgentInput): Long
   const next: CreateAgentInput = {
     name, role: patch.role ?? current.role, toolsPreset: patch.toolsPreset ?? current.toolsPreset, avatar: patch.avatar ?? current.avatar,
     model: "model" in patch ? patch.model : current.model, thinking: "thinking" in patch ? patch.thinking : current.thinking,
+    mcpServers: "mcpServers" in patch ? patch.mcpServers : current.mcpServers,
   };
   if (patch.avatar) writeSpace({ ...(readSpace(name) ?? { name, createdAt: new Date().toISOString(), avatar: next.avatar }), avatar: patch.avatar });
   writeProfile(next, next.avatar.color);

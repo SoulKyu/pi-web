@@ -18,6 +18,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [thinking, setThinking] = useState(agent.thinking ?? "");
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
+  const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
+  const [mcpServers, setMcpServers] = useState<string[]>(agent.mcpServers);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -40,6 +42,18 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch("/api/agents/mcp-servers", { cache: "no-store", signal: controller.signal });
+        const data = await response.json() as { servers?: string[] };
+        if (response.ok && Array.isArray(data.servers)) setFetchedMcp(data.servers);
+      } catch { /* no list: only the agent's own servers show */ }
+    })();
+    return () => controller.abort();
+  }, []);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -51,6 +65,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (emoji !== agent.avatar.emoji || color !== agent.avatar.color) patch.avatar = { emoji, color };
       if ((model || undefined) !== agent.model) patch.model = model || null;
       if ((thinking || undefined) !== agent.thinking) patch.thinking = thinking || null;
+      if (mcpServers.length !== agent.mcpServers.length || mcpServers.some((name) => !agent.mcpServers.includes(name))) patch.mcpServers = mcpServers;
       const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
       if (response.status === 409) { setError(t("agents.profile.running")); return; }
@@ -82,6 +97,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
     }
   };
 
+  const toggleMcp = (server: string) => setMcpServers((current) => (current.includes(server) ? current.filter((name) => name !== server) : [...current, server]));
+  const mcpNames = [...new Set([...fetchedMcp, ...mcpServers])].sort();
   const title = t("agents.profile.title", { name: agent.name });
   const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
@@ -131,6 +148,18 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
               <button key={preset} type="button" aria-pressed={toolsPreset === preset} onClick={() => setToolsPreset(preset)} style={{ ...buttonStyle, flex: 1, border: "1px solid var(--border)", background: toolsPreset === preset ? "var(--bg-selected)" : "none", color: "var(--text)" }}>{t(`agents.tools.${preset}`)}</button>
             ))}
           </div>
+        </div>
+        <div style={labelStyle}>
+          {t("agents.new.mcp")}
+          <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpHint")}</span>
+          {mcpNames.length === 0 && <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpNone")}</span>}
+          {mcpNames.map((server) => (
+            <label key={server} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" checked={mcpServers.includes(server)} onChange={() => toggleMcp(server)} />
+              {server}
+              {!fetchedMcp.includes(server) && <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpMissing")}</span>}
+            </label>
+          ))}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>

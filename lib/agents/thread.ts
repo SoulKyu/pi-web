@@ -5,6 +5,7 @@ import { serializeByKey } from "../key-serializer";
 import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSessionWrapper } from "../rpc-manager";
 import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
 import type { SessionEntry } from "../types";
+import { syncAgentMcpOverrides } from "./mcp-access";
 import { AgentRegistryError, getLongTermAgent, setThreadSessionId, type LongTermAgent } from "./registry";
 import { AGENT_EVENT_ENTRY_TYPE, type AgentEventData } from "./events";
 
@@ -12,8 +13,9 @@ export interface ThreadDeps {
   start: typeof startRpcSession;
   resolvePath: typeof resolveSessionPath;
   readAgent: typeof getLongTermAgent;
+  syncMcp: typeof syncAgentMcpOverrides;
 }
-const defaultDeps = (): ThreadDeps => ({ start: startRpcSession, resolvePath: resolveSessionPath, readAgent: getLongTermAgent });
+const defaultDeps = (): ThreadDeps => ({ start: startRpcSession, resolvePath: resolveSessionPath, readAgent: getLongTermAgent, syncMcp: syncAgentMcpOverrides });
 const THREAD_START = Symbol.for("pi-web:agent-thread-start");
 
 /** What the badge counts: the agent's replies and event cards. The user's own messages are read by definition. */
@@ -44,6 +46,7 @@ export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDep
 export async function ensureThreadLocked(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ sessionId: string; path: string }> {
   const current = deps.readAgent(agent.name); // re-read inside the lock: a parallel call may have just created it, or a delete removed it
   if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
+  deps.syncMcp(current.home, current.mcpServers); // fail-closed: a server added globally since the last open is blocked before the session loads the adapter
   if (current.threadSessionId) {
     const path = await deps.resolvePath(current.threadSessionId);
     if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };

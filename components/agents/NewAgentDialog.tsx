@@ -25,6 +25,8 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
   const [thinking, setThinking] = useState("");
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>("standard");
   const [modelList, setModelList] = useState<ModelOption[]>([]);
+  const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
+  const [mcpServers, setMcpServers] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -48,12 +50,24 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch("/api/agents/mcp-servers", { cache: "no-store", signal: controller.signal });
+        const data = await response.json() as { servers?: string[] };
+        if (response.ok && Array.isArray(data.servers)) setFetchedMcp(data.servers);
+      } catch { /* no list: only the agent's own servers show */ }
+    })();
+    return () => controller.abort();
+  }, []);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const body = { name: name.trim(), role, toolsPreset, avatar: { emoji, color }, ...(model ? { model } : {}), ...(thinking ? { thinking } : {}) };
+      const body = { name: name.trim(), role, toolsPreset, mcpServers, avatar: { emoji, color }, ...(model ? { model } : {}), ...(thinking ? { thinking } : {}) };
       const response = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
       if (!response.ok || !data.agent) { setError(data.error ?? `HTTP ${response.status}`); return; }
@@ -66,6 +80,8 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
     }
   };
 
+  const toggleMcp = (server: string) => setMcpServers((current) => (current.includes(server) ? current.filter((name) => name !== server) : [...current, server]));
+  const mcpNames = [...new Set([...fetchedMcp, ...mcpServers])].sort();
   const title = t("agents.new.title");
   const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   return (
@@ -116,6 +132,18 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
               <button key={preset} type="button" aria-pressed={toolsPreset === preset} onClick={() => setToolsPreset(preset)} style={{ ...buttonStyle, flex: 1, border: "1px solid var(--border)", background: toolsPreset === preset ? "var(--bg-selected)" : "none", color: "var(--text)" }}>{t(`agents.tools.${preset}`)}</button>
             ))}
           </div>
+        </div>
+        <div style={labelStyle}>
+          {t("agents.new.mcp")}
+          <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpHint")}</span>
+          {mcpNames.length === 0 && <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpNone")}</span>}
+          {mcpNames.map((server) => (
+            <label key={server} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" checked={mcpServers.includes(server)} onChange={() => toggleMcp(server)} />
+              {server}
+              {!fetchedMcp.includes(server) && <span style={{ color: "var(--text-muted)" }}>{t("agents.new.mcpMissing")}</span>}
+            </label>
+          ))}
         </div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{t("agents.new.home", { path: `${agentsHomeDir ? shortenPath(agentsHomeDir) : "~/.pi/agent/agents-home"}/${name.trim() || "<name>"}` })}</div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
