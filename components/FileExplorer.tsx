@@ -15,6 +15,7 @@ import type { GitFileStatus, GitFileStatusKind, GitStatusResponse } from "@/lib/
 import type { FileIndexEntry } from "@/lib/file-fuzzy";
 import { buildSearchTree, type SearchTreeNode } from "@/lib/search-tree";
 import { useI18n } from "@/hooks/useI18n";
+import { useDragDrop } from "@/hooks/useDragDrop";
 type Translate = ReturnType<typeof useI18n>["t"];
 
 interface FileEntry {
@@ -907,6 +908,17 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
     }
   }, [cwd, performUpload, uploadBusy]);
 
+  const handleFilesDropped = useCallback((files: File[], { directoriesSkipped }: { directoriesSkipped: number }) => {
+    if (uploadBusy) return;
+    void prepareUpload(files);
+    if (directoriesSkipped > 0) setUploadError(t("files.foldersNotSupported"));
+  }, [prepareUpload, t, uploadBusy]);
+
+  const { isDragOver, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(
+    handleFilesDropped,
+    (item) => item.kind === "file",
+  );
+
   const handleUploadInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -982,7 +994,26 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
   }, [cwd, onAtMentions, uploadSummary]);
 
   return (
-    <div style={{ minHeight: "100%" }}>
+    <div
+      style={{ minHeight: "100%", position: "relative" }}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div
+          style={{
+            position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+            background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+            border: "2px dashed var(--accent)", borderRadius: 6,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, color: "var(--accent)",
+          }}
+        >
+          {t("files.dropToUpload")}
+        </div>
+      )}
       <input ref={uploadInputRef} type="file" multiple hidden onChange={handleUploadInput} />
       {showUploadFeedback && (
         <div style={{ padding: "6px 8px", borderBottom: "1px solid var(--border)" }}>
