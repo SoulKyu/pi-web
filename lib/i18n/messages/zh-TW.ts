@@ -1521,6 +1521,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.profile.running": "智慧代理正在執行中：請在其閒置時重試。",
     "agents.thread.unread": "{count} 條新訊息",
     "agents.thread.jumpUnread": "↑ {count} 則新訊息",
+    "agents.thread.jumpUnreadNoCount": "↑ 新訊息",
     "agents.digest.runs": "{count} 次執行",
     "agents.digest.runsFailed": "{count} 次執行（{failed} 次失敗）",
     "agents.digest.alerts": "{count} 則警示",

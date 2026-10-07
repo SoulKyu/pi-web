@@ -1521,6 +1521,7 @@ export const frLocale: LocalePlugin = {
     "agents.profile.running": "L'agent est en cours d'exécution : réessayez lorsqu'il sera inactif.",
     "agents.thread.unread": "{count} nouveaux messages",
     "agents.thread.jumpUnread": "↑ {count} nouveaux",
+    "agents.thread.jumpUnreadNoCount": "↑ nouveaux",
     "agents.digest.runs": "{count} exécutions",
     "agents.digest.runsFailed": "{count} exécutions ({failed} en échec)",
     "agents.digest.alerts": "{count} alertes",

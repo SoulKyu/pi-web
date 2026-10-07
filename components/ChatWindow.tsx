@@ -311,12 +311,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
       <div className="agent-unread-divider" role="separator">— {t("agents.thread.unread", { count: entryIds.length - unreadAt })} —</div>
     </Fragment>
   );
-  // The rail count shrinks once the thread is auto-read: keep the largest one seen for this marker.
-  const railUnreadRef = useRef({ marker: unreadMarkerEntryId ?? null, count: 0 });
-  if (railUnreadRef.current.marker !== (unreadMarkerEntryId ?? null)) railUnreadRef.current = { marker: unreadMarkerEntryId ?? null, count: 0 };
-  railUnreadRef.current.count = Math.max(railUnreadRef.current.count, unreadCount ?? 0);
   const showUnreadPill = unreadAt > 0 || (Boolean(unreadMarkerEntryId) && !entryIds.includes(unreadMarkerEntryId as string) && hasEarlierMessages);
-  const unreadPillCount = unreadAt > 0 ? entryIds.length - unreadAt : railUnreadRef.current.count;
+  const unreadPillCount = unreadAt > 0 ? entryIds.length - unreadAt : unreadCount;
   const [jumpPending, setJumpPending] = useState(false);
   const [jumping, setJumping] = useState(false);
   const jumpAbortRef = useRef<AbortController | null>(null);
@@ -520,9 +516,10 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   useEffect(() => () => jumpAbortRef.current?.abort(), [session?.id]);
 
   const jumpToUnread = useCallback(async () => {
-    if (!session || !unreadMarkerEntryId || jumpAbortRef.current) return;
+    if (!session || !unreadMarkerEntryId || jumpAbortRef.current || loadingOlderRef.current) return;
     const controller = new AbortController();
     jumpAbortRef.current = controller;
+    loadingOlderRef.current = true;
     setJumping(true);
     try {
       let { entryIds: loaded, historyCursor: before, hasEarlierMessages: hasMore } = searchHistoryRef.current;
@@ -537,6 +534,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
       }
       if (!controller.signal.aborted) setJumpPending(true);
     } finally {
+      loadingOlderRef.current = false;
       if (jumpAbortRef.current === controller) jumpAbortRef.current = null;
       setJumping(false);
     }
@@ -1446,7 +1444,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
           >
             {showUnreadPill && (
               <button type="button" className="agent-jump-unread" disabled={jumping} aria-busy={jumping} onClick={() => void jumpToUnread()}>
-                {t("agents.thread.jumpUnread", { count: unreadPillCount })}
+                {unreadPillCount ? t("agents.thread.jumpUnread", { count: unreadPillCount }) : t("agents.thread.jumpUnreadNoCount")}
               </button>
             )}
             <button

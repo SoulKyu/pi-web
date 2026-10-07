@@ -29,3 +29,15 @@ test("AppShell passes the rail unread count and the styles exist", () => {
   assert.match(css, /\.agent-jump-unread\b/);
   assert.match(css, /\.agent-unread-digest\b/);
 });
+
+test("the jump takes the older-messages lock", () => {
+  // Guards the race: without it the top-sentinel observer pages with the same cursor and loadContext prepends the page twice.
+  const jump = chat.slice(chat.indexOf("const jumpToUnread"), chat.indexOf("useLayoutEffect", chat.indexOf("const jumpToUnread")));
+  assert.match(jump, /loadingOlderRef\.current\) return/);
+  assert.match(jump, /loadingOlderRef\.current = true/);
+  assert.match(jump, /finally \{\s*loadingOlderRef\.current = false/);
+});
+
+test("the pill drops the number when the count is unknown", () => {
+  assert.match(chat, /agents\.thread\.jumpUnreadNoCount/);
+});

@@ -1521,6 +1521,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.profile.running": "智能体正在运行：请在其空闲时重试。",
     "agents.thread.unread": "{count} 条新消息",
     "agents.thread.jumpUnread": "↑ {count} 条新消息",
+    "agents.thread.jumpUnreadNoCount": "↑ 新消息",
     "agents.digest.runs": "{count} 次运行",
     "agents.digest.runsFailed": "{count} 次运行（{failed} 次失败）",
     "agents.digest.alerts": "{count} 条告警",

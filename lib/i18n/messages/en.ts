@@ -1521,6 +1521,7 @@ export const enLocale: LocalePlugin = {
     "agents.profile.running": "The agent is running: try again when it is idle.",
     "agents.thread.unread": "{count} new messages",
     "agents.thread.jumpUnread": "↑ {count} new",
+    "agents.thread.jumpUnreadNoCount": "↑ new",
     "agents.digest.runs": "{count} runs",
     "agents.digest.runsFailed": "{count} runs ({failed} failed)",
     "agents.digest.alerts": "{count} alerts",
