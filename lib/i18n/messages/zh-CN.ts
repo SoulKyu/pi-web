@@ -1330,6 +1330,7 @@ export const zhCNLocale: LocalePlugin = {
     "agentOps.pause.resume": "恢复",
     "agentOps.pause.resumeAll": "恢复所有智能体",
     "agentOps.pause.banner": "{name} 已暂停：触发器、Webhook 和排队任务将等待",
+    "agentOps.pause.allBanner": "所有智能体已暂停",
     "agentOps.pause.agent": "暂停此智能体",
     "agentOps.pause.confirm": "暂停所有智能体并中止其正在运行的任务？",
     "agentOps.steerPlaceholder": "发送给运行中代理的消息",

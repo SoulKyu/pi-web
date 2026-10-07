@@ -1330,6 +1330,7 @@ export const enLocale: LocalePlugin = {
     "agentOps.pause.resume": "Resume",
     "agentOps.pause.resumeAll": "Resume all agents",
     "agentOps.pause.banner": "{name} is paused: triggers, webhooks and queued tasks wait",
+    "agentOps.pause.allBanner": "All agents are paused",
     "agentOps.pause.agent": "Pause this agent",
     "agentOps.pause.confirm": "Pause all agents and abort their running tasks?",
     "agentOps.steerPlaceholder": "Message for the running agent",

@@ -13,7 +13,7 @@ const headers = { "Cache-Control": "no-store" };
 export async function GET() {
   const settings = readAgentOpsSettings();
   const agents = await Promise.all(listLongTermAgents().map(async (agent) => toAgentListItem(agent, threadRunning(agent), await unreadCount(agent).catch(() => 0), isPausedFor(settings, agent.name))));
-  return NextResponse.json({ agents, agentsHomeDir: agentsHomeDir() }, { headers });
+  return NextResponse.json({ agents, agentsHomeDir: agentsHomeDir(), paused: settings.paused }, { headers });
 }
 
 // POST /api/agents  body: CreateAgentInput - create the profile, space state and home.

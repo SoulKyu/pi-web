@@ -184,7 +184,7 @@ export function AppShell() {
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
-  const { agents, agentsHomeDir, reload: reloadAgents } = useAgentsPoll();
+  const { agents, agentsHomeDir, paused: allPaused, reload: reloadAgents } = useAgentsPoll();
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -1331,6 +1331,7 @@ export function AppShell() {
       agent={agentDetail}
       running={Boolean(selectedSession && runningSessionIds.has(selectedSession.id))}
       paused={agents.find((item) => item.name === agentDetail.name)?.paused ?? false}
+      allPaused={allPaused}
       onPauseChanged={reloadAgents}
       contextPercent={contextUsage?.percent ?? null}
       onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
@@ -2080,7 +2081,7 @@ export function AppShell() {
         onNewAgent={() => setNewAgentOpen(true)}
         onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
         orientation={isMobile ? "horizontal" : "vertical"}
-        paused={agents.length > 0 && agents.every((item) => item.paused)}
+        paused={allPaused}
         onPauseChanged={reloadAgents}
       />}
 
@@ -2124,7 +2125,7 @@ export function AppShell() {
           onNewAgent={() => setNewAgentOpen(true)}
           onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
           orientation={isMobile ? "horizontal" : "vertical"}
-          paused={agents.length > 0 && agents.every((item) => item.paused)}
+          paused={allPaused}
           onPauseChanged={reloadAgents}
           />}
         {/* Top bar with sidebar toggle */}

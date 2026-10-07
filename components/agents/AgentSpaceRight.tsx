@@ -16,7 +16,7 @@ const EMPTY_MEMORY: MemoryState = { recent: [], pendingForget: [], staged: [] };
 const MEMORY_POLL_MS = 10_000;
 const ACTIVE_TASK_POLL_MS = 5_000;
 
-export function AgentSpaceRight({ agent, running, paused, contextPercent, onOpenSession, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onPauseChanged: () => void }) {
+export function AgentSpaceRight({ agent, running, paused, allPaused, contextPercent, onOpenSession, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; allPaused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onPauseChanged: () => void }) {
   const { t } = useI18n();
   const [memory, setMemory] = useState<MemoryState>(EMPTY_MEMORY);
 
@@ -66,12 +66,14 @@ export function AgentSpaceRight({ agent, running, paused, contextPercent, onOpen
     return () => { controller.abort(); clearTimeout(timer); };
   }, [loadMemory]);
 
-  const setPaused = async (pause: boolean) => {
+  const setPaused = async (pause: boolean | "all") => {
     try {
-      const current = await (await fetch("/api/agent-ops/settings", { cache: "no-store" })).json() as { settings?: { pausedAgents: string[] } };
-      const others = (current.settings?.pausedAgents ?? []).filter((name) => name !== agent.name);
-      // Resuming also lifts the global pause: it would otherwise keep this agent paused.
-      const body = pause ? { pausedAgents: [...others, agent.name] } : { paused: false, pausedAgents: others };
+      let body: object = { paused: false };
+      if (pause !== "all") {
+        const current = await (await fetch("/api/agent-ops/settings", { cache: "no-store" })).json() as { settings?: { pausedAgents: string[] } };
+        const others = (current.settings?.pausedAgents ?? []).filter((name) => name !== agent.name);
+        body = { pausedAgents: pause ? [...others, agent.name] : others };
+      }
       const response = await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? `HTTP ${response.status}`);
       setError(null);
@@ -90,7 +92,12 @@ export function AgentSpaceRight({ agent, running, paused, contextPercent, onOpen
         <span>{running ? `● ${t("agents.space.running")}` : `🟢 ${t("agents.space.idle")}`}</span>
         {contextPercent !== null && <span style={{ color: "var(--text-muted)" }}>{t("agents.space.context", { percent: Math.round(contextPercent) })}</span>}
       </div>
-      {paused ? (
+      {allPaused ? (
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6 }}>
+          <span style={{ flex: 1 }}>{t("agentOps.pause.allBanner")}</span>
+          <button type="button" onClick={() => void setPaused("all")} style={pauseButtonStyle}>{t("agentOps.pause.resume")}</button>
+        </div>
+      ) : paused ? (
         <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6 }}>
           <span style={{ flex: 1 }}>{t("agentOps.pause.banner", { name: agent.name })}</span>
           <button type="button" onClick={() => void setPaused(false)} style={pauseButtonStyle}>{t("agentOps.pause.resume")}</button>

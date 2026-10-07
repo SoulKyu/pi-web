@@ -8,7 +8,7 @@ test("the agent routes validate through the registry and never answer with the r
   assert.match(list, /validateCreateInput\(/);
   assert.match(list, /toAgentListItem\(/);
   assert.match(list, /allowFileRoot\(/);
-  assert.match(list, /agentsHomeDir: agentsHomeDir\(\)/);
+  assert.match(list, /agentsHomeDir: agentsHomeDir\(\), paused: settings\.paused/);
   assert.match(list, /"Cache-Control": "no-store"/);
 });
 test("PATCH and DELETE refuse while the thread runs, and profile edits reach the live thread", async () => {

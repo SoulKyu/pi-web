@@ -6,9 +6,10 @@ import type { AgentListItem } from "@/lib/agents/agent-view";
 import { AgentAvatar } from "./AgentAvatar";
 
 /** Polls the agent list: the running dot and the unread badge must move, so 5 s while the tab is visible, 30 s hidden. */
-export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: string; error: string | null; reload: () => void } {
+export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: string; paused: boolean; error: string | null; reload: () => void } {
   const [agents, setAgents] = useState<AgentListItem[]>([]);
   const [agentsHomeDir, setAgentsHomeDir] = useState<string | undefined>();
+  const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const reload = useCallback(() => setReloadTick((tick) => tick + 1), []);
@@ -19,10 +20,11 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
     const load = async () => {
       try {
         const response = await fetch("/api/agents", { cache: "no-store", signal: controller.signal });
-        const data = await response.json() as { agents?: AgentListItem[]; agentsHomeDir?: string; error?: string };
+        const data = await response.json() as { agents?: AgentListItem[]; agentsHomeDir?: string; paused?: boolean; error?: string };
         if (!response.ok || !data.agents) throw new Error(data.error ?? `HTTP ${response.status}`);
         setAgents(data.agents);
         setAgentsHomeDir(data.agentsHomeDir);
+        setPaused(data.paused === true);
         setError(null);
       } catch (cause) {
         if (controller.signal.aborted) return;
@@ -44,7 +46,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
     };
   }, [reloadTick]);
 
-  return { agents, agentsHomeDir, error, reload };
+  return { agents, agentsHomeDir, paused, error, reload };
 }
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
@@ -61,10 +63,15 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
 }) {
   const { t } = useI18n();
   const vertical = orientation === "vertical";
+  const [pauseError, setPauseError] = useState<string | null>(null);
   const togglePause = async () => {
     if (!paused && !window.confirm(t("agentOps.pause.confirm"))) return;
     try {
-      await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(paused ? { paused: false, pausedAgents: [] } : { paused: true }) });
+      const response = await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: !paused }) });
+      if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? `HTTP ${response.status}`);
+      setPauseError(null);
+    } catch (cause) {
+      setPauseError(cause instanceof Error ? cause.message : String(cause));
     } finally { onPauseChanged(); }
   };
   return (
@@ -84,6 +91,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
       ))}
       <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>
       <button type="button" onClick={() => void togglePause()} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
+      {pauseError && <span role="alert" title={t("agents.error", { error: pauseError })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span>}
       <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto" }), color: activeAgent === null ? "var(--accent)" : "var(--text-muted)" }}>☰</button>
     </nav>
   );

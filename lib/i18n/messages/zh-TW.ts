@@ -1330,6 +1330,7 @@ export const zhTWLocale: LocalePlugin = {
     "agentOps.pause.resume": "恢復",
     "agentOps.pause.resumeAll": "恢復所有智慧代理",
     "agentOps.pause.banner": "{name} 已暫停：觸發器、Webhook 與排隊任務將等待",
+    "agentOps.pause.allBanner": "所有智慧代理已暫停",
     "agentOps.pause.agent": "暫停此智慧代理",
     "agentOps.pause.confirm": "暫停所有智慧代理並中止其執行中的任務？",
     "agentOps.steerPlaceholder": "傳送給執行中代理的訊息",
