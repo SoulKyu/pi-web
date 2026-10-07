@@ -1339,6 +1339,8 @@ export const frLocale: LocalePlugin = {
     "agentOps.pause.agent": "Mettre cet agent en pause",
     "agentOps.pause.confirm": "Mettre tous les agents en pause et annuler leurs tâches en cours ?",
     "agentOps.steerPlaceholder": "Message pour l'agent en cours d'exécution",
+    "agentOps.retry": "Relancer",
+    "agentOps.attempt": "tentative {n}",
     "agentOps.cancelTask": "Annuler la tâche",
     "agentOps.openSession": "Ouvrir la session",
     "agentOps.actionFailed": "Échec de l'action : {error}",

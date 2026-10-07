@@ -1339,6 +1339,8 @@ export const enLocale: LocalePlugin = {
     "agentOps.pause.agent": "Pause this agent",
     "agentOps.pause.confirm": "Pause all agents and abort their running tasks?",
     "agentOps.steerPlaceholder": "Message for the running agent",
+    "agentOps.retry": "Retry",
+    "agentOps.attempt": "attempt {n}",
     "agentOps.cancelTask": "Cancel task",
     "agentOps.openSession": "Open session",
     "agentOps.actionFailed": "Action failed: {error}",

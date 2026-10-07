@@ -30,6 +30,8 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
     if (await run({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) })) setMessage("");
   };
 
+  const retry = () => void run({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "retry" }) });
+
   return (
     <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
@@ -40,6 +42,7 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
         )}
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>
+        {(task.attempt ?? 1) > 1 && <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{t("agentOps.attempt", { n: task.attempt! })}</span>}
         {task.usage && (
           <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>
             {`· ${formatRunUsage({ tokens: task.usage.input + task.usage.output + task.usage.cacheRead + task.usage.cacheWrite, cost: task.usage.cost, costEquivalent: task.costEquivalent, turns: task.usage.turns }, { turns: (turns) => t("agents.usage.turns", { turns }), equivalent: t("agents.usage.equivalent") })}`}
@@ -50,6 +53,9 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
         {task.sessionId && <button type="button" onClick={() => onOpenSession(task.sessionId!)} style={smallButton}>{t("agentOps.openSession")}</button>}
         {(task.status === "queued" || task.status === "running") && (
           <button type="button" onClick={() => void run({ method: "DELETE" })} style={smallButton}>{t("agentOps.cancelTask")}</button>
+        )}
+        {(task.status === "completed" || task.status === "failed" || task.status === "cancelled") && (
+          <button type="button" onClick={retry} style={smallButton}>{t("agentOps.retry")}</button>
         )}
       </div>
       {task.status === "running" && task.sessionId && (

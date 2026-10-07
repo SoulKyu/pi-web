@@ -1339,6 +1339,8 @@ export const zhCNLocale: LocalePlugin = {
     "agentOps.pause.agent": "暂停此智能体",
     "agentOps.pause.confirm": "暂停所有智能体并中止其正在运行的任务？",
     "agentOps.steerPlaceholder": "发送给运行中代理的消息",
+    "agentOps.retry": "重试",
+    "agentOps.attempt": "第 {n} 次尝试",
     "agentOps.cancelTask": "取消任务",
     "agentOps.openSession": "打开会话",
     "agentOps.actionFailed": "操作失败：{error}",

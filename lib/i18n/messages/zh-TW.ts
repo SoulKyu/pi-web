@@ -1339,6 +1339,8 @@ export const zhTWLocale: LocalePlugin = {
     "agentOps.pause.agent": "暫停此智慧代理",
     "agentOps.pause.confirm": "暫停所有智慧代理並中止其執行中的任務？",
     "agentOps.steerPlaceholder": "傳送給執行中代理的訊息",
+    "agentOps.retry": "重試",
+    "agentOps.attempt": "第 {n} 次嘗試",
     "agentOps.cancelTask": "取消任務",
     "agentOps.openSession": "開啟工作階段",
     "agentOps.actionFailed": "操作失敗：{error}",
