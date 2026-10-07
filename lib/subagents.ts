@@ -519,7 +519,7 @@ export function saveSubagentProfile(
     ...(profile.isolation ? { isolation: profile.isolation } : {}),
     ...(profile.persistSession !== undefined ? { persistSession: profile.persistSession } : {}),
     ...(profile.longTerm ? { longTerm: true as const } : {}),
-    mcpServers: profile.mcpServers?.length ? profile.mcpServers : undefined,
+    ...(profile.mcpServers?.length ? { mcpServers: profile.mcpServers } : {}),
     scope,
     filePath,
   };

@@ -162,6 +162,7 @@ export function getLongTermAgent(name: string): LongTermAgent | null {
 function writeProfile(input: CreateAgentInput, color: string): void {
   // loadExtensions explicitly true (pi-mem0 is an extension; built-ins default to false); no extensionTools list, so a
   // trusted thread gets every loaded extension tool like a normal session. Skills load too, like a normal session.
+  syncAgentMcpOverrides(agentHome(input.name), input.mcpServers ?? []); // first: a sync failure must leave no profile behind (the create catch removes home and space only)
   saveSubagentProfile(agentHome(input.name), "global", {
     name: input.name, displayName: input.name, description: `Long-term agent ${input.name}`, systemPrompt: input.role,
     tools: [...TOOLS_BY_PRESET[input.toolsPreset]], loadSkills: true, loadExtensions: true,
@@ -169,7 +170,6 @@ function writeProfile(input: CreateAgentInput, color: string): void {
     inheritContext: false, runInBackground: false, promptMode: "append", color, enabled: true, longTerm: true,
     ...(input.mcpServers?.length ? { mcpServers: input.mcpServers } : {}),
   });
-  syncAgentMcpOverrides(agentHome(input.name), input.mcpServers ?? []);
 }
 
 export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
