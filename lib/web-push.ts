@@ -4,6 +4,7 @@ import { dirname, join } from "path";
 import webpush from "web-push";
 import { writePrivateFileAtomicSync } from "./atomic-file";
 import { enLocale } from "./i18n/messages/en";
+import { frLocale } from "./i18n/messages/fr";
 import { zhCNLocale } from "./i18n/messages/zh-CN";
 import { getAgentDir } from "./session-reader";
 
@@ -123,6 +124,10 @@ function pushStatusCode(error: unknown): number | undefined {
  */
 export function localeText(locale: string, key: "sessionComplete" | "taskFinished" | "agentRunFailed"): string {
   const id = { sessionComplete: "i18n.sessionComplete", taskFinished: "i18n.taskFinished", agentRunFailed: "agents.push.failed" }[key] as keyof typeof enLocale.messages;
+  if (locale === "fr") {
+    const message = frLocale.messages[id];
+    if (message) return message;
+  }
   if (locale === "zh-CN") {
     const message = zhCNLocale.messages[id];
     if (message) return message;
