@@ -15,7 +15,7 @@ const str = (value: unknown): string => typeof value === "string" ? value : "";
  *  a re-notification differing only in time is the same alert. */
 function mapAlerts(body: unknown): MappedPayload | null {
   const alerts = asFields(body).alerts;
-  if (!Array.isArray(alerts)) return null;
+  if (!Array.isArray(alerts) || !alerts.length) return null; // an empty list maps to raw, like a body without alerts
   const lines: string[] = [];
   const keys: string[] = [];
   let severity: string | undefined;
@@ -35,7 +35,7 @@ function mapAlerts(body: unknown): MappedPayload | null {
   return { text: lines.join("\n"), dedupKey: `${status}:${keys.sort().join(",")}`, ...(severity ? { severity } : {}) };
 }
 
-/** Pure; may throw on a hostile body (the caller falls back to raw). A body that is not an object or has no `alerts` array maps to raw. */
+/** Pure; may throw on a hostile body (the caller falls back to raw). A body that is not an object or has no (or an empty) `alerts` array maps to raw. */
 export function mapPayload(format: PayloadFormat, body: unknown): MappedPayload {
   return (format === "raw" ? null : mapAlerts(body)) ?? { text: payloadText(body) };
 }
