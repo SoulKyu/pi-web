@@ -1449,6 +1449,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.memory.forget": "遺忘",
     "agents.memory.forgetting": "遺忘中……",
     "agents.memory.forgetConfirm": "遺忘這條記憶？",
+    "agents.memory.watcherStale": "記憶監視器未執行：遺忘與核准將等到有代理會話執行時才會處理",
+    "agents.memory.captureError": "上次記憶擷取失敗：{error}",
     "agents.push.failed": "{name}：一次執行失敗（{title}）",
   },
 };

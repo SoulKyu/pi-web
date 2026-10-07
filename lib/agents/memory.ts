@@ -15,6 +15,21 @@ const SNAPSHOT_MAX_BYTES = 1024 * 1024;
 // Layout owned by pi-mem0 (src/snapshot.ts): pi-web reads snapshots and writes requests, never the store.
 export function mem0Dir(): string { return process.env.PI_MEM0_DIR ?? join(getAgentDir(), "mem0"); }
 
+export interface Mem0Health { watcherAt?: string; lastRecallAt?: string; lastRecallMs?: number; lastCaptureAt?: string; lastCaptureError?: string }
+const HEALTH_STRINGS = ["watcherAt", "lastRecallAt", "lastCaptureAt", "lastCaptureError"] as const;
+
+/** pi-mem0's heartbeat (src/health.ts): undefined when absent or unreadable. */
+export function readMem0Health(dir = mem0Dir()): Mem0Health | undefined {
+  try {
+    const raw = JSON.parse(readFileSync(join(dir, "health.json"), "utf8")) as Record<string, unknown> | null;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const health: Mem0Health = {};
+    for (const key of HEALTH_STRINGS) if (typeof raw[key] === "string") health[key] = raw[key];
+    if (typeof raw.lastRecallMs === "number") health.lastRecallMs = raw.lastRecallMs;
+    return health;
+  } catch { return undefined; }
+}
+
 export function readAgentMemorySnapshot(name: string, dir = mem0Dir()): AgentMemoryItem[] {
   if (!AGENT_NAME_RE.test(name)) return [];
   try {

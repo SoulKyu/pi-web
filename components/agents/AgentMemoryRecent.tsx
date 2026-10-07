@@ -3,18 +3,26 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
-import type { AgentMemoryItem } from "@/lib/agents/memory";
+import type { AgentMemoryItem, Mem0Health } from "@/lib/agents/memory";
 import { requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 // A request still pending after this long was refused or is stuck: show the item normally again.
 const FORGET_GIVE_UP_MS = 2 * 60 * 1000;
+const WATCHER_STALE_MS = 2 * 60 * 1000;
 
 /** Recent memories of one agent (pi-mem0 snapshot); text is rendered as plain text. */
-export function AgentMemoryRecent({ agentName, items, pending, onChanged }: { agentName: string; items: readonly AgentMemoryItem[]; pending: readonly string[]; onChanged: () => void }) {
+export function AgentMemoryRecent({ agentName, items, pending, health, onChanged }: { agentName: string; items: readonly AgentMemoryItem[]; pending: readonly string[]; health?: Mem0Health; onChanged: () => void }) {
   const { locale, t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [gaveUp, setGaveUp] = useState<ReadonlySet<string>>(new Set());
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const timer = setInterval(tick, 15_000);
+    return () => clearInterval(timer);
+  }, [health]);
 
   // Keyed by content: the poll hands over a new array each time, which must not restart the timers.
   const pendingKey = pending.join("\n");
@@ -39,7 +47,15 @@ export function AgentMemoryRecent({ agentName, items, pending, onChanged }: { ag
 
   const isForgetting = (id: string) => pending.includes(id) && !gaveUp.has(id);
 
-  if (items.length === 0) return <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.memory.none")}</div>;
+  const watcherAge = health?.watcherAt ? now - Date.parse(health.watcherAt) : Infinity;
+  const healthNotes = (
+    <>
+      {!(watcherAge <= WATCHER_STALE_MS) && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.memory.watcherStale")}</div>}
+      {health?.lastCaptureError && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.memory.captureError", { error: health.lastCaptureError })}</div>}
+    </>
+  );
+
+  if (items.length === 0) return <><div style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.memory.none")}</div>{healthNotes}</>;
   return (
     <>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -56,6 +72,7 @@ export function AgentMemoryRecent({ agentName, items, pending, onChanged }: { ag
         ))}
       </ul>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
+      {healthNotes}
     </>
   );
 }

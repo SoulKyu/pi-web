@@ -1449,6 +1449,8 @@ export const zhCNLocale: LocalePlugin = {
     "agents.memory.forget": "遗忘",
     "agents.memory.forgetting": "遗忘中……",
     "agents.memory.forgetConfirm": "遗忘这条记忆？",
+    "agents.memory.watcherStale": "记忆监视器未运行：遗忘和审批将等到有智能体会话运行时才会处理",
+    "agents.memory.captureError": "上次记忆捕获失败：{error}",
     "agents.push.failed": "{name}：一次运行失败（{title}）",
   },
 };
