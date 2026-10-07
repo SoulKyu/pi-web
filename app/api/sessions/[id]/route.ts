@@ -18,6 +18,7 @@ import { sessionPathKey } from "@/lib/session-path";
 import { abortSubagent, getRpcSession, getRpcSessionInfos } from "@/lib/rpc-manager";
 import { projectTreeForResponse, toSummaryTree } from "@/lib/project-tree";
 import { computeSessionTotalActiveMs } from "@/lib/session-timing";
+import { createEquivalentCostResolver } from "@/lib/cost-equivalent";
 import { computeSessionStats } from "@/lib/session-stats";
 import { startServerPerf } from "@/lib/perf";
 import { computeSessionRevision } from "@/lib/session-revision";
@@ -80,7 +81,7 @@ export async function GET(
     // Cumulative usage over ALL entries, including history compacted away —
     // the same aggregation the SDK's getSessionStats() uses. Lets the client
     // keep monotonic token/cost counters across compaction and page reloads.
-    const stats = computeSessionStats(entries as unknown as SessionEntry[]);
+    const stats = computeSessionStats(entries as unknown as SessionEntry[], createEquivalentCostResolver());
     perf?.span("stats");
     // Opaque freshness token for the session view cache. Derived from the
     // disk fingerprint and the actual read source; null tells the client the

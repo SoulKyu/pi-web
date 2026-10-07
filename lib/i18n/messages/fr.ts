@@ -353,6 +353,7 @@ export const frLocale: LocalePlugin = {
     "files.foldersNotSupported": "Les dossiers ne peuvent pas être téléversés ; déposez plutôt des fichiers",
     "files.uploading": "Téléversement, {progress} %",
     "chat.loadingSession": "Chargement de la session...",
+    "chat.costEquivalent": "équivalent API, abonnement",
     "chat.runningTool": "Exécution de l'outil...",
     "chat.generatingToolInput": "Génération des paramètres...",
     "chat.truncatedByOutputLimit": "Cette réponse a été coupée après avoir atteint la limite de sortie du modèle. Envoyez un message de suivi pour continuer.",

@@ -703,6 +703,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
       sessionStats.tokens.cacheWrite,
       sessionStats.tokens.total,
       sessionStats.cost ?? 0,
+      sessionStats.costEquivalent ?? 0,
       sessionStats.totalActiveMs ?? 0,
     ].join("|")
     : null;

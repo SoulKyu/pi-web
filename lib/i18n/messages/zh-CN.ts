@@ -353,6 +353,7 @@ export const zhCNLocale: LocalePlugin = {
     "files.foldersNotSupported": "无法上传文件夹，请拖放文件",
     "files.uploading": "正在上传，{progress}%",
     "chat.loadingSession": "正在加载会话...",
+    "chat.costEquivalent": "API 等价费用，订阅",
     "chat.runningTool": "正在运行工具...",
     "chat.generatingToolInput": "正在生成参数...",
     "chat.truncatedByOutputLimit": "回复因达到模型输出长度上限而被截断。发送一条后续消息以继续。",

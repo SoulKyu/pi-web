@@ -53,6 +53,7 @@ export interface SessionStatsInfo {
     total: number;
   };
   cost: number;
+  costEquivalent?: number;
   contextUsage?: ContextUsage;
   /** Estimated active time across all entries in the session file. */
   totalActiveMs?: number;

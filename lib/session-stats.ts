@@ -14,7 +14,12 @@ export interface SessionFileStats {
     total: number;
   };
   cost: number;
+  /** What a subscription provider's tokens would cost at API prices; never part of `cost`. */
+  costEquivalent: number;
 }
+
+/** Prices one assistant message; injected so this file stays client-safe. */
+export type EquivalentCostResolver = (provider: string, model: string, usage: { input: number; output: number; cacheRead: number; cacheWrite: number }) => number;
 
 function emptyStats(): SessionFileStats {
   return {
@@ -25,6 +30,7 @@ function emptyStats(): SessionFileStats {
     totalMessages: 0,
     tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
     cost: 0,
+    costEquivalent: 0,
   };
 }
 
@@ -37,7 +43,7 @@ function addUsage(stats: SessionFileStats, usage?: AgentUsage): void {
   stats.cost += usage.cost?.total ?? 0;
 }
 
-function addMessage(stats: SessionFileStats, message: SessionMessage): void {
+function addMessage(stats: SessionFileStats, message: SessionMessage, equivalentOf?: EquivalentCostResolver): void {
   // Like the SDK, every message entry counts toward the total, including the
   // transcript system messages that hold the prompt and tool loadout.
   stats.totalMessages += 1;
@@ -52,6 +58,14 @@ function addMessage(stats: SessionFileStats, message: SessionMessage): void {
       stats.toolCalls += message.content.filter((c) => c.type === "toolCall").length;
     }
     addUsage(stats, message.usage);
+    if (equivalentOf && message.usage && message.provider && message.model) {
+      stats.costEquivalent += equivalentOf(message.provider, message.model, {
+        input: message.usage.input ?? 0,
+        output: message.usage.output ?? 0,
+        cacheRead: message.usage.cacheRead ?? 0,
+        cacheWrite: message.usage.cacheWrite ?? 0,
+      });
+    }
   }
 }
 
@@ -94,6 +108,7 @@ export function mergeSessionStats(
     totalMessages: fileStats.totalMessages + delta(current.totalMessages, loaded.totalMessages),
     tokens,
     cost: fileStats.cost + delta(current.cost, loaded.cost),
+    costEquivalent: (fileStats.costEquivalent ?? 0) + delta(current.costEquivalent, loaded.costEquivalent),
   };
 }
 
@@ -110,7 +125,7 @@ export function mergeSessionStats(
  * summarized away, which is what made the UI token/cost counters appear to be
  * reset after compaction.
  */
-export function computeSessionStats(entries: SessionEntry[]): SessionFileStats {
+export function computeSessionStats(entries: SessionEntry[], equivalentOf?: EquivalentCostResolver): SessionFileStats {
   const stats = emptyStats();
 
   for (const entry of entries) {
@@ -119,7 +134,7 @@ export function computeSessionStats(entries: SessionEntry[]): SessionFileStats {
       continue;
     }
     if (entry.type !== "message") continue;
-    addMessage(stats, entry.message);
+    addMessage(stats, entry.message, equivalentOf);
   }
 
   return finishStats(stats);

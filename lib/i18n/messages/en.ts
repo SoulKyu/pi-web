@@ -353,6 +353,7 @@ export const enLocale: LocalePlugin = {
     "files.foldersNotSupported": "Folders cannot be uploaded; drop files instead",
     "files.uploading": "Uploading, {progress}%",
     "chat.loadingSession": "Loading session...",
+    "chat.costEquivalent": "API-equivalent, subscription",
     "chat.runningTool": "Running tool...",
     "chat.generatingToolInput": "Generating parameters...",
     "chat.truncatedByOutputLimit": "This response was cut off after reaching the model’s output limit. Send a follow-up to continue.",

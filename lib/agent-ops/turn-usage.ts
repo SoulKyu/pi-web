@@ -1,4 +1,5 @@
 import type { WrapperEvent } from "./prompt-run";
+import { priceRecord } from "../cost-equivalent";
 import { appendRunRecord } from "./run-registry";
 import { createUsageCollector, type UsageCollector } from "./run-usage";
 import { listTasks } from "./task-store";
@@ -29,9 +30,10 @@ export function createTurnUsageTracker(source: TurnUsageSource): (event: Wrapper
     const done = turn;
     turn = null;
     if (done.runnerTurn || threadTaskRunning(done.agent)) return;
+    const usage = done.collector.snapshot();
     appendRunRecord({
       ts: new Date().toISOString(), agent: done.agent, origin: "user", sessionId: source.sessionId(),
-      status: done.lastStopReason === "error" ? "failed" : "completed", usage: done.collector.snapshot(), billing: "unknown",
+      status: done.lastStopReason === "error" ? "failed" : "completed", ...priceRecord(usage), usage,
     });
   };
 }

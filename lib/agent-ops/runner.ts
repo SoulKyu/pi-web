@@ -1,3 +1,4 @@
+import { priceRecord } from "../cost-equivalent";
 import { appendRunRecord, type RunRecord } from "./run-registry";
 import { EMPTY_RUN_USAGE, type RunUsage } from "./run-usage";
 import { attachSession, claimTask, getTask, listTasks, releaseClaim, TERMINAL, updateTask, type AgentTask } from "./task-store";
@@ -117,6 +118,6 @@ function recordRun(task: AgentTask, handle: RunHandle | undefined, status: RunRe
   appendRunRecord({
     ts: new Date().toISOString(), agent: task.agent, origin: task.origin, kind: task.kind, target: task.target,
     triggerId: task.triggerId, taskId: task.id, sessionId: handle?.sessionId, status,
-    durationMs: Date.now() - Date.parse(getTask(task.id)?.startedAt ?? task.createdAt), usage, billing: "unknown",
+    durationMs: Date.now() - Date.parse(getTask(task.id)?.startedAt ?? task.createdAt), usage, ...priceRecord(usage),
   });
 }
