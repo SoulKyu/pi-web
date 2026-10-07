@@ -6,6 +6,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
+import { curationPrompt } from "@/lib/agents/curation-prompt";
+import { TriggerDialog } from "./TriggerDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
 
@@ -27,6 +29,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<string[]>(agent.mcpServers);
+  const [curation, setCuration] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -122,6 +125,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
   if (typeof document === "undefined") return null;
   return createPortal(
+    <>
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
         <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
@@ -201,6 +205,9 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
             </label>
           ))}
         </div>
+        {agent.memorySnapshotPath && (
+          <button type="button" disabled={busy} onClick={() => setCuration(true)} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text)" }}>{t("agents.profile.scheduleCuration")}</button>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid #e5484d", background: "none", color: "#e5484d" }}>{t("agents.profile.delete")}</button>
@@ -214,7 +221,16 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
           </div>
         </div>
       </form>
-    </div>,
+    </div>
+    {curation && agent.memorySnapshotPath && (
+      <TriggerDialog
+        agentName={agent.name}
+        prefill={{ name: "Memory curation", everyMinutes: 7 * 24 * 60, runTarget: "thread", promptTemplate: curationPrompt(agent.name, agent.memorySnapshotPath) }}
+        onClose={() => setCuration(false)}
+        onSaved={() => { setCuration(false); onClose(); }}
+      />
+    )}
+    </>,
     document.body,
   );
 }

@@ -1511,6 +1511,7 @@ export const frLocale: LocalePlugin = {
     "agents.profile.saving": "Enregistrement...",
     "agents.profile.delete": "Supprimer l'agent",
     "agents.profile.deleteConfirm": "Supprimer {name} ? Son dossier personnel et son fil sont déplacés dans la corbeille.",
+    "agents.profile.scheduleCuration": "Planifier une curation hebdomadaire de la mémoire",
     "agents.profile.reset": "Réinitialiser le fil",
     "agents.profile.resetConfirm": "Réinitialiser le fil de {name} ? Le fil actuel est déplacé dans la corbeille ; la mémoire, le dossier personnel et les déclencheurs restent.",
     "agents.profile.running": "L'agent est en cours d'exécution : réessayez lorsqu'il sera inactif.",

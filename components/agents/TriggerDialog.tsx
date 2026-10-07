@@ -14,16 +14,18 @@ const labelStyle: CSSProperties = { display: "grid", gap: 4, fontSize: 12, color
 const MS_PER_MINUTE = 60_000;
 
 /** Creates a trigger of `agentName`, or edits `trigger`. The run happens in the agent home. */
-export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
+export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }: {
   trigger?: PublicTrigger;
+  /** Initial values of a new trigger; ignored when editing. */
+  prefill?: { name?: string; promptTemplate?: string; everyMinutes?: number; runTarget?: "thread" | "isolated" };
   agentName: string;
   onClose: () => void;
   onSaved: (response: Partial<TriggerResponse>) => void;
 }) {
   const { t } = useI18n();
-  const [name, setName] = useState(trigger?.name ?? "");
-  const [promptTemplate, setPromptTemplate] = useState(trigger?.promptTemplate ?? "");
-  const [everyMinutes, setEveryMinutes] = useState(trigger?.everyMinutes?.toString() ?? "");
+  const [name, setName] = useState(trigger?.name ?? prefill?.name ?? "");
+  const [promptTemplate, setPromptTemplate] = useState(trigger?.promptTemplate ?? prefill?.promptTemplate ?? "");
+  const [everyMinutes, setEveryMinutes] = useState((trigger?.everyMinutes ?? prefill?.everyMinutes)?.toString() ?? "");
   const [at, setAt] = useState(trigger?.at ?? "");
   const [critical, setCritical] = useState(trigger?.critical ?? false);
   const [webhook, setWebhook] = useState(false);
@@ -31,7 +33,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const [dedupMinutes, setDedupMinutes] = useState(String((trigger?.dedupWindowMs ?? 15 * MS_PER_MINUTE) / MS_PER_MINUTE));
   const [maxActiveTasks, setMaxActiveTasks] = useState(String(trigger?.maxActiveTasks ?? 1));
   const [maxRunsPerDay, setMaxRunsPerDay] = useState(trigger?.maxRunsPerDay ? String(trigger.maxRunsPerDay) : "");
-  const [runTarget, setRunTarget] = useState<"thread" | "isolated">(trigger?.runTarget ?? "thread");
+  const [runTarget, setRunTarget] = useState<"thread" | "isolated">(trigger?.runTarget ?? prefill?.runTarget ?? "thread");
   const [model, setModel] = useState(trigger?.model ?? "");
   const [tools, setTools] = useState<string[]>(trigger?.tools ?? [...TRIGGER_TOOL_NAMES]);
   const [maxRunMinutes, setMaxRunMinutes] = useState(trigger?.maxRunMs ? String(trigger.maxRunMs / MS_PER_MINUTE) : "");

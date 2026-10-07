@@ -135,3 +135,8 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 ## Memory browser (Settings › Memory)
 - pi-mem0 mirrors the user and project scopes to `<mem0>/scopes/user.json` and `scopes/project-<id>.json` (`{ scope, updatedAt, memories }`, same guards and 200 cap as agent snapshots) and names projects in `scopes/index.json` (`{ projects: { <id>: { label, cwd } } }`). `readScopeSnapshot`, `readScopeIndex`, `readSnapshotForScope` (`lib/agents/memory.ts`) read them; the store is never opened.
 - `requestScopeForget(scope, memoryId)` writes `{ memoryId, scope }` with `scope` = `user` | `project:<id>` | `agent:<name>` (`isRequestScope`); `requestForget` still writes the legacy `{ memoryId, agent }`. `POST /api/memory/forget` checks every id against the scope's snapshot before queueing any (404 otherwise), at most 50 ids. pi-mem0 re-checks the owner (`user_id`) and drops a request whose memory is in another scope.
+
+## Curation trigger
+- Profile dialog button "Schedule a weekly memory curation" opens `TriggerDialog` with `prefill` (`name` "Memory curation", `everyMinutes` 10080, `runTarget` thread, template from `curationPrompt()` in `lib/agents/curation-prompt.ts`). No `at`: `everyMinutes` + `at` would fire daily.
+- The agent reads its own snapshot file (`<mem0>/agents/<name>.json`), not `memory_search`, which caps at 10 hits. The path needs `getAgentDir`, so the server adds it to every `AgentDetail` as `memorySnapshotPath` (`agentDetailExtras()`, `lib/agents/agent-detail-extras.ts`); the client only interpolates it.
+- The prompt lets the agent `memory_forget` exact duplicates only; outdated or one-off facts are listed for the user to decide.

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cancelQueuedTasksOfAgent } from "@/lib/agent-ops/task-store";
 import { deleteTriggersOfAgent, repinTriggersOfAgent } from "@/lib/agent-ops/trigger-api";
 import { canEditProfile, splitModel, toAgentDetail } from "@/lib/agents/agent-view";
+import { agentDetailExtras } from "@/lib/agents/agent-detail-extras";
 import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
 import { openThread, threadRunning, unreadCount, withThreadLock } from "@/lib/agents/thread";
 import { getRpcSession, isRpcSessionStarting } from "@/lib/rpc-manager";
@@ -16,7 +17,7 @@ const notFound = () => NextResponse.json({ error: "Agent not found" }, { status:
 export async function GET(_req: Request, { params }: Context) {
   const agent = getLongTermAgent((await params).name);
   if (!agent) return notFound();
-  return NextResponse.json({ agent: toAgentDetail(agent, threadRunning(agent), await unreadCount(agent)) }, { headers });
+  return NextResponse.json({ agent: toAgentDetail(agent, threadRunning(agent), await unreadCount(agent), agentDetailExtras(agent)) }, { headers });
 }
 
 // PATCH: role and tools apply at the next open (the trusted thread re-snapshots, lib/rpc-manager.ts); model and
@@ -47,7 +48,7 @@ export async function PATCH(req: Request, { params }: Context) {
       // The adapter re-reads its config only when the session restarts.
       if (["role", "toolsPreset", "mcpServers", "memoryCapture", "memoryHint", "memoryRecallLimit", "memoryRecallThreshold", "memorySave"].some((key) => key in checked.input)) getRpcSession(agent.threadSessionId)?.shutdownWhenIdle();
     }
-    return NextResponse.json({ agent: toAgentDetail(updated, threadRunning(updated), await unreadCount(updated)) }, { headers });
+    return NextResponse.json({ agent: toAgentDetail(updated, threadRunning(updated), await unreadCount(updated), agentDetailExtras(updated)) }, { headers });
   } catch (error) { return registryErrorResponse(error); }
 }
 

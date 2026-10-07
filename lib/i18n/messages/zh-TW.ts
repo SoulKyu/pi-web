@@ -1511,6 +1511,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.profile.saving": "保存中...",
     "agents.profile.delete": "刪除智慧代理",
     "agents.profile.deleteConfirm": "刪除 {name}？其主資料夾和對話串將移入資源回收桶。",
+    "agents.profile.scheduleCuration": "安排每週記憶整理",
     "agents.profile.reset": "重設對話串",
     "agents.profile.resetConfirm": "重設 {name} 的對話串？目前的對話串會移到回收桶；記憶、主資料夾與觸發器保留。",
     "agents.profile.running": "智慧代理正在執行中：請在其閒置時重試。",

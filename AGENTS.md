@@ -143,6 +143,8 @@ lib/
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/memory.ts          mem0 snapshot reader + forget requests
+  agents/curation-prompt.ts curationPrompt(): weekly memory curation trigger template
+  agents/agent-detail-extras.ts server-only AgentDetail fields (memorySnapshotPath)
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
   agent-ops/prompt-run.ts   prompt send (not awaited), done from events, trigger tool check

@@ -1511,6 +1511,7 @@ export const enLocale: LocalePlugin = {
     "agents.profile.saving": "Saving...",
     "agents.profile.delete": "Delete agent",
     "agents.profile.deleteConfirm": "Delete {name}? Its home and thread move to the trash folder.",
+    "agents.profile.scheduleCuration": "Schedule a weekly memory curation",
     "agents.profile.reset": "Reset thread",
     "agents.profile.resetConfirm": "Reset {name}'s thread? The current thread moves to the trash folder; memory, home and triggers stay.",
     "agents.profile.running": "The agent is running: try again when it is idle.",

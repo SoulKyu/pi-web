@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { allowFileRoot } from "@/lib/file-access";
 import { toAgentDetail, toAgentListItem } from "@/lib/agents/agent-view";
+import { agentDetailExtras } from "@/lib/agents/agent-detail-extras";
 import { agentsHomeDir, createLongTermAgent, listLongTermAgents, validateCreateInput } from "@/lib/agents/registry";
 import { registryErrorResponse } from "@/lib/agents/registry-response";
 import { isPausedFor, readAgentOpsSettings } from "@/lib/agent-ops/settings";
@@ -25,6 +26,6 @@ export async function POST(req: Request) {
   try {
     const agent = createLongTermAgent(checked.input);
     allowFileRoot(agent.home); // the home is browsable in the left panel before any session exists
-    return NextResponse.json({ agent: toAgentDetail(agent, false, 0) }, { status: 201, headers });
+    return NextResponse.json({ agent: toAgentDetail(agent, false, 0, agentDetailExtras(agent)) }, { status: 201, headers });
   } catch (error) { return registryErrorResponse(error); }
 }

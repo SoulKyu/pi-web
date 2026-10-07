@@ -1511,6 +1511,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.profile.saving": "保存中...",
     "agents.profile.delete": "删除智能体",
     "agents.profile.deleteConfirm": "删除 {name}？其主目录和对话线程将移入回收文件夹。",
+    "agents.profile.scheduleCuration": "安排每周记忆整理",
     "agents.profile.reset": "重置会话线程",
     "agents.profile.resetConfirm": "重置 {name} 的会话线程？当前线程将移到回收站；记忆、主目录和触发器保留。",
     "agents.profile.running": "智能体正在运行：请在其空闲时重试。",

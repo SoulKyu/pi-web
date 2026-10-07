@@ -18,6 +18,8 @@ const SNAPSHOT_MAX_BYTES = 1024 * 1024;
 // Layout owned by pi-mem0 (src/snapshot.ts): pi-web reads snapshots and writes requests, never the store.
 export function mem0Dir(): string { return process.env.PI_MEM0_DIR ?? join(getAgentDir(), "mem0"); }
 
+export const memorySnapshotPath = (name: string, dir = mem0Dir()): string => join(dir, "agents", `${name}.json`);
+
 export interface Mem0Health { watcherAt?: string; lastRecallAt?: string; lastRecallMs?: number; lastCaptureAt?: string; lastCaptureError?: string }
 const HEALTH_STRINGS = ["watcherAt", "lastRecallAt", "lastCaptureAt", "lastCaptureError"] as const;
 
