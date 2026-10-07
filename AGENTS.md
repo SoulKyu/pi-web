@@ -137,6 +137,7 @@ lib/
   agents/queue.ts           isolated / thread task selectors for the two runners
   agents/thread-run.ts      thread event run: open, wait idle, card, prompt
   agents/agent-notify.ts    agent_notify push tool, trusted threads only
+  agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/memory.ts          mem0 snapshot reader + forget requests

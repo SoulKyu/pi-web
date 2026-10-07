@@ -1516,5 +1516,10 @@ export const zhTWLocale: LocalePlugin = {
     "agents.memory.captureError": "上次記憶擷取失敗：{error}",
     "agents.push.failed": "{name}：一次執行失敗（{title}）",
     "agents.push.digest": "靜默時段：{runs} 次執行，{failed} 次失敗（{agents}）",
+    "agents.push.approve": "{name} 請求核准：{title}",
+    "agents.approve.label": "請求核准",
+    "agents.approve.approved": "已核准",
+    "agents.approve.denied": "已拒絕",
+    "agents.approve.pending": "等待你的回覆",
   },
 };

@@ -1516,5 +1516,10 @@ export const zhCNLocale: LocalePlugin = {
     "agents.memory.captureError": "上次记忆捕获失败：{error}",
     "agents.push.failed": "{name}：一次运行失败（{title}）",
     "agents.push.digest": "静默时段：{runs} 次运行，{failed} 次失败（{agents}）",
+    "agents.push.approve": "{name} 请求批准：{title}",
+    "agents.approve.label": "请求批准",
+    "agents.approve.approved": "已批准",
+    "agents.approve.denied": "已拒绝",
+    "agents.approve.pending": "等待你的答复",
   },
 };

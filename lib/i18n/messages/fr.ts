@@ -1516,5 +1516,10 @@ export const frLocale: LocalePlugin = {
     "agents.memory.captureError": "Dernière capture mémoire en échec : {error}",
     "agents.push.failed": "{name} : une exécution a échoué ({title})",
     "agents.push.digest": "Heures calmes : {runs} exécutions, {failed} échouée(s) ({agents})",
+    "agents.push.approve": "{name} demande une approbation : {title}",
+    "agents.approve.label": "Approbation demandée",
+    "agents.approve.approved": "approuvé",
+    "agents.approve.denied": "refusé",
+    "agents.approve.pending": "en attente de votre réponse",
   },
 };

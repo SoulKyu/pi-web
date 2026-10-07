@@ -1,4 +1,5 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
+import { createAgentApproveExtension } from "./agents/agent-approve";
 import { createAgentNotifyExtension } from "./agents/agent-notify";
 import { createHomePathPolicyExtension } from "./agents/path-policy";
 import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
@@ -20,6 +21,6 @@ export function agentProfileExtensionFactories(options: {
     createReadOnlyMcpPolicyExtension({ selection: (entries) => readSubagentSessionResources(entries)?.tools }),
     ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
     createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
-    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName })] : []),
+    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName })] : []),
   ];
 }

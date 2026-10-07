@@ -5,6 +5,8 @@ export const AGENT_EVENT_ENTRY_TYPE = "pi-web:agent-event";
 export const AGENT_EVENT_UI_TYPE = "agent-event";
 /** Client-safe name of the trusted-thread push tool (lib/agents/agent-notify.ts registers it). */
 export const AGENT_NOTIFY_TOOL = "agent_notify";
+/** Client-safe name of the trusted-thread approval tool (lib/agents/agent-approve.ts registers it). */
+export const AGENT_APPROVE_TOOL = "agent_approve";
 export const EVENT_TEXT_MAX = 2000;
 const TITLE_MAX = 80;
 
