@@ -31,6 +31,7 @@ import { isNestedToolExecutionEvent, isSystemMessageEvent } from "@/lib/agent-ev
 import { getToolExecutionProgress } from "@/lib/tool-execution-progress";
 import { CODEMODE_TOOL_NAME, getCodemodeProgress } from "@/lib/codemode-view";
 import { updateExtensionWidgets } from "@/lib/extension-widgets";
+import { RECALL_ENTRY_TYPE, isRecallEntryData, recallEntryToUiMessage } from "@/lib/agents/recall-card";
 import { AGENT_EVENT_ENTRY_TYPE, agentEventToUiMessage, appendEntryId, isAgentEventData, isSameEvent } from "@/lib/agents/events";
 import { bareMcpOpensSettings } from "@/lib/mcp-command";
 import type { SettingsSection } from "@/lib/settings-navigation";
@@ -1379,9 +1380,16 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       case "custom_entry_appended": {
         const data = (event as { data?: unknown }).data;
         const entryId = (event as { entryId?: unknown }).entryId;
-        if ((event as { customType?: unknown }).customType !== AGENT_EVENT_ENTRY_TYPE || !isAgentEventData(data) || typeof entryId !== "string") break;
-        if (messagesRef.current.some((message) => isSameEvent(message, data))) break;
-        setMessages((prev) => [...prev, agentEventToUiMessage(data, Date.now())]);
+        const customType = (event as { customType?: unknown }).customType;
+        if (typeof entryId !== "string") break;
+        let uiMessage;
+        if (customType === AGENT_EVENT_ENTRY_TYPE && isAgentEventData(data)) {
+          if (messagesRef.current.some((message) => isSameEvent(message, data))) break;
+          uiMessage = agentEventToUiMessage(data, Date.now());
+        } else if (customType === RECALL_ENTRY_TYPE && isRecallEntryData(data)) {
+          uiMessage = recallEntryToUiMessage(data, Date.now());
+        } else break;
+        setMessages((prev) => [...prev, uiMessage]);
         // messagesRef is assigned in render and both updates are queued here, so its length is the pre-append count.
         const messageCount = messagesRef.current.length;
         setEntryIds((prev) => appendEntryId(prev, messageCount, entryId));

@@ -44,6 +44,14 @@ On mount `useAgentSession` loads the history, then `GET /api/sessions/[id]/state
 - `context_edit` entries omit or replace an earlier entry's model context without changing raw history; the UI ignores them. A retain-none compaction stores its own id in `firstKeptEntryId`.
 - `listSessionsIncremental()` must keep `SessionManager.listAll()`'s order: newest mtime first, then reverse filename, stable for equal activity time.
 
+## Recall card (`pi-mem0:recall`)
+
+pi-mem0 appends one `pi-mem0:recall` custom entry per run of an agent session (`pi.appendEntry`, so the SDK emits `entry_appended`; a direct `sessionManager.appendCustomEntry` emits nothing). `lib/rpc-manager.ts` `forwardRecallEntry` turns that entry into `custom_entry_appended` for open streams (`entry_appended` itself is dropped by `lib/agent-event-wire.ts`); pi-web never writes this type, so nothing is emitted twice. `lib/agents/recall-card.ts` guards it; `session-reader.ts` maps it to a `memory-recall` custom message and counts it toward the tail.
+
+- Display-only: a `custom` entry is never in the model context, and nothing `RecallCard` shows goes back to the model. Hit text is plain text, never markdown.
+- The text is copied into the session file: a later forget removes the memory but not this card (documented limitation).
+- Not unread (`isUnreadEntry` counts assistant replies and agent events only). Forget buttons: agent-scope hits only; user/project stay disabled until scoped forget exists.
+
 ## Running state polling + reconciliation
 - The sidebar polls `/api/agent/running` every 2.5 s while the tab is visible; the session-list response is the initial fallback.
 - `invalidateSessionListCache()` bumps the generation but **keeps** the previous scan, fresh only while its generation matches. Callers needing only metadata (search hits to sidebar rows) pass `listAllSessions({ allowStale: true })` to read it while it rebuilds in the background, accepting that a seconds-old session is missing.

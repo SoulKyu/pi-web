@@ -20,6 +20,8 @@ import { skillExpansionToCommand } from "@/lib/slash-display";
 import type { SubagentToolDetails } from "@/lib/subagent-extension";
 import { CODEMODE_TOOL_NAME, codemodeCalls, codemodeScript, codemodeScriptPreview, stripCodemodeHeader } from "@/lib/codemode-view";
 import { AgentEventCard } from "./agents/AgentEventCard";
+import { RecallCard } from "@/components/agents/RecallCard";
+import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
 import { AGENT_APPROVE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
@@ -194,6 +196,7 @@ interface Props {
   cwd?: string;
   onOpenFile?: (filePath: string, page?: number) => void;
   onOpenSession?: (sessionId: string) => void;
+  agentName?: string;
   entryId?: string;
   searchBlock?: AssistantContentBlock;
   onFork?: (entryId: string) => void;
@@ -282,7 +285,7 @@ function haveSameRelevantToolResults(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError }: Props) {
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, agentName, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError }: Props) {
   if (message.role === "user") {
     return <UserMessageView message={message as UserMessage} asEventPrompt={asEventPrompt} cwd={cwd} onOpenFile={onOpenFile} entryId={entryId} onFork={onFork} forking={forking} onEditContent={onEditContent} onCancelEdit={onCancelEdit} isEditing={isEditing} />;
   }
@@ -300,6 +303,9 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     if ((message as CustomMessage).customType === AGENT_EVENT_UI_TYPE) {
       return <AgentEventCard message={message as CustomMessage} onOpenSession={onOpenSession} />;
     }
+    if ((message as CustomMessage).customType === RECALL_UI_TYPE) {
+      return <RecallCard message={message as CustomMessage} agentName={agentName} />;
+    }
     return <CustomMessageView message={message as CustomMessage} cwd={cwd} onOpenFile={onOpenFile} />;
   }
   if (message.role === "bashExecution") {
@@ -314,6 +320,7 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     && prev.cwd === next.cwd
     && prev.onOpenFile === next.onOpenFile
     && prev.onOpenSession === next.onOpenSession
+    && prev.agentName === next.agentName
     && prev.entryId === next.entryId
     && prev.searchBlock === next.searchBlock
     && prev.onFork === next.onFork

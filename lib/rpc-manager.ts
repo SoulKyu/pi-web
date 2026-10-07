@@ -8,6 +8,7 @@ import { agentProfileExtensionFactories } from "./agent-profile-extensions";
 import type { WrapperEvent } from "./agent-ops/prompt-run";
 import { createTurnUsageTracker } from "./agent-ops/turn-usage";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
+import { RECALL_ENTRY_TYPE } from "./agents/recall-card";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
@@ -431,6 +432,14 @@ export class AgentSessionWrapper {
     return entryId;
   }
 
+  /** pi-mem0 appends its recall card through the SDK, whose entry_appended never reaches open streams (lib/agent-event-wire.ts): forward this one entry type. */
+  private forwardRecallEntry(event: AgentEvent): void {
+    const entry = (event as { type: string; entry?: { id?: string; type?: string; customType?: string; data?: unknown } }).entry;
+    if (event.type !== "entry_appended" || entry?.type !== "custom" || entry.customType !== RECALL_ENTRY_TYPE || typeof entry.id !== "string") return;
+    invalidateSessionListCache();
+    this.emit({ type: "custom_entry_appended", entryId: entry.id, customType: entry.customType, data: entry.data } as unknown as AgentEvent);
+  }
+
   /** Profile settings changed: the next open rebuilds the session from the profile. A running turn finishes first. */
   shutdownWhenIdle(): void {
     if (!this.isAlive()) return;
@@ -455,6 +464,7 @@ export class AgentSessionWrapper {
         this.activeToolEvents.clear();
       }
       this.trackActiveToolEvent(event);
+      this.forwardRecallEntry(event);
       try { this.trackTurnUsage(event as unknown as WrapperEvent); } catch (error) { console.error("[agent-ops] turn usage:", error instanceof Error ? error.message : error); } // accounting must never break the event stream
       if (IDLE_RESET_EVENT_TYPES.has(event.type)) this.resetIdleTimer();
       this.emit(event);
