@@ -1134,6 +1134,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     onOpenFile={onOpenFile}
                     onOpenSession={onOpenSession}
                     agentName={session?.agentProfile?.name}
+                    previewRoot={session?.agentProfile ? messageCwd : undefined}
                     entryId={entryIds[idx]}
                     searchBlock={entryIds[idx] === pendingSearchScroll?.entryId ? searchBlock : undefined}
                     onFork={bashRunning || isNew ? undefined : handleFork}

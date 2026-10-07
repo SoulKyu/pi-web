@@ -42,10 +42,9 @@ test("AppShell renders the agent space and posts the read marker", () => {
   assert.match(shell, /unreadMarkerEntryId=\{activeAgent \? agentUnreadMarker : null\}/);
 });
 
-test("the agent panel shows only when no file or terminal tab is active", () => {
-  assert.match(shell, /const showAgentPanel = Boolean\(agentSpaceRight\) && !activeFileTab && !terminalTabs\.some/);
+test("the agent panel shows when its tab is selected or no file or terminal tab is active", () => {
+  assert.match(shell, /const showAgentPanel = Boolean\(agentSpaceRight\) && \(activeFileTabId === AGENT_TAB_ID \|\| !activeFileTab && !terminalTabs\.some/);
   assert.match(shell, /\{showAgentPanel \? \(/);
-  assert.match(shell, /\{!showAgentPanel && <div/);
 });
 
 test("deleting an agent lands on a draft with no cwd and a bare URL", () => {

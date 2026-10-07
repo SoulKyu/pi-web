@@ -11,6 +11,8 @@ export interface Tab {
   filePath: string;
   kind?: "terminal";
   closing?: boolean;
+  /** false: no close button and middle-click ignored (the Agent pseudo-tab). */
+  closable?: boolean;
   sourceSessionId?: string | null;
   initialDisplayMode?: FileViewerDisplayMode;
   /** PDF page requested by the link that opened this tab (`#page=N`). */
@@ -73,7 +75,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               if (e.button !== 1) return;
               e.preventDefault();
               e.stopPropagation();
-              if (!tab.closing) onCloseTab(tab.id);
+              if (!tab.closing && tab.closable !== false) onCloseTab(tab.id);
             }}
             style={{
               display: "flex",
@@ -113,7 +115,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
             >
               {tab.label}
             </span>
-            <button
+            {tab.closable !== false && <button
               disabled={tab.closing}
               onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
               onMouseEnter={() => setHoveredClose(tab.id)}
@@ -137,7 +139,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
                 <line x1="2" y1="2" x2="8" y2="8" />
                 <line x1="8" y1="2" x2="2" y2="8" />
               </svg>
-            </button>
+            </button>}
           </div>
         );
       })}

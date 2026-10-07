@@ -478,11 +478,12 @@ export function AppShell() {
   }, [activeTopPanel, isMobile]);
 
   // Files unmount when inactive; workspace terminals stay mounted until closed.
+  const AGENT_TAB_ID = "agent"; // pseudo-tab: never persisted
   const [fileTabs, setFileTabs] = useState<Tab[]>([]);
   const [activeFileTabId, setActiveFileTabId] = useState<string | null>(null);
   const [terminalTabs, setTerminalTabs] = useState<TerminalTab[]>([]);
   const [terminalsRestored, setTerminalsRestored] = useState(false);
-  const panelTabs: Tab[] = [...fileTabs, ...terminalTabs.map((tab) => ({
+  const panelTabs: Tab[] = [...(activeAgent && agentDetail ? [{ id: AGENT_TAB_ID, label: agentDetail.name, filePath: agentDetail.home, closable: false }] : []), ...fileTabs, ...terminalTabs.map((tab) => ({
     id: tab.id,
     label: getFileName(tab.cwd) || tab.cwd,
     filePath: tab.cwd,
@@ -507,7 +508,7 @@ export function AppShell() {
     try {
       window.sessionStorage.setItem(TERMINAL_TABS_KEY, JSON.stringify({
         tabs: terminalTabs.map(({ id, cwd }) => ({ id, cwd })),
-        activeId: activeFileTabId,
+        activeId: activeFileTabId === AGENT_TAB_ID ? null : activeFileTabId,
         open: rightPanelOpen,
       }));
     } catch { /* storage is optional */ }
@@ -1291,8 +1292,11 @@ export function AppShell() {
   }, [projectTrustCwd]);
 
   useEffect(() => {
-    if (!activeAgent) setAgentDetail(null);
-  }, [activeAgent]);
+    if (!activeAgent) {
+      setAgentDetail(null);
+      setActiveFileTabId((cur) => cur === AGENT_TAB_ID ? fileTabs[0]?.id ?? terminalTabs[0]?.id ?? null : cur);
+    }
+  }, [activeAgent, fileTabs, terminalTabs]);
 
   const markAgentRead = useCallback((entryId: string) => {
     if (!activeAgent) return;
@@ -1341,7 +1345,7 @@ export function AppShell() {
     />
   ) : null;
 
-  const showAgentPanel = Boolean(agentSpaceRight) && !activeFileTab && !terminalTabs.some((tab) => tab.id === activeFileTabId);
+  const showAgentPanel = Boolean(agentSpaceRight) && (activeFileTabId === AGENT_TAB_ID || !activeFileTab && !terminalTabs.some((tab) => tab.id === activeFileTabId));
 
   const sidebarContent = agentSpaceLeft ? (
     <>
@@ -2632,7 +2636,7 @@ export function AppShell() {
         } as React.CSSProperties}
       >
         {/* Right panel tab bar */}
-        {!showAgentPanel && <div style={{
+        <div style={{
           display: "flex",
           alignItems: "center",
           flexShrink: 0,
@@ -2684,12 +2688,12 @@ export function AppShell() {
               <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="15" y1="3" x2="15" y2="21" />
             </svg>
           </button>
-        </div>}
+        </div>
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
         <div style={{ flex: 1, minHeight: 0, overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
           {showAgentPanel ? (
-            <div style={{ height: "100%", overflow: "auto", paddingTop: "env(safe-area-inset-top)" }}>{agentSpaceRight}</div>
+            <div style={{ height: "100%", overflow: "auto" }}>{agentSpaceRight}</div>
           ) : activeFileTab?.filePath ? (
             <FileViewer
               key={`${activeFileTab.id}:${activeFileTab.viewerRevision ?? 0}`}
