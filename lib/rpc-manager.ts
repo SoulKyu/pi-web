@@ -311,9 +311,11 @@ export class AgentSessionWrapper {
   private extensionWidgetGenerations = new Map<string, number>();
   private extensionWidgetsResetting = false;
   private pendingPromptCount = 0;
+  private pendingRunnerPrompts = 0;
   private readonly trackTurnUsage = createTurnUsageTracker({
     trustedAgent: () => { const info = this.agentProfileInfo(); return info?.trust === "trusted" ? info.name : undefined; },
     hasPendingPrompt: () => this.pendingPromptCount > 0,
+    runnerPromptPending: () => this.runnerPromptPending(),
     sessionId: () => this.sessionId,
   });
   private activeMutatingCommands = 0;
@@ -390,6 +392,10 @@ export class AgentSessionWrapper {
    */
   isAlive(): boolean {
     return this._alive && !this.closing;
+  }
+
+  runnerPromptPending(): boolean {
+    return this.pendingRunnerPrompts > 0;
   }
 
   isRunning(): boolean {
@@ -819,15 +825,18 @@ export class AgentSessionWrapper {
               reject(error);
             };
           });
+          const runnerPrompt = command.origin === "agent-ops";
           const finishPrompt = () => {
             if (promptSettled) return;
             promptSettled = true;
             this.pendingPromptCount = Math.max(0, this.pendingPromptCount - 1);
+            if (runnerPrompt) this.pendingRunnerPrompts = Math.max(0, this.pendingRunnerPrompts - 1);
             this.resetIdleTimer();
             this.notifyAgentRunCompleteIfIdle();
           };
 
           this.pendingPromptCount += 1;
+          if (runnerPrompt) this.pendingRunnerPrompts += 1;
           // A prompt that may start a run first connects the session's MCP servers and
           // waits for the ones still connecting. The SDK runs before_agent_start before a
           // run has an abort signal, so Stop is honoured here: it ends the wait, and the
