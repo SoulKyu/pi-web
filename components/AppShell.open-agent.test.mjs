@@ -32,3 +32,8 @@ test("?entry= is handed to the existing search scroll once the agent thread is o
   assert.match(source, /void openAgent\(initialNavigation\.agentName, initialNavigation\.entryId\)/);
   assert.match(source, /await handleOpenSession\(data\.sessionId\);\n    if \(entryId\) setSearchTarget\(\{ sessionId: data\.sessionId, entryId \}\)/);
 });
+
+test("the close path checks !activeAgent before closing the agent panel", () => {
+  assert.match(source, /if \(!replacement && !remaining\.length && !fileTabs\.length && !activeAgent\) setRightPanelOpen\(false\)/);
+  assert.match(source, /if \(next\.length === 0 && terminalTabs\.length === 0 && !activeAgent\) setRightPanelOpen\(false\)/);
+});

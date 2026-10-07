@@ -47,16 +47,19 @@ export function threadSummary(agent: { lastReadEntryId?: string }, entries: read
   const at = agent.lastReadEntryId ? entries.findIndex((entry) => entry.id === agent.lastReadEntryId) : -1;
   let unread = 0;
   let newestUnread: SessionEntry | undefined;
-  let lastPreview: string | undefined;
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     if (index > at && isUnreadEntry(entry)) { unread += 1; newestUnread = entry; }
+  }
+  let lastPreview: string | undefined;
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
     if (entry.type === "message" && (entry as { message?: { role?: string } }).message?.role === "assistant") {
       const text = assistantText(entry).replace(/\s+/g, " ").trim();
-      if (text) lastPreview = text;
+      if (text) { lastPreview = text; break; }
     } else if (entry.type === "custom" && entry.customType === AGENT_EVENT_ENTRY_TYPE) {
       const data = (entry as { data?: unknown }).data;
-      if (isAgentEventData(data)) lastPreview = data.title;
+      if (isAgentEventData(data)) { lastPreview = data.title; break; }
     }
   }
   const last = entries[entries.length - 1];

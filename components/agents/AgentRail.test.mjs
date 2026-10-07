@@ -40,7 +40,9 @@ test("the rail shows the state dot and a preview tooltip; the title carries the 
 
 test("the rail keeps its last snapshot on a failed poll and shows a stale line only then", () => {
   assert.match(rail, /setLastOkAt\(Date\.now\(\)\)/);
-  assert.match(rail, /error && lastOkAt !== null && </);
+  assert.match(rail, /error && lastOkAt !== null && \(vertical \?/);
+  assert.match(rail, /title=\{t\("agents\.rail\.stale"/);
+  assert.match(rail, /aria-label=\{t\("agents\.rail\.stale"/);
   assert.match(rail, /t\("agents\.rail\.stale", \{ time: new Date\(lastOkAt\)\.toLocaleTimeString\(locale, \{ timeStyle: "short" \}\) \}\)/);
   assert.match(shell, /lastOkAt=\{agentsLastOkAt\}/);
 });

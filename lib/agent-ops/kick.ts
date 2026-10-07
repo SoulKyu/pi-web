@@ -44,9 +44,14 @@ export function handleTaskEnd(task: AgentTask): void {
   void (async () => {
     let entryId: string | undefined;
     if (task.target === "isolated") {
-      const agent = getLongTermAgent(agentName);
-      const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
-      if (agent && event) entryId = await appendThreadEvent(agent, event).catch((error) => { console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error); return undefined; });
+      try {
+        const agent = getLongTermAgent(agentName);
+        const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
+        if (agent && event) entryId = await appendThreadEvent(agent, event).catch((error) => { console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error); return undefined; });
+      } catch (error) {
+        entryId = undefined;
+        log(error);
+      }
     }
     if (task.status !== "failed") return;
     await notifyAgent((locale) => ({
