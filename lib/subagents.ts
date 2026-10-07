@@ -93,6 +93,16 @@ export interface AgentProfileSessionMetadata {
   resourceSnapshot: SubagentResourceSnapshot;
   /** Absent means untrusted (fail closed): existing profile sessions keep today's behavior. */
   trust?: AgentProfileTrust;
+  /** The owner's memory policy for pi-mem0; absent when no memory key is set. */
+  memory?: MemoryPolicy;
+}
+
+export interface MemoryPolicy {
+  capture: "auto" | "off";
+  hint?: string;
+  recallLimit?: number;
+  recallThreshold?: number;
+  save: "direct" | "staged";
 }
 
 export interface SubagentSessionResources {
@@ -627,6 +637,23 @@ function agentProfileMetadataData(entries: readonly SessionEntry[]): Record<stri
 /** The trust of a top-level agent-profile session. Anything but an explicit "trusted" is untrusted. */
 export function readSessionAgentTrust(entries: readonly SessionEntry[]): AgentProfileTrust {
   return agentProfileMetadataData(entries)?.trust === "trusted" ? "trusted" : "untrusted";
+}
+
+export function memoryPolicyOf(profile: Pick<SubagentProfile, "memoryCapture" | "memoryHint" | "memoryRecallLimit" | "memoryRecallThreshold" | "memorySave">): MemoryPolicy | undefined {
+  const { memoryCapture, memoryHint, memoryRecallLimit, memoryRecallThreshold, memorySave } = profile;
+  if (!memoryCapture && !memoryHint && memoryRecallLimit === undefined && memoryRecallThreshold === undefined && !memorySave) return undefined;
+  return {
+    capture: memoryCapture ?? "auto",
+    ...(memoryHint ? { hint: memoryHint } : {}),
+    ...(memoryRecallLimit !== undefined ? { recallLimit: memoryRecallLimit } : {}),
+    ...(memoryRecallThreshold !== undefined ? { recallThreshold: memoryRecallThreshold } : {}),
+    save: memorySave ?? "direct",
+  };
+}
+
+/** The memory policy of the newest agent-profile entry, compared to decide whether a policy change needs a fresh entry. */
+export function readSessionMemoryPolicy(entries: readonly SessionEntry[]): unknown {
+  return agentProfileMetadataData(entries)?.memory;
 }
 
 /** Same loadout: a reopened thread appends a new profile entry only when this is false. */

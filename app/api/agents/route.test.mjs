@@ -68,7 +68,7 @@ test("POST /api/agents/[name]/thread/reset archives under the lock and starts th
   assert.doesNotMatch(reset, /cancelQueuedTasksOfAgent|deleteTriggersOfAgent/);
 });
 test("MCP allowlist: PATCH restarts the thread, the route lists names only, spawn syncs before an isolated run, dialogs show checkboxes", async () => {
-  assert.match(await read("./[name]/route.ts"), /"mcpServers" in checked\.input/);
+  assert.match(await read("./[name]/route.ts"), /"mcpServers", "memoryCapture".*some\(\(key\) => key in checked\.input\)\) getRpcSession/);
   const route = await read("./mcp-servers/route.ts");
   assert.match(route, /listGlobalMcpServers\(\)/);
   assert.match(route, /"Cache-Control": "no-store"/);

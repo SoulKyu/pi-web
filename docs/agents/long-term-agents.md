@@ -64,6 +64,12 @@
 - Names are at most 64 characters (`AGENT_NAME_MAX`).
 - Agent-profile sessions load the sanitized bash (`lib/project-command-env.ts`, no `PORT`, `NEXT_*`, `PI_WEB_PASSWORD`) and the read-only MCP policy, composed in `lib/agent-profile-extensions.ts`; `preferUserBashExtension` applies.
 
+## Memory policy (`memoryPolicyOf` in `lib/subagents.ts`, pi-mem0 `readMemoryPolicy`)
+- The five keys `memory_capture`, `memory_hint`, `memory_recall_limit`, `memory_recall_threshold`, `memory_save` travel to pi-mem0 as `memory` in the `pi-web:agent-profile` entry (`MemoryPolicy`: `capture` default `auto`, `save` default `direct`). `memoryPolicyOf` is undefined when every key is absent, and the entry then has no `memory`.
+- A policy change re-appends the entry on the next open (`rpc-manager.ts` compares the newest entry's `memory` by `JSON.stringify`, besides `sameResourceSnapshot`). A PATCH of any memory key calls `shutdownWhenIdle()` like the role, so the next turn re-snapshots.
+- pi-mem0 ignores a malformed block whole (fail closed) and trust still wins: an untrusted thread never captures or saves directly. The hint is owner text appended to pi-mem0's extraction instructions, never to the model's system prompt.
+- UI: "Memory" section in `NewAgentDialog` / `AgentProfileDialog` (capture, save, hint, recall limit, recall threshold); PATCH `null` clears a key, create omits defaults.
+
 ## Unread
 - Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. No divider is drawn for an absent or unknown marker although the badge counts everything. The divider count includes non-message entries; the badge counts assistant replies only. Event cards count on both sides (`isUnreadEntry`).
 - `ChatWindow` fixes the marker for the visit (`unreadMarkerEntryId`) so the divider does not move as reads post. `onLatestEntryViewed` posts the read 1 s after the newest entry is visible. When the first unread entry is inside a collapsed process group, the divider is rendered before the group.

@@ -46,6 +46,8 @@ import {
   readSubagentSessionResources,
   resolveSubagentProfile,
   sameResourceSnapshot,
+  memoryPolicyOf,
+  readSessionMemoryPolicy,
   SUBAGENT_CONTROL_TOOL_NAMES,
   type AgentProfileSessionMetadata,
   type AgentProfileTrust,
@@ -2564,11 +2566,13 @@ export async function startRpcSession(
       subagentResources.tools = activeTools;
       toolsOption = activeTools;
       const snapshotResources: SubagentSessionResources = { ...subagentResources, tools: [...activeTools] };
+      const memoryPolicy = memoryPolicyOf(snapshotProfile);
       const metadata: AgentProfileSessionMetadata = {
         version: 1,
         profile: snapshotProfile.name,
         createdAt: new Date().toISOString(),
         trust: sessionTrust,
+        ...(memoryPolicy ? { memory: memoryPolicy } : {}),
         resourceSnapshot: {
           version: 1,
           appendSystemPrompt: [...subagentResources.appendSystemPrompt],
@@ -2582,7 +2586,7 @@ export async function startRpcSession(
       };
       // A reopened thread appends a fresh entry only when its loadout changed, or the file would grow on every open.
       const previous = sessionFile ? readSubagentSessionResources(entries) : null;
-      if (!previous || !sameResourceSnapshot(previous, snapshotResources)) sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
+      if (!previous || !sameResourceSnapshot(previous, snapshotResources) || JSON.stringify(readSessionMemoryPolicy(entries)) !== JSON.stringify(memoryPolicy)) sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
     }
     const { model: profileModel, deferred: deferredProfileModel } = newSessionProfile
       ? parseSubagentModelOrDeferred(services.modelRuntime, newSessionProfile.model)

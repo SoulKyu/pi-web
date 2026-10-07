@@ -45,7 +45,7 @@ export async function PATCH(req: Request, { params }: Context) {
         if (thinkingChanged && updated.thinking) await session.send({ type: "set_thinking_level", level: updated.thinking });
       }
       // The adapter re-reads its config only when the session restarts.
-      if ("role" in checked.input || "toolsPreset" in checked.input || "mcpServers" in checked.input) getRpcSession(agent.threadSessionId)?.shutdownWhenIdle();
+      if (["role", "toolsPreset", "mcpServers", "memoryCapture", "memoryHint", "memoryRecallLimit", "memoryRecallThreshold", "memorySave"].some((key) => key in checked.input)) getRpcSession(agent.threadSessionId)?.shutdownWhenIdle();
     }
     return NextResponse.json({ agent: toAgentDetail(updated, threadRunning(updated), await unreadCount(updated)) }, { headers });
   } catch (error) { return registryErrorResponse(error); }

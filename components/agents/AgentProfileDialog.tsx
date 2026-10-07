@@ -18,6 +18,11 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [thinking, setThinking] = useState(agent.thinking ?? "");
   const [budgetTokens, setBudgetTokens] = useState(agent.budgetTokensPerDay === undefined ? "" : String(agent.budgetTokensPerDay));
   const [budgetUsd, setBudgetUsd] = useState(agent.budgetUsdPerDay === undefined ? "" : String(agent.budgetUsdPerDay));
+  const [memoryCapture, setMemoryCapture] = useState<"auto" | "off">(agent.memoryCapture ?? "auto");
+  const [memorySave, setMemorySave] = useState<"direct" | "staged">(agent.memorySave ?? "direct");
+  const [memoryHint, setMemoryHint] = useState(agent.memoryHint ?? "");
+  const [memoryRecallLimit, setMemoryRecallLimit] = useState(agent.memoryRecallLimit === undefined ? "" : String(agent.memoryRecallLimit));
+  const [memoryRecallThreshold, setMemoryRecallThreshold] = useState(agent.memoryRecallThreshold === undefined ? "" : String(agent.memoryRecallThreshold));
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -71,6 +76,13 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       const usd = budgetUsd === "" ? undefined : Number(budgetUsd);
       if (tokens !== agent.budgetTokensPerDay) patch.budgetTokensPerDay = tokens ?? null;
       if (usd !== agent.budgetUsdPerDay) patch.budgetUsdPerDay = usd ?? null;
+      if (memoryCapture !== (agent.memoryCapture ?? "auto")) patch.memoryCapture = memoryCapture === "auto" ? null : memoryCapture;
+      if (memorySave !== (agent.memorySave ?? "direct")) patch.memorySave = memorySave === "direct" ? null : memorySave;
+      if ((memoryHint.trim() || undefined) !== agent.memoryHint) patch.memoryHint = memoryHint.trim() || null;
+      const recallLimit = memoryRecallLimit === "" ? undefined : Number(memoryRecallLimit);
+      const recallThreshold = memoryRecallThreshold === "" ? undefined : Number(memoryRecallThreshold);
+      if (recallLimit !== agent.memoryRecallLimit) patch.memoryRecallLimit = recallLimit ?? null;
+      if (recallThreshold !== agent.memoryRecallThreshold) patch.memoryRecallThreshold = recallThreshold ?? null;
       if (mcpServers.length !== agent.mcpServers.length || mcpServers.some((name) => !agent.mcpServers.includes(name))) patch.mcpServers = mcpServers;
       const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
@@ -155,6 +167,20 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
           {t("agents.new.budgetUsd")}
           <input type="number" min={0} step="any" value={budgetUsd} onChange={(event) => setBudgetUsd(event.target.value)} style={fieldStyle} />
         </label>
+        <div style={labelStyle}>
+          {t("agents.new.memory")}
+          <select aria-label={t("agents.new.memoryCapture")} value={memoryCapture} onChange={(event) => setMemoryCapture(event.target.value as "auto" | "off")} style={fieldStyle}>
+            <option value="auto">{t("agents.new.memoryCapture")}: {t("agents.new.memoryCaptureAuto")}</option>
+            <option value="off">{t("agents.new.memoryCapture")}: {t("agents.new.memoryCaptureOff")}</option>
+          </select>
+          <select aria-label={t("agents.new.memorySave")} value={memorySave} onChange={(event) => setMemorySave(event.target.value as "direct" | "staged")} style={fieldStyle}>
+            <option value="direct">{t("agents.new.memorySave")}: {t("agents.new.memorySaveDirect")}</option>
+            <option value="staged">{t("agents.new.memorySave")}: {t("agents.new.memorySaveStaged")}</option>
+          </select>
+          <textarea aria-label={t("agents.new.memoryHint")} placeholder={t("agents.new.memoryHint")} maxLength={500} rows={2} value={memoryHint} onChange={(event) => setMemoryHint(event.target.value)} style={fieldStyle} />
+          <input type="number" aria-label={t("agents.new.memoryRecallLimit")} placeholder={t("agents.new.memoryRecallLimit")} min={0} max={20} step={1} value={memoryRecallLimit} onChange={(event) => setMemoryRecallLimit(event.target.value)} style={fieldStyle} />
+          <input type="number" aria-label={t("agents.new.memoryRecallThreshold")} placeholder={t("agents.new.memoryRecallThreshold")} min={0} max={1} step={0.05} value={memoryRecallThreshold} onChange={(event) => setMemoryRecallThreshold(event.target.value)} style={fieldStyle} />
+        </div>
         <div style={labelStyle}>
           {t("agents.new.tools")}
           <div role="group" aria-label={t("agents.new.tools")} style={{ display: "flex", gap: 6 }}>
