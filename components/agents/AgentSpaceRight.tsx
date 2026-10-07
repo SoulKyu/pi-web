@@ -10,11 +10,14 @@ import { AgentMemoryRecent } from "./AgentMemoryRecent";
 import { AgentTasks } from "./AgentTasks";
 import { QueueTaskDialog } from "./QueueTaskDialog";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
+import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
 
 interface MemoryState { recent: AgentMemoryItem[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
 const EMPTY_MEMORY: MemoryState = { recent: [], pendingForget: [], staged: [] };
 const MEMORY_POLL_MS = 10_000;
 const ACTIVE_TASK_POLL_MS = 5_000;
+
+const formatCompact = (value: number) => value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` : value >= 1000 ? `${(value / 1000).toFixed(0)}k` : String(value);
 
 export function AgentSpaceRight({ agent, running, paused, allPaused, contextPercent, onOpenSession, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; allPaused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onPauseChanged: () => void }) {
   const { t } = useI18n();
@@ -22,6 +25,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
 
   const [tasks, setTasks] = useState<AgentTaskListItem[]>([]);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [usage, setUsage] = useState<AgentUsageSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const signalRef = useRef<AbortSignal | undefined>(undefined);
 
@@ -29,16 +33,20 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   const loadMemory = useCallback(async (signal?: AbortSignal) => {
     const base = `/api/agents/${encodeURIComponent(agent.name)}`;
     try {
-      const [memoryResponse, tasksResponse] = await Promise.all([
+      const [memoryResponse, tasksResponse, usageResponse] = await Promise.all([
         fetch(`${base}/memory`, { cache: "no-store", signal }),
         fetch(`${base}/tasks`, { cache: "no-store", signal }),
+        fetch(`${base}/usage`, { cache: "no-store", signal }),
       ]);
       const data = await memoryResponse.json() as MemoryState & { error?: string };
       const taskData = await tasksResponse.json() as { tasks?: AgentTaskListItem[]; error?: string };
+      const usageData = await usageResponse.json() as { usage?: AgentUsageSummary; error?: string };
       if (signal?.aborted) return;
       if (!memoryResponse.ok) throw new Error(data.error ?? `HTTP ${memoryResponse.status}`);
       if (!tasksResponse.ok) throw new Error(taskData.error ?? `HTTP ${tasksResponse.status}`);
+      if (!usageResponse.ok) throw new Error(usageData.error ?? `HTTP ${usageResponse.status}`);
       setMemory(data);
+      setUsage(usageData.usage ?? null);
       setTasks(taskData.tasks ?? []);
       setError(null);
     } catch (cause) {
@@ -56,6 +64,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
     signalRef.current = signal;
     setMemory(EMPTY_MEMORY);
     setTasks([]);
+    setUsage(null);
     setError(null);
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
@@ -83,6 +92,14 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   };
   const pauseButtonStyle = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" } as const;
 
+  const bucketLine = (bucket: UsageBucket) => {
+    const head = `${t("agents.usage.runs", { runs: bucket.runs })} · ${formatCompact(bucket.tokens)} tok`;
+    if (bucket.cost > 0) return `${head} · $${bucket.cost.toFixed(2)}`;
+    if (bucket.costEquivalent > 0) return `${head} · ≈ $${bucket.costEquivalent.toFixed(2)} ${t("agents.usage.equivalent")}`;
+    return head;
+  };
+  const usageHasRuns = usage !== null && usage.days30.runs > 0;
+
   const reloadMemory = () => void loadMemory(signalRef.current);
 
   return (
@@ -92,6 +109,20 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
         <span>{running ? `● ${t("agents.space.running")}` : `🟢 ${t("agents.space.idle")}`}</span>
         {contextPercent !== null && <span style={{ color: "var(--text-muted)" }}>{t("agents.space.context", { percent: Math.round(contextPercent) })}</span>}
       </div>
+      {usage && usageHasRuns && (
+        <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
+          {([["today", usage.today], ["days7", usage.days7], ["days30", usage.days30]] as const).map(([key, bucket]) => (
+            <div key={key}>{t(`agents.usage.${key}`)}: {bucketLine(bucket)}</div>
+          ))}
+          <details>
+            <summary style={{ cursor: "pointer" }}>{t("agents.usage.breakdown")}</summary>
+            {[...Object.entries(usage.byModel), ...Object.entries(usage.byOrigin)].map(([label, bucket], index) => (
+              <div key={`${index}:${label}`}>{label}: {bucketLine(bucket)}</div>
+            ))}
+          </details>
+          {usage.cacheHitRate30d !== null && <div style={{ color: "var(--text-dim)" }}>{t("agents.usage.cacheHit", { percent: Math.round(usage.cacheHitRate30d * 100) })}</div>}
+        </div>
+      )}
       {allPaused ? (
         <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6 }}>
           <span style={{ flex: 1 }}>{t("agentOps.pause.allBanner")}</span>

@@ -55,6 +55,7 @@ app/api/
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories
+  agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
   agents/[name]/memory/forget/route.ts POST request a forget
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
@@ -133,6 +134,7 @@ lib/
   agents/thread-run.ts      thread event run: open, wait idle, card, prompt
   agents/agent-notify.ts    agent_notify push tool, trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
+  agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/memory.ts          mem0 snapshot reader + forget requests
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
