@@ -16,6 +16,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [role, setRole] = useState(agent.role);
   const [model, setModel] = useState(agent.model ?? "");
   const [thinking, setThinking] = useState(agent.thinking ?? "");
+  const [budgetTokens, setBudgetTokens] = useState(agent.budgetTokensPerDay === undefined ? "" : String(agent.budgetTokensPerDay));
+  const [budgetUsd, setBudgetUsd] = useState(agent.budgetUsdPerDay === undefined ? "" : String(agent.budgetUsdPerDay));
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -65,6 +67,10 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (emoji !== agent.avatar.emoji || color !== agent.avatar.color) patch.avatar = { emoji, color };
       if ((model || undefined) !== agent.model) patch.model = model || null;
       if ((thinking || undefined) !== agent.thinking) patch.thinking = thinking || null;
+      const tokens = budgetTokens === "" ? undefined : Number(budgetTokens);
+      const usd = budgetUsd === "" ? undefined : Number(budgetUsd);
+      if (tokens !== agent.budgetTokensPerDay) patch.budgetTokensPerDay = tokens ?? null;
+      if (usd !== agent.budgetUsdPerDay) patch.budgetUsdPerDay = usd ?? null;
       if (mcpServers.length !== agent.mcpServers.length || mcpServers.some((name) => !agent.mcpServers.includes(name))) patch.mcpServers = mcpServers;
       const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
@@ -140,6 +146,14 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
             <option value="">{t("agents.model.default")}</option>
             {THINKING_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
           </select>
+        </label>
+        <label style={labelStyle}>
+          {t("agents.new.budgetTokens")}
+          <input type="number" min={0} step={1} value={budgetTokens} onChange={(event) => setBudgetTokens(event.target.value)} style={fieldStyle} />
+        </label>
+        <label style={labelStyle}>
+          {t("agents.new.budgetUsd")}
+          <input type="number" min={0} step="any" value={budgetUsd} onChange={(event) => setBudgetUsd(event.target.value)} style={fieldStyle} />
         </label>
         <div style={labelStyle}>
           {t("agents.new.tools")}

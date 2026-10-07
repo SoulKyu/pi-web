@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { activeTaskCount, planIngestion, runsTodayCount } from "@/lib/agent-ops/scheduler";
+import { activeTaskCount, budgetRefusalFor, planIngestion, runsTodayCount } from "@/lib/agent-ops/scheduler";
 import { inQuietHours, quietHoursEnd } from "@/lib/agent-ops/quiet-hours";
 import { readAgentOpsSettings, isPausedFor } from "@/lib/agent-ops/settings";
 import { getTrigger, triggerPinStatus, triggersDir, TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400, headers });
   }
-  const plan = planIngestion(trigger, payload ?? "", Date.now(), activeTaskCount(trigger.id), runsTodayCount(trigger.id));
+  const plan = planIngestion(trigger, payload ?? "", Date.now(), activeTaskCount(trigger.id), runsTodayCount(trigger.id), budgetRefusalFor(trigger.profile));
   const target = trigger.webhookSecretSha256 ? "isolated" : (trigger.runTarget ?? "thread");
   // A schedule trigger fires its raw template; only a webhook trigger fences a payload.
   const prompt = trigger.webhookSecretSha256 ? plan.prompt : trigger.promptTemplate;

@@ -3,7 +3,9 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, statSync, unli
 import { join } from "node:path";
 import { mapPayload, payloadText, type MappedPayload, type PayloadFormat } from "./payload-formats";
 import { buildDigest, digestBody } from "./digest";
-import { rotateRunRecords } from "./run-registry";
+import { getLongTermAgent } from "../agents/registry";
+import { budgetRefusal, spentToday, startOfLocalDay, type Spent } from "./budget";
+import { readRunRecords, rotateRunRecords, type RunRecord } from "./run-registry";
 import { redactSecrets, truncate } from "./redact";
 import { appendTriggerLog, type TriggerLogEntry } from "./trigger-log";
 import { dailyBucket, inQuietHours, quietHoursEnd } from "./quiet-hours";
@@ -70,7 +72,7 @@ export function runsTodayCount(triggerId: string, now = Date.now()): number {
 const dailyCapReached = (trigger: TriggerConfig, runsToday: number): boolean => trigger.maxRunsPerDay !== undefined && runsToday >= trigger.maxRunsPerDay;
 
 /** Exclusive fire token: false when another process (or an earlier call) already holds it. */
-function claimFireToken(name: string): boolean {
+export function claimFireToken(name: string): boolean {
   mkdirSync(triggersDir(), { recursive: true, mode: 0o700 });
   try { closeSync(openSync(join(triggersDir(), name), "wx", 0o600)); return true; } catch { return false; }
 }
@@ -84,13 +86,20 @@ function admissionRefusal(trigger: TriggerConfig): string | null {
   return pin === "drift" ? "trigger profile drift" : null;
 }
 
+/** Daily token/cost budget of the trigger's agent: null when the agent is unknown or has no budget.
+ *  `spentOf` lets a tick share one registry read across its triggers. Only automatic paths call it: UI tasks and user turns are never blocked. */
+export function budgetRefusalFor(agentName: string, now = new Date(), spentOf: (agent: string) => Spent = (agent) => spentToday(readRunRecords({ agent, since: startOfLocalDay(now).toISOString() }), now)): string | null {
+  const agent = getLongTermAgent(agentName);
+  return agent && (agent.budgetTokensPerDay !== undefined || agent.budgetUsdPerDay !== undefined) ? budgetRefusal(agent, spentOf(agentName)) : null;
+}
+
 /** A mapper that throws on a hostile body must not lose the alert: fall back to raw and flag it for the journal. */
 function safeMap(format: PayloadFormat, body: unknown): MappedPayload & { fallback?: true } {
   try { return mapPayload(format, body); } catch { return { text: payloadText(body), fallback: true }; }
 }
 
 /** Pure: no file, no token. Callers pass the active-task count so dry-runs and caps share one decision. */
-export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number, runsToday = 0): IngestionPlan {
+export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number, runsToday = 0, budget: string | null = null): IngestionPlan {
   const mapped = safeMap(trigger.payloadFormat ?? "raw", body);
   const raw = mapped.text;
   const payloadHash = createHash("sha256").update(redactSecrets(mapped.dedupKey ?? raw)).digest("hex").slice(0, 16);
@@ -100,6 +109,7 @@ export function planIngestion(trigger: TriggerConfig, body: unknown, now: number
   const refused = (reason: string): IngestionPlan => ({ verdict: "refused", reason, tokenName, payloadHash, bucket, text: raw, ...extra });
   const refusal = admissionRefusal(trigger);
   if (refusal) return refused(refusal);
+  if (budget) return refused(budget);
   // FinOps cap, decided before the dedup token so a refused payload does not consume it.
   // ponytail: check-then-act across processes; two processes can each admit one at the limit. Acceptable for a cost cap.
   if (activeTasks >= trigger.maxActiveTasks) return refused(CAP_REASON);
@@ -109,7 +119,7 @@ export function planIngestion(trigger: TriggerConfig, body: unknown, now: number
 
 /** The mapped payload severity ("critical") bypasses quiet hours like `trigger.critical`; `severity` overrides it (tests). */
 export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask, severity?: string): IngestResult {
-  const plan = planIngestion(trigger, body, Date.now(), activeTaskCount(trigger.id), runsTodayCount(trigger.id));
+  const plan = planIngestion(trigger, body, Date.now(), activeTaskCount(trigger.id), runsTodayCount(trigger.id), budgetRefusalFor(trigger.profile));
   const refuse = (reason: string): IngestResult => {
     appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "webhook", verdict: "refused", reason, bucket: plan.bucket, payloadHash: plan.payloadHash });
     return { accepted: false, reason };
@@ -134,6 +144,7 @@ export function fireTriggerNow(trigger: TriggerConfig, create: TaskCreator = cre
   };
   const reason = admissionRefusal(trigger)
     ?? (isPausedFor(readAgentOpsSettings(), trigger.profile) ? "agent paused" : null)
+    ?? budgetRefusalFor(trigger.profile)
     ?? (activeTaskCount(trigger.id) >= trigger.maxActiveTasks ? CAP_REASON : null)
     ?? (dailyCapReached(trigger, runsTodayCount(trigger.id)) ? DAILY_CAP_REASON : null);
   if (reason) return refuse(reason);
@@ -147,7 +158,7 @@ export function fireTriggerNow(trigger: TriggerConfig, create: TaskCreator = cre
 const PAYLOAD_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.\d+_[0-9a-f]{16}$/;
 const SCHED_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.sched\.\d+$/;
 const DAILY_TOKEN = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.daily\.\d{4}-\d{2}-\d{2}$/;
-const DIGEST_TOKEN = /^digest\.\d{4}-\d{2}-\d{2}$/;
+const DIGEST_TOKEN = /^(?:digest\.|budget\..+\.)\d{4}-\d{2}-\d{2}$/; // both are daily and agent-wide: kept 48 h
 const DAILY_RETENTION_MS = 2 * DAY_MS;
 const DIGEST_WINDOW_MS = 60 * 60_000;
 
@@ -204,13 +215,15 @@ function logRefusalOnce(trigger: TriggerConfig, bucket: number, reason: string, 
 
 /** One scheduled fire (interval or daily) of an enabled, unpaused trigger. `tokenSuffix` is `sched.<bucket>` or `daily.<date>`;
  *  `bucket` keys the once-per-bucket refusal journal (the local midnight in ms for a daily fire). */
-function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: number, extra: Pick<FireReason, "daily">, quiet: boolean, create: TaskCreator): void {
+function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: number, extra: Pick<FireReason, "daily">, quiet: boolean, create: TaskCreator, spentOf: (agent: string) => Spent): void {
   const scope = tokenSuffix.slice(0, tokenSuffix.indexOf("."));
   // Checked before the token: a refused fire creates no task and keeps its bucket.
   const refusal = admissionRefusal(trigger) ?? (quiet && !trigger.critical ? QUIET_REASON : null);
   if (refusal) { logRefusalOnce(trigger, bucket, refusal, scope); return; }
   if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) { logRefusalOnce(trigger, bucket, CAP_REASON, scope); return; } // a slow run does not pile up fires
   if (dailyCapReached(trigger, runsTodayCount(trigger.id))) { logRefusalOnce(trigger, bucket, DAILY_CAP_REASON, scope); return; }
+  const overBudget = budgetRefusalFor(trigger.profile, new Date(Date.now()), spentOf);
+  if (overBudget) { logRefusalOnce(trigger, bucket, overBudget, scope); return; }
   // Scheduled fires bypass payload dedup: the wx token is the only guard,
   // else everyMinutes < dedupWindowMs swallows fires.
   if (!claimFireToken(`${trigger.id}.${tokenSuffix}`)) return;
@@ -249,15 +262,24 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
     const settings = readAgentOpsSettings();
     const now = new Date(Date.now()); // Date.now() so tests can drive the clock
     const quiet = inQuietHours(settings.quietHours, now); // read once per tick
+    let spentByAgent: Map<string, Spent> | undefined; // the run registry is read once per tick, on the first budgeted agent
+    const spentOf = (agent: string): Spent => {
+      if (!spentByAgent) {
+        const byAgent = new Map<string, RunRecord[]>();
+        for (const record of readRunRecords({ since: startOfLocalDay(now).toISOString() })) if (record.agent) byAgent.set(record.agent, [...(byAgent.get(record.agent) ?? []), record]);
+        spentByAgent = new Map([...byAgent].map(([name, records]) => [name, spentToday(records, now)]));
+      }
+      return spentByAgent.get(agent) ?? { tokens: 0, cost: 0 };
+    };
     for (const trigger of listTriggers()) {
       try {
         if (!trigger.enabled || isPausedFor(settings, trigger.profile)) continue;
         if (trigger.everyMinutes) {
           const bucket = Math.floor(now.getTime() / (trigger.everyMinutes * 60_000));
-          fireScheduled(trigger, `sched.${bucket}`, bucket, {}, quiet, create);
+          fireScheduled(trigger, `sched.${bucket}`, bucket, {}, quiet, create, spentOf);
         }
         const day = trigger.at ? dailyBucket(trigger.at, now) : null;
-        if (day) fireScheduled(trigger, `daily.${day}`, new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), { daily: day }, quiet, create);
+        if (day) fireScheduled(trigger, `daily.${day}`, new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), { daily: day }, quiet, create, spentOf);
       } catch (error) { // one trigger's failure must not stop the others
         console.error(`[agent-ops] scheduled fire of trigger ${trigger.id} failed:`, error instanceof Error ? error.message : error);
       }

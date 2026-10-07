@@ -97,6 +97,11 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
     if (bucket.costEquivalent > 0) parts.push(`≈ $${bucket.costEquivalent.toFixed(2)} ${t("agents.usage.equivalent")}`);
     return parts.join(" · ");
   };
+  const budgetParts: string[] = [];
+  if (usage && agent.budgetTokensPerDay !== undefined) budgetParts.push(`${formatCompact(usage.today.tokens)} / ${formatCompact(agent.budgetTokensPerDay)} tok`);
+  if (usage && agent.budgetUsdPerDay !== undefined) budgetParts.push(`$${usage.today.cost.toFixed(2)} / $${agent.budgetUsdPerDay.toFixed(2)}`);
+  const budgetSuffix = budgetParts.length > 0 ? ` (${budgetParts.join(" · ")})` : "";
+  const budgetReached = usage !== null && ((agent.budgetTokensPerDay !== undefined && usage.today.tokens >= agent.budgetTokensPerDay) || (agent.budgetUsdPerDay !== undefined && usage.today.cost >= agent.budgetUsdPerDay));
   const usageHasRuns = usage !== null && usage.days30.runs > 0;
 
   const reloadMemory = () => void loadMemory(signalRef.current);
@@ -111,8 +116,9 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       {usage && usageHasRuns && (
         <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
           {([["today", usage.today], ["days7", usage.days7], ["days30", usage.days30]] as const).map(([key, bucket]) => (
-            <div key={key}>{t(`agents.usage.${key}`)}: {bucketLine(bucket)}</div>
+            <div key={key}>{t(`agents.usage.${key}`)}: {bucketLine(bucket)}{key === "today" ? budgetSuffix : ""}</div>
           ))}
+          {budgetReached && <div role="status" style={{ color: "var(--text)" }}>{t("agents.usage.budgetReached")}</div>}
           <details>
             <summary style={{ cursor: "pointer" }}>{t("agents.usage.breakdown")}</summary>
             {[...Object.entries(usage.byModel), ...Object.entries(usage.byOrigin)].map(([label, bucket], index) => (

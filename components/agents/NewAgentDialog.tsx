@@ -23,6 +23,8 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
   const [role, setRole] = useState("");
   const [model, setModel] = useState("");
   const [thinking, setThinking] = useState("");
+  const [budgetTokens, setBudgetTokens] = useState("");
+  const [budgetUsd, setBudgetUsd] = useState("");
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>("standard");
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -67,7 +69,7 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
     setBusy(true);
     setError(null);
     try {
-      const body = { name: name.trim(), role, toolsPreset, mcpServers, avatar: { emoji, color }, ...(model ? { model } : {}), ...(thinking ? { thinking } : {}) };
+      const body = { name: name.trim(), role, toolsPreset, mcpServers, avatar: { emoji, color }, ...(model ? { model } : {}), ...(thinking ? { thinking } : {}), ...(budgetTokens ? { budgetTokensPerDay: Number(budgetTokens) } : {}), ...(budgetUsd ? { budgetUsdPerDay: Number(budgetUsd) } : {}) };
       const response = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({})) as { agent?: AgentDetail; error?: string };
       if (!response.ok || !data.agent) { setError(data.error ?? `HTTP ${response.status}`); return; }
@@ -124,6 +126,14 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
             <option value="">{t("agents.model.default")}</option>
             {THINKING_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
           </select>
+        </label>
+        <label style={labelStyle}>
+          {t("agents.new.budgetTokens")}
+          <input type="number" min={0} step={1} value={budgetTokens} onChange={(event) => setBudgetTokens(event.target.value)} style={fieldStyle} />
+        </label>
+        <label style={labelStyle}>
+          {t("agents.new.budgetUsd")}
+          <input type="number" min={0} step="any" value={budgetUsd} onChange={(event) => setBudgetUsd(event.target.value)} style={fieldStyle} />
         </label>
         <div style={labelStyle}>
           {t("agents.new.tools")}

@@ -8,6 +8,7 @@ import { redactSecrets } from "./redact";
 import { automaticCapacity, memAvailableMb } from "./capacity";
 import { runningCount, runPendingTasks } from "./runner";
 import { startAgentProfileRun } from "./spawn";
+import { pushBudgetReachedOnce } from "./budget-push";
 import { assertTaskStillStartable } from "./start-guard";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
@@ -46,6 +47,7 @@ export function handleTaskEnd(task: AgentTask): void {
       tag: `pi-agent-failed:${task.id}`,
     })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
   }
+  void pushBudgetReachedOnce(agentName); // a run that reaches the daily budget: one push per agent per day
   if (task.target === "isolated") {
     const agent = getLongTermAgent(agentName);
     const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
