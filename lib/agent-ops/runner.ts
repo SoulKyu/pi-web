@@ -21,17 +21,21 @@ export interface RunnerDeps {
   slotKey?: "__agentOpsRunning" | "__agentOpsThreadRunning";
   /** Called with the final record after the terminal write, in the run's finally. */
   onTaskEnd?(task: AgentTask): void;
+  /** Free runs allowed now across runners; the lower of this and `maxConcurrent` minus this runner's slots wins. */
+  capacity?: () => number;
 }
 export const DEFAULT_MAX_RUN_MS = 30 * 60_000;
 
 // Process-wide running counter — same globalThis pattern as __piSessions (lib/rpc-manager.ts:1934).
 declare global { var __agentOpsRunning: number | undefined; var __agentOpsThreadRunning: number | undefined; }
 type SlotKey = NonNullable<RunnerDeps["slotKey"]>;
-const runningCount = (key: SlotKey): number => globalThis[key] ?? 0;
+export const runningCount = (key: SlotKey): number => globalThis[key] ?? 0;
 
 export async function runPendingTasks(deps: RunnerDeps): Promise<void> {
   const key = deps.slotKey ?? "__agentOpsRunning";
-  const capacity = deps.maxConcurrent - runningCount(key);
+  // ponytail: both passes read the capacity before incrementing, so a brief overshoot of one run is possible; the 60 s re-kick settles it.
+  const own = deps.maxConcurrent - runningCount(key);
+  const capacity = deps.capacity ? Math.min(deps.capacity(), own) : own;
   if (capacity <= 0) return;
   // listTasks is newest first (the UI relies on it); dequeue oldest first so steady ingestion cannot starve old tasks.
   const all = listTasks();
