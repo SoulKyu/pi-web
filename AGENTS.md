@@ -46,6 +46,7 @@ app/api/
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
+  agent-ops/settings/route.ts      GET settings | PUT partial (400 on a failed validation)
   agents/route.ts                  GET long-term agents (name, avatar, running, unread) | POST create
   agents/[name]/route.ts           GET detail | PATCH profile (409 agent_running while the thread runs) | DELETE to .trash
   agents/[name]/thread/route.ts    POST open or create the pinned thread
@@ -145,6 +146,7 @@ lib/
   agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
+  agent-ops/settings.ts     ~/.pi/agent/agent-ops/settings.json: run cap, free-memory floor, pause, quiet hours; validated patches
   file-access.ts            allowed file roots for /api/files and worktrees
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check
   file-paths.ts             client/server path encoding helpers
