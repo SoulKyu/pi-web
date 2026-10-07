@@ -24,6 +24,10 @@ export interface IngestionPlan { verdict: "accepted" | "refused"; reason?: strin
 const QUIET_REASON = "quiet hours";
 const CAP_REASON = "too many active tasks for this trigger";
 const DAILY_CAP_REASON = "daily run cap reached";
+/** Waiting (quiet-hours) tasks hold no cap slot, so they get their own bound: past it a deferrable payload is refused. */
+export const MAX_DEFERRED_PER_TRIGGER = 20;
+const DEFERRED_CAP_REASON = "too many deferred tasks for this trigger";
+const DAY_SCOPED_REASONS: ReadonlySet<string> = new Set(["daily token budget reached", "daily cost budget reached", DAILY_CAP_REASON]);
 const DAY_MS = 24 * 3_600_000;
 const PRUNE_EVERY_MS = 3_600_000;
 
@@ -126,10 +130,11 @@ export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, crea
   };
   // A replay of an accepted payload is a duplicate even when its task still holds the cap.
   if (plan.verdict === "refused") return refuse(plan.reason === CAP_REASON && existsSync(join(triggersDir(), plan.tokenName!)) ? /* existing token = same payload hash already ingested in this bucket, so this is a replay */ "duplicate within dedup window" : plan.reason!);
-  if (!claimFireToken(plan.tokenName!)) return refuse("duplicate within dedup window");
   const quiet = readAgentOpsSettings().quietHours;
   const now = new Date();
   const deferredUntil = !trigger.critical && (severity ?? plan.severity) !== "critical" && quiet && inQuietHours(quiet, now) ? quietHoursEnd(quiet, now).toISOString() : undefined;
+  if (deferredUntil && listTasks().filter((t) => t.triggerId === trigger.id && t.status === "queued" && isWaiting(t, now.getTime())).length >= MAX_DEFERRED_PER_TRIGGER) return refuse(DEFERRED_CAP_REASON); // before the token: nothing claimed
+  if (!claimFireToken(plan.tokenName!)) return refuse("duplicate within dedup window");
   const taskId = createTriggerTask(trigger, plan.text, create, "webhook", { source: "webhook", bucket: plan.bucket, payloadHash: plan.payloadHash }, deferredUntil);
   appendTriggerLog(trigger.id, { at: now.toISOString(), source: "webhook", verdict: "accepted", bucket: plan.bucket, payloadHash: plan.payloadHash, taskId, ...(deferredUntil ? { reason: "deferred to quiet hours end" } : plan.formatFallback ? { reason: "payload format fallback" } : {}) });
   return { accepted: true, taskId };
@@ -205,7 +210,10 @@ declare global {
 /** A refused scheduled fire is retried every tick: log its reason once per trigger and bucket. */
 function logRefusalOnce(trigger: TriggerConfig, bucket: number, reason: string, scope = "sched"): void {
   const logged = (globalThis.__agentOpsLoggedRefusals ??= new Map());
-  const key = `${bucket}:${reason}`;
+  const quietHours = readAgentOpsSettings().quietHours;
+  const now = new Date(Date.now());
+  // A reason that holds all day (or all of quiet hours) is one journal line per day (per window), not one per bucket.
+  const key = DAY_SCOPED_REASONS.has(reason) ? `${startOfLocalDay(now).getTime()}:${reason}` : reason === QUIET_REASON && quietHours ? `${quietHoursEnd(quietHours, now).toISOString()}:${reason}` : `${bucket}:${reason}`;
   const entry = `${trigger.id}.${scope}`; // interval and daily fires of one trigger do not flip each other's entry
   if (logged.get(entry) === key) return;
   logged.set(entry, key); // ponytail: one entry per trigger id and scope, never pruned
@@ -218,12 +226,10 @@ function logRefusalOnce(trigger: TriggerConfig, bucket: number, reason: string, 
 function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: number, extra: Pick<FireReason, "daily">, quiet: boolean, create: TaskCreator, spentOf: (agent: string) => Spent): void {
   const scope = tokenSuffix.slice(0, tokenSuffix.indexOf("."));
   // Checked before the token: a refused fire creates no task and keeps its bucket.
-  const refusal = admissionRefusal(trigger) ?? (quiet && !trigger.critical ? QUIET_REASON : null);
+  const refusal = admissionRefusal(trigger) ?? budgetRefusalFor(trigger.profile, new Date(Date.now()), spentOf) ?? (quiet && !trigger.critical ? QUIET_REASON : null);
   if (refusal) { logRefusalOnce(trigger, bucket, refusal, scope); return; }
   if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) { logRefusalOnce(trigger, bucket, CAP_REASON, scope); return; } // a slow run does not pile up fires
   if (dailyCapReached(trigger, runsTodayCount(trigger.id))) { logRefusalOnce(trigger, bucket, DAILY_CAP_REASON, scope); return; }
-  const overBudget = budgetRefusalFor(trigger.profile, new Date(Date.now()), spentOf);
-  if (overBudget) { logRefusalOnce(trigger, bucket, overBudget, scope); return; }
   // Scheduled fires bypass payload dedup: the wx token is the only guard,
   // else everyMinutes < dedupWindowMs swallows fires.
   if (!claimFireToken(`${trigger.id}.${tokenSuffix}`)) return;
