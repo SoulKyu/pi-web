@@ -50,6 +50,7 @@ app/api/
   agents/[name]/route.ts           GET detail | PATCH profile (409 agent_running while the thread runs) | DELETE to .trash
   agents/[name]/thread/route.ts    POST open or create the pinned thread
   agents/[name]/thread/reset/route.ts POST archive the thread to the trash and start a fresh one (409 agent_running)
+  agents/mcp-servers/route.ts      GET names of the global pi-mcp-adapter servers (never their config)
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories
@@ -121,6 +122,7 @@ lib/
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
   agents/registry.ts        long-term agent files: profile, space state, home, trash; AGENT_NAME_RE
+  agents/mcp-access.ts      per-agent MCP allowlist: lists global adapter servers, writes <home>/.pi/mcp-adapter.json
   agents/registry-response.ts registry errors to HTTP responses
   agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
   agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)

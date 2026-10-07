@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { resolveLongTermProfile } from "../agents/registry";
+import { getLongTermAgent, resolveLongTermProfile } from "../agents/registry";
+import { syncAgentMcpOverrides } from "../agents/mcp-access";
 import { startRpcSession } from "../rpc-manager";
 import { invalidateSessionListCache } from "../session-reader";
 import { enforceTriggerTools, watchPromptRun } from "./prompt-run";
@@ -19,6 +20,9 @@ export async function startAgentProfileRun(
       throw new Error(`trigger profile drift: pinned ${expectedPinSha256.slice(0, 12)}, found ${actual.slice(0, 12)}`);
     }
   }
+  // An isolated run of a long-term agent runs in its home: regenerate its MCP blocklist before the adapter reads it.
+  const agent = getLongTermAgent(profile);
+  if (agent && agent.home === cwd) syncAgentMcpOverrides(agent.home, agent.mcpServers);
   const tempKey = `__agentops__${randomUUID()}`; // unique: same-key callers coalesce onto one session
   const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, {
     agentProfile: profile, // trust stays absent: the run is untrusted and narrowed to the allowlist

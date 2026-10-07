@@ -45,6 +45,8 @@ export interface SubagentProfile {
   persistSession?: boolean;
   /** A long-term agent (rail, pinned thread, automatic home). Never delegable. */
   longTerm?: true;
+  /** pi-mcp-adapter servers a long-term agent may use; every other global server is blocked in its home. */
+  mcpServers?: string[];
   enabled: boolean;
   scope: SubagentScope;
   filePath?: string;
@@ -155,6 +157,7 @@ const MANAGED_FRONTMATTER_KEYS = new Set([
   "isolation",
   "persist_session",
   "long_term",
+  "mcp_servers",
 ]);
 
 const FRONTMATTER_OPEN_RE = /^(?:\uFEFF)?---[ \t]*(?:\r\n|\n|\r)/;
@@ -303,6 +306,7 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
     const name = stringValue(data?.name) ?? basename(filePath, ".md");
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) return null;
     const thinkingValue = stringValue(data?.thinking) as ThinkingLevel | undefined;
+    const mcpServers = Array.isArray(data?.mcp_servers) ? data.mcp_servers.filter((entry): entry is string => typeof entry === "string") : [];
     const maxTurnsValue = typeof data?.max_turns === "number" ? Math.floor(data.max_turns) : undefined;
     const tools = parseTools(data?.tools, DEFAULT_TOOLS);
     const disallowedTools = new Set(parseTools(data?.disallowed_tools, []));
@@ -341,6 +345,7 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
       ...(data?.isolation === "worktree" || data?.isolation === "off" ? { isolation: data.isolation } : {}),
       ...(typeof data?.persist_session === "boolean" ? { persistSession: data.persist_session } : {}),
       ...(data?.long_term === true ? { longTerm: true as const } : {}),
+      ...(mcpServers.length > 0 ? { mcpServers } : {}),
       enabled: booleanValue(data?.enabled, true),
       scope,
       filePath,
@@ -489,6 +494,7 @@ export function saveSubagentProfile(
   if (profile.isolation) managed.isolation = profile.isolation;
   if (profile.persistSession !== undefined) managed.persist_session = profile.persistSession;
   if (profile.longTerm) managed.long_term = true;
+  if (profile.mcpServers?.length) managed.mcp_servers = profile.mcpServers;
   // Managed keys win; keys this app does not own follow in their original order.
   const frontmatter: Record<string, unknown> = { ...managed };
   for (const [key, value] of Object.entries(unmanagedFrontmatter(stored))) {
@@ -513,6 +519,7 @@ export function saveSubagentProfile(
     ...(profile.isolation ? { isolation: profile.isolation } : {}),
     ...(profile.persistSession !== undefined ? { persistSession: profile.persistSession } : {}),
     ...(profile.longTerm ? { longTerm: true as const } : {}),
+    mcpServers: profile.mcpServers?.length ? profile.mcpServers : undefined,
     scope,
     filePath,
   };

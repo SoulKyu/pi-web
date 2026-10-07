@@ -36,10 +36,18 @@
 - Layout (`showAgentPanel`): the right panel shows the file viewer whenever a file/terminal tab is active, the agent panel otherwise. Mobile ⓘ toggles a drawer stacking `AgentSpaceLeft` then `AgentSpaceRight`.
 - Display entries come from `appendDisplayEntry` on the wrapper, which emits `custom_entry_appended`.
 
+## MCP access
+- **Mechanism.** The user's MCP servers come from the `pi-mcp-adapter` extension. Per session it merges `<cwd>/.pi/mcp-adapter.json` field by field over the user-global config, and `{ "disabled": true }` there turns a global server off with no approval prompt. An agent's cwd is its home, so pi-web owns `<home>/.pi/mcp-adapter.json` and writes `disabled: true` for every global server the profile does not allow. None are allowed by default.
+- **Two files.** The profile's `mcp_servers` frontmatter list (the allowlist; absent when empty; `mcpServers` in `registry.ts`) and the generated overrides file (`lib/agents/mcp-access.ts`, `syncAgentMcpOverrides`). `listGlobalMcpServers` reads the adapter's user-global sources (`adapterGlobalConfigPaths`) and returns names only: the entries hold secrets. `GET /api/agents/mcp-servers` feeds the checkboxes in both dialogs. `mcp-servers` is a reserved agent name (route segment).
+- **Fail-closed regeneration.** The file is rewritten (only when its content differs) on create and update, in `ensureThreadLocked` (every thread open, reopen included) and in `startAgentProfileRun` (isolated runs in the home), so a server added globally later stays blocked. Hand edits are overwritten.
+- **Applies at the next open**, like role and tools: PATCH with `mcpServers` calls `shutdownWhenIdle()` because the adapter reads its config at session start.
+- **Limits.** `pi-mcp-adapter` only: agent-profile sessions never load pi-web's MCP host and pi's built-in MCP is not covered. Host imports and plugin servers are not listed (nor blocked by name). The `.pi/` folder shows in the home tree.
+
 ## What is never done
 - No delegation to a long-term agent, no listing in Settings › Sub-agents, no re-snapshot of untrusted sessions.
 
 ## Known gaps
+- A global MCP server that only a host import or a plugin provides is neither listed nor blocked for agents (`mcp-access.ts` reads the adapter's user-global files only).
 - PATCH gates on `threadRunning` after the body parse and re-reads the agent first; nothing awaits between the gate and the write, so a turn cannot start in between. DELETE answers 409 `agent_running` for a running or starting thread (`isRpcSessionStarting`); an idle live wrapper is shut down first, then the checks run again before the move.
 - The tab bar is hidden while the agent panel shows.
 - A task lock whose pid was reused by another process after a restart looks alive (`isAlive` in `task-store.ts`), so recovery keeps it: cancel the task to free the agent's queue.
