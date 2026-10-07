@@ -71,8 +71,8 @@ export function listPendingForgets(name: string, dir = mem0Dir()): string[] {
   try { names = readdirSync(join(dir, "forget")); } catch { return []; }
   return names.filter((file) => REQUEST_FILE.test(file)).flatMap((file) => {
     try {
-      const raw = JSON.parse(readFileSync(join(dir, "forget", file), "utf8")) as { memoryId?: unknown; agent?: unknown };
-      return raw.agent === name && typeof raw.memoryId === "string" ? [raw.memoryId] : [];
+      const raw = JSON.parse(readFileSync(join(dir, "forget", file), "utf8")) as { memoryId?: unknown; agent?: unknown; scope?: unknown };
+      return (raw.agent === name || raw.scope === `agent:${name}`) && typeof raw.memoryId === "string" ? [raw.memoryId] : [];
     } catch { return []; }
   });
 }
@@ -89,7 +89,7 @@ export function requestForget(name: string, memoryId: string, dir = mem0Dir()): 
 }
 
 const SCOPE_KEY_RE = /^(user|project-[A-Za-z0-9._-]+)$/;
-const REQUEST_SCOPE_RE = /^(user|project:[A-Za-z0-9._-]+|agent:[A-Za-z0-9._-]+)$/;
+const REQUEST_SCOPE_RE = /^(user|project:[A-Za-z0-9._-]+|agent:[A-Za-z0-9][A-Za-z0-9._-]*)$/;
 const PROJECT_ID_RE = /^[A-Za-z0-9._-]+$/;
 
 /** Snapshot of the user scope (`user`) or one project (`project-<id>`) written by pi-mem0 (src/snapshot.ts): newest first, 200 at most. */
@@ -135,11 +135,11 @@ export function readSnapshotForScope(scope: string, dir = mem0Dir()): AgentMemor
   return readScopeSnapshot(scope === "user" ? "user" : `project-${scope.slice(8)}`, dir);
 }
 
-/** Same contract as requestForget for any scope; pi-mem0 refuses a memory whose owner is not exactly that scope. */
+/** Same contract as requestForget for any scope, minus the snapshot check: the caller validated the id against one snapshot read.
+ *  pi-mem0 refuses a memory whose owner is not exactly that scope. */
 export function requestScopeForget(scope: string, memoryId: string, dir = mem0Dir()): string {
   if (!isRequestScope(scope)) throw new Error("invalid scope");
   if (!MEMORY_ID_RE.test(memoryId)) throw new Error("invalid memory id");
-  if (!readSnapshotForScope(scope, dir).some((item) => item.id === memoryId)) throw new MemoryNotFoundError("memory not found");
   mkdirSync(join(dir, "forget"), { recursive: true, mode: 0o700 });
   const id = randomUUID();
   writePrivateFileAtomicSync(join(dir, "forget", `${id}.json`), JSON.stringify({ memoryId, scope }));

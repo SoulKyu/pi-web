@@ -119,6 +119,7 @@ export function validateCreateInput(body: unknown): { ok: true; input: CreateAge
   if (!isRecord(body)) return { ok: false, error: "Invalid JSON body" };
   if (typeof body.name !== "string" || !AGENT_NAME_RE.test(body.name.trim())) return { ok: false, error: "name may contain only letters, numbers, dots, underscores and hyphens" };
   if (body.name.trim().length > AGENT_NAME_MAX) return { ok: false, error: `name must be at most ${AGENT_NAME_MAX} characters` };
+  if (body.name.includes("..")) return { ok: false, error: "name must not contain two consecutive dots" };
   if (RESERVED_AGENT_NAMES.has(body.name.trim().toLowerCase())) return { ok: false, error: "name is reserved" };
   const fields = validateFields(body, true);
   if (!fields.ok) return fields;

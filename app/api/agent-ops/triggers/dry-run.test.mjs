@@ -39,7 +39,7 @@ test("dry-run returns the fenced prompt and writes nothing", async () => {
   assert.equal(res.status, 200);
   const { plan } = await res.json();
   assert.equal(plan.verdict, "accepted"); assert.equal(plan.tokenFree, true); assert.equal(plan.target, "isolated"); assert.equal(plan.pinStatus, "ok");
-  assert.match(plan.prompt, /<untrusted_payload>\ndisk full/); assert.ok(plan.tools.includes("read"));
+  assert.match(plan.prompt, /<untrusted_payload id="[0-9a-f]{8}">\ndisk full/); assert.ok(plan.tools.includes("read"));
   assert.deepEqual(readdirSync(triggers.triggersDir()).sort(), before);
   assert.equal(tasks.listTasks().length, 0);
 });
