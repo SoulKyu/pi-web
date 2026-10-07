@@ -31,7 +31,7 @@ export function hookThrottle(triggerId?: string): AuthThrottleState {
   return state;
 }
 
-/** Unauthenticated refusals are only counted, in memory: callers without the secret must not fill the journal. */
+/** Hook calls refused before ingestion: 401/403 (secret) and 413 (body too large); unknown ids (404) are not counted. */
 export const rejectedUnauthenticatedCount = (triggerId: string): number => globalThis.__agentOpsRejectedHooks?.get(triggerId) ?? 0;
 function countRejected(triggerId: string): void {
   const counts = (globalThis.__agentOpsRejectedHooks ??= new Map());

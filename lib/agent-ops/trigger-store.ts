@@ -153,5 +153,9 @@ export function saveTrigger(trigger: TriggerConfig): void {
 }
 export function deleteTrigger(id: string): boolean {
   if (!VALID_ID.test(id)) return false;
-  try { unlinkSync(triggerPath(id)); return true; } catch { return false; }
+  let deleted = false;
+  try { unlinkSync(triggerPath(id)); deleted = true; } catch { /* deleted stays false */ }
+  // Also remove the trigger's journal: absent is normal, failures are silent.
+  try { unlinkSync(join(triggersDir(), `${id}.log.jsonl`)); } catch { /* absent */ }
+  return deleted;
 }

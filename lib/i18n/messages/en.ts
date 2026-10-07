@@ -1376,7 +1376,7 @@ export const enLocale: LocalePlugin = {
     "agentOps.trigger.history": "History ({count})",
     "agentOps.trigger.journal": "Journal",
     "agentOps.trigger.journalEmpty": "No fires recorded yet",
-    "agentOps.trigger.journalRejected": "{count} rejected without the secret since start",
+    "agentOps.trigger.journalRejected": "{count} rejected hook calls (bad secret, oversized body) since start",
     "agentOps.trigger.rotate": "Rotate secret",
     "agentOps.trigger.generate": "Generate secret",
     "agentOps.trigger.rotateConfirm": "Replace the secret of {name}? The old one stops working immediately.",

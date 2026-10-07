@@ -1376,7 +1376,7 @@ export const frLocale: LocalePlugin = {
     "agentOps.trigger.history": "Historique ({count})",
     "agentOps.trigger.journal": "Journal",
     "agentOps.trigger.journalEmpty": "Aucun déclenchement enregistré",
-    "agentOps.trigger.journalRejected": "{count} refusés sans le secret depuis le démarrage",
+    "agentOps.trigger.journalRejected": "{count} appels webhook refusés (mauvais secret, corps surdimensionné) depuis le démarrage",
     "agentOps.trigger.rotate": "Renouveler le secret",
     "agentOps.trigger.generate": "Générer un secret",
     "agentOps.trigger.rotateConfirm": "Remplacer le secret de {name} ? L'ancien cesse de fonctionner immédiatement.",

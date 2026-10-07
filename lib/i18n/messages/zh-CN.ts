@@ -1376,7 +1376,7 @@ export const zhCNLocale: LocalePlugin = {
     "agentOps.trigger.history": "历史（{count}）",
     "agentOps.trigger.journal": "日志",
     "agentOps.trigger.journalEmpty": "尚无触发记录",
-    "agentOps.trigger.journalRejected": "启动以来 {count} 次未带密钥被拒绝",
+    "agentOps.trigger.journalRejected": "启动以来 {count} 次 webhook 调用被拒绝（密钥错误、请求体过大）",
     "agentOps.trigger.rotate": "轮换密钥",
     "agentOps.trigger.generate": "生成密钥",
     "agentOps.trigger.rotateConfirm": "替换 {name} 的密钥？旧密钥将立即失效。",

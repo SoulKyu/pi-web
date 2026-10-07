@@ -83,7 +83,7 @@ export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, crea
     return { accepted: false, reason };
   };
   // A replay of an accepted payload is a duplicate even when its task still holds the cap.
-  if (plan.verdict === "refused") return refuse(plan.reason === CAP_REASON && existsSync(join(triggersDir(), plan.tokenName!)) ? "duplicate within dedup window" : plan.reason!);
+  if (plan.verdict === "refused") return refuse(plan.reason === CAP_REASON && existsSync(join(triggersDir(), plan.tokenName!)) ? /* existing token = same payload hash already ingested in this bucket, so this is a replay */ "duplicate within dedup window" : plan.reason!);
   if (!claimFireToken(plan.tokenName!)) return refuse("duplicate within dedup window");
   const taskId = createTriggerTask(trigger, plan.text, create, "webhook", { source: "webhook", bucket: plan.bucket, payloadHash: plan.payloadHash });
   appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "webhook", verdict: "accepted", bucket: plan.bucket, payloadHash: plan.payloadHash, taskId });
