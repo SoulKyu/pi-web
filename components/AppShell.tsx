@@ -883,10 +883,20 @@ export function AppShell() {
   }, [handleSelectSession, sessionCatalog]);
 
   const openAgent = useCallback(async (name: string) => {
-    const response = await fetch(`/api/agents/${encodeURIComponent(name)}/thread`, { method: "POST" });
-    const data = await response.json() as { sessionId?: string; lastReadEntryId?: string | null; error?: string };
+    let response: Response;
+    let data: { sessionId?: string; lastReadEntryId?: string | null; error?: string };
+    try {
+      response = await fetch(`/api/agents/${encodeURIComponent(name)}/thread`, { method: "POST" });
+      data = await response.json() as typeof data;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[pi-web] failed to open agent:", message);
+      window.alert(translate("agents.error", { error: message }));
+      return;
+    }
     if (!response.ok || !data.sessionId) {
       console.error("[pi-web] failed to open agent:", data.error);
+      window.alert(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
       return;
     }
     const detail = await fetch(`/api/agents/${encodeURIComponent(name)}`, { cache: "no-store" })
@@ -898,7 +908,7 @@ export function AppShell() {
     pendingAgentRef.current = { sessionId: data.sessionId, agentName: name };
     await handleOpenSession(data.sessionId);
     if (!isMobile) setRightPanelOpen(true);
-  }, [handleOpenSession, isMobile]);
+  }, [handleOpenSession, isMobile, translate]);
 
   useEffect(() => {
     if (agentMountOpenedRef.current || !initialNavigation.agentName) return;

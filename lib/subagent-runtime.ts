@@ -8,6 +8,7 @@ import {
   SettingsManager,
   type ModelRuntime,
 } from "@earendil-works/pi-coding-agent";
+import { findDeferredModel } from "./deferred-provider-models";
 import type { AgentSessionLike } from "./pi-types";
 import {
   subagentNotificationText,
@@ -182,6 +183,21 @@ export function parseSubagentModel(runtime: ModelRuntime, value: string | undefi
   if (matches.length === 1) return matches[0];
   if (matches.length === 0) throw new Error(`Subagent model not found: ${requested}`);
   throw new Error(`Subagent model is ambiguous; use provider/modelId: ${requested}`);
+}
+
+/** Like parseSubagentModel, but a provider/modelId an extension registers only at session_start comes back as `deferred`. */
+export function parseSubagentModelOrDeferred(runtime: ModelRuntime, value: string | undefined) {
+  try {
+    return { model: parseSubagentModel(runtime, value) };
+  } catch (error) {
+    const requested = value?.trim() ?? "";
+    const slash = requested.indexOf("/");
+    const deferred = slash > 0 && error instanceof Error && error.message.startsWith("Subagent model not found")
+      ? findDeferredModel(runtime, requested.slice(0, slash), requested.slice(slash + 1))
+      : undefined;
+    if (!deferred) throw error;
+    return { deferred };
+  }
 }
 
 function parentContextText(parent: HostSession): string {

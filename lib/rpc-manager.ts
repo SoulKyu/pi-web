@@ -50,7 +50,7 @@ import {
   type SubagentProfile,
   type SubagentSessionResources,
 } from "./subagents";
-import { createSubagentController, parseSubagentModel, resolveProfileActiveTools } from "./subagent-runtime";
+import { createSubagentController, parseSubagentModelOrDeferred, resolveProfileActiveTools } from "./subagent-runtime";
 import { buildSubagentPromptPlan } from "./subagent-prompt";
 import { isBuiltInSubagentsEnabled } from "./subagent-settings";
 import { resolveShellTools } from "./powershell-settings";
@@ -2546,9 +2546,9 @@ export async function startRpcSession(
       const previous = sessionFile ? readSubagentSessionResources(entries) : null;
       if (!previous || !sameResourceSnapshot(previous, snapshotResources)) sessionManager.appendCustomEntry(AGENT_PROFILE_SESSION_TYPE, metadata);
     }
-    const profileModel = newSessionProfile
-      ? parseSubagentModel(services.modelRuntime, newSessionProfile.model)
-      : undefined;
+    const { model: profileModel, deferred: deferredProfileModel } = newSessionProfile
+      ? parseSubagentModelOrDeferred(services.modelRuntime, newSessionProfile.model)
+      : {};
     const scope = await resolveVisibleModels(
       services.modelRuntime,
       services.settingsManager.getEnabledModels(),
@@ -2591,7 +2591,7 @@ export async function startRpcSession(
       ? savedModel && !restoredModel
         ? findDeferredModel(services.modelRuntime, savedModel.provider, savedModel.modelId)
         : undefined
-      : deferredInitialModel;
+      : deferredInitialModel ?? deferredProfileModel;
     const { session: inner } = await createAgentSessionFromServices({
       services,
       sessionManager,
