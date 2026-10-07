@@ -11,7 +11,7 @@ const PREVIEW_MAX_LINES = 20;
 const PREVIEW_MAX_CHARS = 8192;
 
 export function isPreviewable(filePath: string, root?: string): boolean {
-  return Boolean(root) && filePath.endsWith(".md") && filePath.startsWith(`${root}/`);
+  return Boolean(root) && filePath.endsWith(".md") && filePath.startsWith(`${root}/`) && !filePath.includes("/../");
 }
 
 /** The route has no byte cap parameter, so the cut happens here. */

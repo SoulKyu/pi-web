@@ -2648,7 +2648,7 @@ export function AppShell() {
           <div style={{ flex: 1, overflow: "hidden" }}>
             <TabBar
               tabs={panelTabs}
-              activeTabId={activeFileTabId ?? ""}
+              activeTabId={showAgentPanel && !activeFileTab ? AGENT_TAB_ID : activeFileTabId ?? ""}
               onSelectTab={setActiveFileTabId}
               onCloseTab={handleCloseFileTab}
             />

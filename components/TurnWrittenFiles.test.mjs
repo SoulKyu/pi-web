@@ -44,6 +44,7 @@ test("isPreviewable needs a .md strictly under the root", () => {
   assert.equal(isPreviewable("/home/a/notes.txt", "/home/a"), false);
   assert.equal(isPreviewable("/home/ab/notes.md", "/home/a"), false);
   assert.equal(isPreviewable("/home/a/notes.md", undefined), false);
+  assert.equal(isPreviewable("/home/a/../b/notes.md", "/home/a"), false);
 });
 
 test("a previewable markdown file gets a closed details; others do not", () => {
