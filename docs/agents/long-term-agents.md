@@ -44,7 +44,7 @@
   - Fences and system rules for fetched content (planned); the webhook payload is already fenced in `<untrusted_payload>`.
   - `agent_approve` (planned).
 - **Lethal trifecta** (private data + untrusted content + exfiltration channel) for a web-reading agent:
-  - Zero-code answer: run a profile without `bash` (preset `read-only`). It keeps MCP fetch tools, has no shell and no network from bash.
+  - Zero-code answer: run a profile without `bash` (preset `read-only`). It keeps MCP tools only when the server exposes them as direct tools (adapter `directTools`) that carry `readOnlyHint: true`; the adapter's generic `mcp` proxy is blocked (fail-closed). No shell and no network from bash.
   - Alternative: a bubblewrap sandbox (planned); it needs a manual AppArmor test on the host.
 - **Residual risks, accepted.**
   - Shared home: the trusted thread (bash/write) can plant symlinks or hard links in the home between a hook's check and pi's open. The isolated run cannot (allowlist, no write tool). A code fix needs an `O_NOFOLLOW` / fd-based open inside pi.
