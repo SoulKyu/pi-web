@@ -30,7 +30,7 @@ export async function startAgentProfileRun(
   });
   invalidateSessionListCache(); // the route's call at queue time ran before this session existed
   if (isTriggerRun) await enforceTriggerTools(session);
-  beforePrompt?.();
+  try { beforePrompt?.(); } catch (error) { await session.shutdown().catch(() => {}); throw error; }
   const { done, abort } = watchPromptRun(session, prompt);
   return { sessionId: realSessionId, done, abort };
 }
