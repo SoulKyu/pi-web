@@ -118,3 +118,8 @@ test("keeps Settings › MCP usable in the 190px phone sidebar", () => {
     .filter((name) => name.startsWith("mcp-")));
   assert.deepEqual([...styled].sort(), [...rendered].sort());
 });
+
+test("the agent drawer tab header is styled under 640px", () => {
+  assert.match(cssSource, /@media \(max-width: 640px\) \{\s*\.agent-drawer-tabs/);
+  assert.match(cssSource, /\.agent-drawer-tab\.is-active/);
+});

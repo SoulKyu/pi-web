@@ -13,6 +13,7 @@ import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { AgentAvatar } from "./agents/AgentAvatar";
+import { DRAWER_TAB_KEY, readDrawerTab, type DrawerTab } from "@/lib/agents/drawer-tab";
 import { AgentSpaceLeft } from "./agents/AgentSpaceLeft";
 import { AgentSpaceRight } from "./agents/AgentSpaceRight";
 import type { AgentDetail } from "@/lib/agents/agent-view";
@@ -1322,6 +1323,23 @@ export function AppShell() {
     return () => observer.disconnect();
   }, [windowTitle]);
 
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>("home");
+  useEffect(() => {
+    try {
+      setDrawerTab(readDrawerTab(localStorage.getItem(DRAWER_TAB_KEY)));
+    } catch {
+      // Browser storage is best-effort.
+    }
+  }, []);
+  const selectDrawerTab = useCallback((tab: DrawerTab) => {
+    setDrawerTab(tab);
+    try {
+      localStorage.setItem(DRAWER_TAB_KEY, tab);
+    } catch {
+      // Keep the drawer usable when storage is unavailable.
+    }
+  }, []);
+
   const agentSpaceLeft = activeAgent && agentDetail ? (
     <AgentSpaceLeft
       agent={agentDetail}
@@ -1349,8 +1367,14 @@ export function AppShell() {
 
   const sidebarContent = agentSpaceLeft ? (
     <>
-      {agentSpaceLeft}
-      {isMobile && agentSpaceRight}
+      {isMobile && (
+        <div className="agent-drawer-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={drawerTab === "home"} className={`agent-drawer-tab${drawerTab === "home" ? " is-active" : ""}`} onClick={() => selectDrawerTab("home")}>{translate("agents.drawer.home")}</button>
+          <button type="button" role="tab" aria-selected={drawerTab === "status"} className={`agent-drawer-tab${drawerTab === "status" ? " is-active" : ""}`} onClick={() => selectDrawerTab("status")}>{translate("agents.drawer.status")}</button>
+        </div>
+      )}
+      {(!isMobile || drawerTab === "home") && agentSpaceLeft}
+      {isMobile && drawerTab === "status" && agentSpaceRight}
     </>
   ) : (
     <>

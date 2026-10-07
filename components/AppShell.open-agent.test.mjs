@@ -17,3 +17,13 @@ test("the Agent pseudo-tab is first, never persisted, and brings the panel back"
   assert.match(source, /activeId: activeFileTabId === AGENT_TAB_ID \? null : activeFileTabId/);
   assert.match(source, /if \(!activeAgent\) \{[^}]*setActiveFileTabId\(\(cur\) => cur === AGENT_TAB_ID/);
 });
+
+test("the mobile agent drawer has two tabs and remembers the last one", () => {
+  assert.match(source, /localStorage\.getItem\(DRAWER_TAB_KEY\)/);
+  assert.match(source, /readDrawerTab\(/);
+  assert.match(source, /role="tablist"/);
+  assert.match(source, /role="tab"/);
+  assert.match(source, /aria-selected=\{drawerTab === "home"\}/);
+  assert.match(source, /agents\.drawer\.home/);
+  assert.match(source, /agents\.drawer\.status/);
+});

@@ -1457,6 +1457,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.rail.running": "執行中",
     "agents.rail.needsInput": "需要你的回答",
     "agents.rail.failed": "失敗",
+    "agents.drawer.home": "主頁與觸發器",
+    "agents.drawer.status": "狀態、任務、記憶",
     "agents.loadFailed": "無法載入智慧代理：{error}",
     "agents.error": "操作失敗：{error}",
     "agents.new.title": "新建長期智慧代理",

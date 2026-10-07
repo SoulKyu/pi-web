@@ -1457,6 +1457,8 @@ export const frLocale: LocalePlugin = {
     "agents.rail.running": "en cours",
     "agents.rail.needsInput": "attend votre réponse",
     "agents.rail.failed": "échec",
+    "agents.drawer.home": "Accueil et déclencheurs",
+    "agents.drawer.status": "Statut, tâches, mémoire",
     "agents.loadFailed": "Impossible de charger les agents : {error}",
     "agents.error": "Échec de l'action : {error}",
     "agents.new.title": "Nouvel agent de longue durée",
