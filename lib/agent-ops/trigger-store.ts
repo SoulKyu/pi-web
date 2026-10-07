@@ -28,6 +28,8 @@ export interface TriggerConfig {
   dedupWindowMs: number;
   /** Ingestion is refused while this many tasks of the trigger are queued or running. */
   maxActiveTasks: number;
+  /** Fires, webhook ingestions and manual runs are refused once this many tasks of the trigger were created since local midnight; absent = unlimited. */
+  maxRunsPerDay?: number;
   /** Schedule triggers only (default thread); a webhook trigger always runs isolated. */
   runTarget?: "thread" | "isolated";
   /** `provider/modelId` for isolated runs; absent = the agent's own model. */
@@ -99,7 +101,7 @@ export function triggerRunPin(task: { origin: string; pinnedProfileSha256?: stri
 }
 
 export type TriggerInput = Pick<TriggerConfig, "name" | "profile" | "promptTemplate">
-  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs" | "payloadFormat">>;
+  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "maxRunsPerDay" | "runTarget" | "model" | "tools" | "maxRunMs" | "payloadFormat">>;
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MIN_RUN_MS = 60_000;
@@ -132,6 +134,7 @@ export function validateTriggerFields(input: TriggerInput): string | null {
   if (!(dedupWindowMs > 0) || !Number.isFinite(dedupWindowMs)) return "dedupWindowMs must be greater than 0";
   const maxActiveTasks = input.maxActiveTasks ?? 1;
   if (!Number.isInteger(maxActiveTasks) || maxActiveTasks < 1) return "maxActiveTasks must be an integer >= 1";
+  if (input.maxRunsPerDay !== undefined && (!Number.isInteger(input.maxRunsPerDay) || input.maxRunsPerDay < 1)) return "maxRunsPerDay must be an integer >= 1";
   if (input.everyMinutes !== undefined && (!Number.isInteger(input.everyMinutes) || input.everyMinutes < 1)) return "everyMinutes must be an integer >= 1";
   return null;
 }
@@ -163,6 +166,7 @@ export function buildTriggerConfig(
       ...(input.model !== undefined ? { model: input.model } : {}),
       ...(input.tools !== undefined ? { tools: [...new Set(input.tools)] } : {}),
       ...(input.maxRunMs !== undefined ? { maxRunMs: input.maxRunMs } : {}),
+      ...(input.maxRunsPerDay !== undefined ? { maxRunsPerDay: input.maxRunsPerDay } : {}),
       dedupWindowMs: input.dedupWindowMs ?? 15 * 60_000, maxActiveTasks: input.maxActiveTasks ?? 1,
       pinnedProfile: { scope: profile.scope, ...(profile.filePath ? { filePath: profile.filePath } : {}), contentSha256 },
     },

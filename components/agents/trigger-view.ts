@@ -37,6 +37,13 @@ export function triggerActivity(tasks: readonly AgentTaskListItem[], triggerId: 
   return { active: own.filter(isActiveTask).length, lastFireAt };
 }
 
+/** Tasks of the trigger created since the local midnight of `now`: the server's cap rule (`runsTodayCount`), on the loaded task list. */
+export function runsTodayOf(tasks: readonly AgentTaskListItem[], triggerId: string, now = Date.now()): number {
+  const date = new Date(now);
+  const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  return tasksOfTrigger(tasks, triggerId).filter((task) => Date.parse(task.createdAt) >= midnight).length;
+}
+
 /** Sends one trigger request; resolves to the parsed body, or an error message. */
 export async function requestTrigger(url: string, init: RequestInit): Promise<{ data: Partial<TriggerResponse> } | { error: string }> {
   try {

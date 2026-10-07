@@ -24,7 +24,8 @@ function mapAlerts(body: unknown): MappedPayload | null {
     const labels = asFields(alert.labels);
     const annotations = asFields(alert.annotations);
     const level = str(labels.severity);
-    if (SEVERITY_RANK[level] > (SEVERITY_RANK[severity ?? ""] ?? 0)) severity = level;
+    const resolved = str(alert.status) === "resolved"; // a resolved alert never raises the severity (it would bypass quiet hours)
+    if (!resolved && SEVERITY_RANK[level] > (SEVERITY_RANK[severity ?? ""] ?? 0)) severity = level;
     const head = [str(alert.status), level, str(labels.alertname), str(labels.instance)].filter(Boolean).join(" ");
     const detail = str(annotations.summary) || str(annotations.description);
     lines.push(detail ? `${head}: ${detail}` : head);

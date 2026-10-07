@@ -10,7 +10,7 @@ import { AgentTasks } from "./AgentTasks";
 import { TriggerDialog } from "./TriggerDialog";
 import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
-import { requestTrigger, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
+import { requestTrigger, runsTodayOf, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
@@ -95,6 +95,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   const url = `/api/agent-ops/triggers/${trigger.id}`;
   const history = tasksOfTrigger(tasks, trigger.id);
   const { active, lastFireAt } = triggerActivity(tasks, trigger.id);
+  const runsToday = runsTodayOf(tasks, trigger.id);
   const schedule = [
     trigger.everyMinutes ? t("agentOps.trigger.every", { minutes: trigger.everyMinutes }) : null,
     trigger.hasWebhookSecret ? t("agentOps.trigger.webhook") : null,
@@ -147,6 +148,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
       <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-dim)" }}>
         <span>{lastFireAt ? t("agentOps.trigger.lastFire", { time: formatRelativeTime(lastFireAt, locale) }) : t("agentOps.trigger.neverFired")}</span>
         <span>{t("agentOps.trigger.active", { count: active })}</span>
+        <span>{trigger.maxRunsPerDay ? t("agentOps.trigger.runsTodayCap", { count: runsToday, cap: trigger.maxRunsPerDay }) : t("agentOps.trigger.runsToday", { count: runsToday })}</span>
       </div>
       {trigger.pinStatus !== "ok" && (
         <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 8px" }}>

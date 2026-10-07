@@ -1,6 +1,7 @@
 "use client";
 import { useI18n } from "@/hooks/useI18n";
 import { isAgentEventData } from "@/lib/agents/events";
+import { formatRunUsage } from "@/lib/agents/format-usage";
 import type { CustomMessage } from "@/lib/types";
 
 export function AgentEventCard({ message, onOpenSession }: { message: CustomMessage; onOpenSession?: (sessionId: string) => void }) {
@@ -27,6 +28,11 @@ export function AgentEventCard({ message, onOpenSession }: { message: CustomMess
         </div>
       )}
       {webhook && <div className="agent-event-summary" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{data.summary}</div>}
+      {webhook && data.usage && (
+        <div className="agent-event-usage" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+          {`· ${formatRunUsage(data.usage, { turns: (turns) => t("agents.usage.turns", { turns }), equivalent: t("agents.usage.equivalent") })}`}
+        </div>
+      )}
     </div>
   );
 }

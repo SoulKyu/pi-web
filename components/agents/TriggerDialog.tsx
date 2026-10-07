@@ -30,6 +30,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const [payloadFormat, setPayloadFormat] = useState<PayloadFormat>(trigger?.payloadFormat ?? "raw");
   const [dedupMinutes, setDedupMinutes] = useState(String((trigger?.dedupWindowMs ?? 15 * MS_PER_MINUTE) / MS_PER_MINUTE));
   const [maxActiveTasks, setMaxActiveTasks] = useState(String(trigger?.maxActiveTasks ?? 1));
+  const [maxRunsPerDay, setMaxRunsPerDay] = useState(trigger?.maxRunsPerDay ? String(trigger.maxRunsPerDay) : "");
   const [runTarget, setRunTarget] = useState<"thread" | "isolated">(trigger?.runTarget ?? "thread");
   const [model, setModel] = useState(trigger?.model ?? "");
   const [tools, setTools] = useState<string[]>(trigger?.tools ?? [...TRIGGER_TOOL_NAMES]);
@@ -78,6 +79,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
     const run = {
       at: at.trim() || unset,
       critical: critical ? true : unset,
+      maxRunsPerDay: maxRunsPerDay.trim() ? Number(maxRunsPerDay) : unset,
       payloadFormat: isWebhook && payloadFormat !== "raw" ? payloadFormat : unset,
       runTarget: isScheduled && runTarget === "isolated" ? "isolated" : unset,
       model: isolated && model ? model : unset,
@@ -181,6 +183,10 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
         <label style={labelStyle}>
           {t("agentOps.trigger.maxActive")}
           <input type="number" min={1} step={1} value={maxActiveTasks} onChange={(event) => setMaxActiveTasks(event.target.value)} required style={fieldStyle} />
+        </label>
+        <label style={labelStyle}>
+          {t("agentOps.trigger.maxRunsPerDay")}
+          <input type="number" min={1} step={1} value={maxRunsPerDay} onChange={(event) => setMaxRunsPerDay(event.target.value)} style={fieldStyle} />
         </label>
         {error && <div role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

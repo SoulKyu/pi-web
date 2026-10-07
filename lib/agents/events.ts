@@ -1,3 +1,4 @@
+import type { RunUsage } from "../agent-ops/run-usage";
 import type { AgentMessage, CustomMessage } from "../types";
 
 export const AGENT_EVENT_ENTRY_TYPE = "pi-web:agent-event";
@@ -9,9 +10,12 @@ const TITLE_MAX = 80;
 
 export type EventFireReason = { source: "schedule" | "webhook" | "manual"; bucket?: number; payloadHash?: string };
 
+/** Display-only run usage on a summary card. `costEquivalent` is the API-equivalent of a subscription run: never added to `cost`. */
+export type EventUsage = { tokens: number; cost: number; costEquivalent?: number; turns?: number };
+
 export type AgentEventData =
   | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason }
-  | { version: 1; kind: "webhook"; taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook" };
+  | { version: 1; kind: "webhook"; taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
 const clipTitle = (text: string) => (text.length > TITLE_MAX ? `${text.slice(0, TITLE_MAX - 1)}…` : text);
@@ -26,6 +30,11 @@ export function isAgentEventData(value: unknown): value is AgentEventData {
   }
   if (value.kind !== "webhook") return false;
   if (value.taskKind !== undefined && value.taskKind !== "schedule" && value.taskKind !== "webhook") return false;
+  if (value.usage !== undefined) {
+    const usage = value.usage;
+    const numeric = (field: string, optional: boolean) => isRecord(usage) && (usage[field] === undefined ? optional : typeof usage[field] === "number" && Number.isFinite(usage[field]));
+    if (!numeric("tokens", false) || !numeric("cost", false) || !numeric("costEquivalent", true) || !numeric("turns", true)) return false;
+  }
   return typeof value.triggerId === "string" && (value.status === "completed" || value.status === "failed") && typeof value.summary === "string"
     && (value.runSessionId === undefined || typeof value.runSessionId === "string");
 }
@@ -35,19 +44,24 @@ export const buildScheduleEvent = (input: { taskId: string; triggerId: string; t
 export const buildTaskEvent = (input: { taskId: string; title: string }): AgentEventData =>
   ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title) });
 /** Display-only (D11): the summary never enters the model context, so clipping loses nothing the agent needs. */
-export const buildWebhookEvent = (input: { taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook" }): AgentEventData => ({
+export const buildWebhookEvent = (input: { taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage }): AgentEventData => ({
   version: 1, kind: "webhook", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), status: input.status,
   summary: clip(input.summary, EVENT_TEXT_MAX), ...(input.runSessionId ? { runSessionId: input.runSessionId } : {}),
   ...(input.taskKind ? { taskKind: input.taskKind } : {}),
+  ...(input.usage ? { usage: input.usage } : {}),
 });
 
+const usageOfTask = (usage: RunUsage, costEquivalent?: number): EventUsage =>
+  ({ tokens: usage.input + usage.output + usage.cacheRead + usage.cacheWrite, cost: usage.cost, turns: usage.turns, ...(costEquivalent !== undefined ? { costEquivalent } : {}) });
+
 /** The summary card of a finished isolated run (webhook or isolated schedule); null for cancelled or legacy tasks. Display-only: only result or error goes in. */
-export function webhookEventOfTask(task: { id: string; triggerId?: string; title: string; status: string; result?: string; error?: string; sessionId?: string; kind?: string }): AgentEventData | null {
+export function webhookEventOfTask(task: { id: string; triggerId?: string; title: string; status: string; result?: string; error?: string; sessionId?: string; kind?: string; usage?: RunUsage; costEquivalent?: number }): AgentEventData | null {
   if (!task.triggerId || (task.status !== "completed" && task.status !== "failed")) return null;
   return buildWebhookEvent({
     taskId: task.id, triggerId: task.triggerId, title: task.title, status: task.status,
     summary: (task.status === "completed" ? task.result : task.error) ?? "", ...(task.sessionId ? { runSessionId: task.sessionId } : {}),
     ...(task.kind === "schedule" ? { taskKind: "schedule" as const } : {}),
+    ...(task.usage ? { usage: usageOfTask(task.usage, task.costEquivalent) } : {}),
   });
 }
 

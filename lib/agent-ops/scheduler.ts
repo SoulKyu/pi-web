@@ -19,6 +19,7 @@ export interface IngestionPlan { verdict: "accepted" | "refused"; reason?: strin
 
 const QUIET_REASON = "quiet hours";
 const CAP_REASON = "too many active tasks for this trigger";
+const DAILY_CAP_REASON = "daily run cap reached";
 const DAY_MS = 24 * 3_600_000;
 const PRUNE_EVERY_MS = 3_600_000;
 
@@ -56,6 +57,15 @@ export function activeTaskCount(triggerId: string, now = Date.now()): number {
   return listTasks().filter((t) => t.triggerId === triggerId && (t.status === "running" || (t.status === "queued" && !isWaiting(t, now)))).length;
 }
 
+/** Tasks of the trigger created since the local midnight of `now`, whatever their status: a cancelled run was still a run. */
+export function runsTodayCount(triggerId: string, now = Date.now()): number {
+  const date = new Date(now);
+  const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  return listTasks().filter((t) => t.triggerId === triggerId && Date.parse(t.createdAt) >= midnight).length;
+}
+
+const dailyCapReached = (trigger: TriggerConfig, runsToday: number): boolean => trigger.maxRunsPerDay !== undefined && runsToday >= trigger.maxRunsPerDay;
+
 /** Exclusive fire token: false when another process (or an earlier call) already holds it. */
 function claimFireToken(name: string): boolean {
   mkdirSync(triggersDir(), { recursive: true, mode: 0o700 });
@@ -77,7 +87,7 @@ function safeMap(format: PayloadFormat, body: unknown): MappedPayload & { fallba
 }
 
 /** Pure: no file, no token. Callers pass the active-task count so dry-runs and caps share one decision. */
-export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number): IngestionPlan {
+export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number, runsToday = 0): IngestionPlan {
   const mapped = safeMap(trigger.payloadFormat ?? "raw", body);
   const raw = mapped.text;
   const payloadHash = createHash("sha256").update(redactSecrets(mapped.dedupKey ?? raw)).digest("hex").slice(0, 16);
@@ -90,12 +100,13 @@ export function planIngestion(trigger: TriggerConfig, body: unknown, now: number
   // FinOps cap, decided before the dedup token so a refused payload does not consume it.
   // ponytail: check-then-act across processes; two processes can each admit one at the limit. Acceptable for a cost cap.
   if (activeTasks >= trigger.maxActiveTasks) return refused(CAP_REASON);
+  if (dailyCapReached(trigger, runsToday)) return refused(DAILY_CAP_REASON);
   return { verdict: "accepted", prompt: buildWebhookPrompt(trigger, raw), tokenName, payloadHash, bucket, text: raw, ...extra };
 }
 
 /** The mapped payload severity ("critical") bypasses quiet hours like `trigger.critical`; `severity` overrides it (tests). */
 export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, create: TaskCreator = createTask, severity?: string): IngestResult {
-  const plan = planIngestion(trigger, body, Date.now(), activeTaskCount(trigger.id));
+  const plan = planIngestion(trigger, body, Date.now(), activeTaskCount(trigger.id), runsTodayCount(trigger.id));
   const refuse = (reason: string): IngestResult => {
     appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "webhook", verdict: "refused", reason, bucket: plan.bucket, payloadHash: plan.payloadHash });
     return { accepted: false, reason };
@@ -120,7 +131,8 @@ export function fireTriggerNow(trigger: TriggerConfig, create: TaskCreator = cre
   };
   const reason = admissionRefusal(trigger)
     ?? (isPausedFor(readAgentOpsSettings(), trigger.profile) ? "agent paused" : null)
-    ?? (activeTaskCount(trigger.id) >= trigger.maxActiveTasks ? CAP_REASON : null);
+    ?? (activeTaskCount(trigger.id) >= trigger.maxActiveTasks ? CAP_REASON : null)
+    ?? (dailyCapReached(trigger, runsTodayCount(trigger.id)) ? DAILY_CAP_REASON : null);
   if (reason) return refuse(reason);
   const isolated = Boolean(trigger.webhookSecretSha256);
   const text = payload === undefined ? "(manual fire, no payload)" : payloadText(payload);
@@ -185,6 +197,7 @@ function fireScheduled(trigger: TriggerConfig, tokenSuffix: string, bucket: numb
   const refusal = admissionRefusal(trigger) ?? (quiet && !trigger.critical ? QUIET_REASON : null);
   if (refusal) { logRefusalOnce(trigger, bucket, refusal, scope); return; }
   if (activeTaskCount(trigger.id) >= trigger.maxActiveTasks) { logRefusalOnce(trigger, bucket, CAP_REASON, scope); return; } // a slow run does not pile up fires
+  if (dailyCapReached(trigger, runsTodayCount(trigger.id))) { logRefusalOnce(trigger, bucket, DAILY_CAP_REASON, scope); return; }
   // Scheduled fires bypass payload dedup: the wx token is the only guard,
   // else everyMinutes < dedupWindowMs swallows fires.
   if (!claimFireToken(`${trigger.id}.${tokenSuffix}`)) return;

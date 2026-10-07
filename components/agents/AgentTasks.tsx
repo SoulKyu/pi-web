@@ -3,6 +3,7 @@
 import { type CSSProperties, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
+import { formatRunUsage } from "@/lib/agents/format-usage";
 import { formatTaskDuration, requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
@@ -39,6 +40,11 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
         )}
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>
+        {task.usage && (
+          <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>
+            {`· ${formatRunUsage({ tokens: task.usage.input + task.usage.output + task.usage.cacheRead + task.usage.cacheWrite, cost: task.usage.cost, costEquivalent: task.costEquivalent, turns: task.usage.turns }, { turns: (turns) => t("agents.usage.turns", { turns }), equivalent: t("agents.usage.equivalent") })}`}
+          </span>
+        )}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         {task.sessionId && <button type="button" onClick={() => onOpenSession(task.sessionId!)} style={smallButton}>{t("agentOps.openSession")}</button>}

@@ -11,13 +11,13 @@ import { AgentTasks } from "./AgentTasks";
 import { QueueTaskDialog } from "./QueueTaskDialog";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
+import { formatCompact } from "@/lib/agents/format-usage";
 
 interface MemoryState { recent: AgentMemoryItem[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
 const EMPTY_MEMORY: MemoryState = { recent: [], pendingForget: [], staged: [] };
 const MEMORY_POLL_MS = 10_000;
 const ACTIVE_TASK_POLL_MS = 5_000;
 
-const formatCompact = (value: number) => value >= 1_000_000 ? `${(value / 1_000_000).toFixed(1)}M` : value >= 1000 ? `${(value / 1000).toFixed(0)}k` : String(value);
 
 export function AgentSpaceRight({ agent, running, paused, allPaused, contextPercent, onOpenSession, onPauseChanged }: { agent: AgentDetail; running: boolean; paused: boolean; allPaused: boolean; contextPercent: number | null; onOpenSession: (sessionId: string) => void; onPauseChanged: () => void }) {
   const { t } = useI18n();

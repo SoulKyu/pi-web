@@ -11,6 +11,7 @@ import { startAgentProfileRun } from "./spawn";
 import { assertTaskStillStartable } from "./start-guard";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
+import { priceRecord } from "../cost-equivalent";
 import { localeText, notifyAgent } from "../web-push";
 
 declare global { var __agentOpsRecovered: boolean | undefined; }
@@ -47,7 +48,7 @@ export function handleTaskEnd(task: AgentTask): void {
   }
   if (task.target === "isolated") {
     const agent = getLongTermAgent(agentName);
-    const event = webhookEventOfTask({ ...task, result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
+    const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
     if (agent && event) void appendThreadEvent(agent, event).catch((error) => console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error));
   }
 }
