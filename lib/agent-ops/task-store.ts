@@ -28,6 +28,10 @@ export interface AgentTask {
   usage?: RunUsage;
   /** A retry is a new task: the finished task it repeats and its run number (1 when absent). */
   retryOf?: string; attempt?: number;
+  /** Who asked: an agent name or "user". */
+  requestedBy?: string;
+  /** Agent whose thread receives the result as a display-only card (D14). */
+  deliverTo?: string;
 }
 const RANK: Record<AgentTaskStatus, number> = { queued: 0, running: 1, completed: 2, failed: 2, cancelled: 2 };
 export const TERMINAL: ReadonlySet<AgentTaskStatus> = new Set(["completed", "failed", "cancelled"]);
@@ -44,7 +48,7 @@ function readOne(id: string): AgentTask | null {
     return typeof raw?.id === "string" ? raw : null;
   } catch { return null; }
 }
-export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256" | "agent" | "target" | "kind" | "fireReason" | "model" | "tools" | "maxRunMs" | "notBefore" | "retryOf" | "attempt">>): AgentTask {
+export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256" | "agent" | "target" | "kind" | "fireReason" | "model" | "tools" | "maxRunMs" | "notBefore" | "retryOf" | "attempt" | "requestedBy" | "deliverTo">>): AgentTask {
   mkdirSync(storeDir, { recursive: true });
   const task: AgentTask = { id: randomUUID(), status: "queued", createdAt: new Date().toISOString(), ...input };
   writePrivateFileAtomicSync(taskPath(task.id), JSON.stringify(task, null, 2));

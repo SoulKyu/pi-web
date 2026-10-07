@@ -5,9 +5,11 @@ import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 
-export function QueueTaskDialog({ agentName, onClose, onQueued }: { agentName: string; onClose: () => void; onQueued: () => void }) {
+/** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread. */
+export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, onClose, onQueued }: { agentName: string; targetAgents?: string[]; quote?: string; deliverTo?: string; onClose: () => void; onQueued: () => void }) {
   const { t } = useI18n();
   const [prompt, setPrompt] = useState("");
+  const [target, setTarget] = useState(agentName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -22,7 +24,7 @@ export function QueueTaskDialog({ agentName, onClose, onQueued }: { agentName: s
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/agents/${encodeURIComponent(agentName)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) });
+      const response = await fetch(`/api/agents/${encodeURIComponent(target)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(deliverTo ? { prompt, requestedBy: "user", deliverTo, ...(quote ? { quote } : {}) } : { prompt }) });
       const data = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) { setError(data.error ?? `HTTP ${response.status}`); return; }
       onQueued();
@@ -34,11 +36,25 @@ export function QueueTaskDialog({ agentName, onClose, onQueued }: { agentName: s
     }
   };
 
-  const title = t("agents.tasks.queueTitle", { name: agentName });
+  const title = t(deliverTo ? "agents.handTo.dialogTitle" : "agents.tasks.queueTitle", { name: target });
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
         <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
+        {targetAgents && targetAgents.length > 1 && (
+          <label style={labelStyle}>
+            {t("agents.handTo.target")}
+            <select value={target} onChange={(event) => setTarget(event.target.value)} style={fieldStyle}>
+              {targetAgents.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
+        )}
+        {quote && (
+          <details style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            <summary style={{ cursor: "pointer" }}>{t("agents.handTo.quote")}</summary>
+            <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 160, overflow: "auto", margin: "4px 0 0" }}>{quote}</pre>
+          </details>
+        )}
         <label style={labelStyle}>
           {t("agents.tasks.prompt")}
           <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t("agents.tasks.promptPlaceholder")} rows={6} required style={{ ...fieldStyle, resize: "vertical" }} />

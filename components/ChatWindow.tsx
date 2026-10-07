@@ -1,5 +1,7 @@
 "use client";
 import { PromptChips } from "./agents/PromptChips";
+import { QueueTaskDialog } from "./agents/QueueTaskDialog";
+import { fenceExternal } from "@/lib/agents/fence";
 import { registerAbortHandler } from "@/hooks/useKeyboardShortcuts";
 import Image from "next/image";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -55,6 +57,8 @@ interface Props {
   onSessionForked?: (newSessionId: string) => void;
   modelsRefreshKey?: number;
   chatInputRef?: React.RefObject<ChatInputHandle | null>;
+  /** Names of every long-term agent: the "Hand to…" targets of a trusted agent thread (its own name is left out). */
+  handToAgents?: string[];
   onBranchDataChange?: (tree: SessionTreeNode[], activeLeafId: string | null, onLeafChange: (leafId: string | null) => void, locked: boolean) => void;
   onSystemPromptChange?: (prompt: string | null) => void;
   onSystemToolsChange?: (tools: ToolEntry[] | null) => void;
@@ -243,7 +247,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
 /** Upper bound of `before=` pages one click on the unread pill may load. */
 const JUMP_UNREAD_MAX_PAGES = 20;
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -439,6 +443,13 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [quotedSelection, quoteInputOpen, quoteSubmitting, closeQuotedSelection]);
+
+  const trustedAgentName = session?.agentProfile && session.agentProfile.trust !== "untrusted" ? session.agentProfile.name : undefined;
+  const handTargets = useMemo(() => (trustedAgentName ? (handToAgents ?? []).filter((name) => name !== trustedAgentName) : []), [trustedAgentName, handToAgents]);
+  const [handQuote, setHandQuote] = useState<string | null>(null);
+  const handTo = useCallback((text: string) => setHandQuote(text), []);
+  // Composer only, fenced, never sent: the user decides whether another agent's result reaches the model.
+  const injectResult = useCallback((fencedFrom: string, summary: string) => chatInputRef?.current?.insertText(fenceExternal(summary, `agent:${fencedFrom}`)), [chatInputRef]);
 
   const askSelectionHere = useCallback(() => {
     if (!quotedSelection) return;
@@ -1152,6 +1163,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     onCompact={options.recoverTruncation ? handleCompact : undefined}
                     isCompacting={options.recoverTruncation ? isCompacting : undefined}
                     compactError={options.recoverTruncation ? compactError : undefined}
+                    onHandTo={handTargets.length > 0 ? handTo : undefined}
+                    onInject={trustedAgentName ? injectResult : undefined}
                   />
                 );
                 const node = !isVisible || currentRefIdx === undefined ? view : (
@@ -1499,6 +1512,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
         )}
         {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} /> : null}
         {chatInputElement}
+        {handQuote !== null && trustedAgentName && handTargets.length > 0 ? (
+          <QueueTaskDialog agentName={handTargets[0]} targetAgents={handTargets} quote={handQuote} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={() => setHandQuote(null)} />
+        ) : null}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>
       {isEmptyNew && <div className="min-h-0 flex-1" />}

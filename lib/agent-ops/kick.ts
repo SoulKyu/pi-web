@@ -1,5 +1,5 @@
 import { getLongTermAgent } from "../agents/registry";
-import { webhookEventOfTask } from "../agents/events";
+import { delegationEventOfTask, webhookEventOfTask } from "../agents/events";
 import { appendThreadEvent } from "../agents/thread";
 import { selectIsolatedTasks, selectThreadTasks } from "../agents/queue";
 import { startThreadEventRun } from "../agents/thread-run";
@@ -50,6 +50,15 @@ export function handleTaskEnd(task: AgentTask): void {
         if (agent && event) entryId = await appendThreadEvent(agent, event).catch((error) => { console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error); return undefined; });
       } catch (error) {
         entryId = undefined;
+        log(error);
+      }
+    }
+    if (task.deliverTo) {
+      try {
+        const recipient = getLongTermAgent(task.deliverTo);
+        const delegation = recipient && delegationEventOfTask({ ...task, result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
+        if (recipient && delegation) await appendThreadEvent(recipient, delegation); // a card only: the recipient's model never sees it
+      } catch (error) {
         log(error);
       }
     }

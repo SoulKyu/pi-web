@@ -16,7 +16,9 @@ export type EventFireReason = { source: "schedule" | "webhook" | "manual"; bucke
 export type EventUsage = { tokens: number; cost: number; costEquivalent?: number; turns?: number };
 
 export type AgentEventData =
-  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason }
+  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason; requestedBy?: string }
+  /** D14: another agent's result, display-only. `tainted`: the run read web content or a webhook payload. */
+  | { version: 1; kind: "delegation"; taskId: string; title: string; from: string; status: "completed" | "failed"; summary: string; runSessionId?: string; tainted: boolean }
   | { version: 1; kind: "webhook"; taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
@@ -25,10 +27,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 export function isAgentEventData(value: unknown): value is AgentEventData {
   if (!isRecord(value) || value.version !== 1 || typeof value.taskId !== "string" || typeof value.title !== "string") return false;
+  if (value.kind === "delegation") {
+    return typeof value.from === "string" && (value.status === "completed" || value.status === "failed") && typeof value.summary === "string" && typeof value.tainted === "boolean"
+      && (value.runSessionId === undefined || typeof value.runSessionId === "string");
+  }
   if (value.kind === "schedule" || value.kind === "task") {
     const reason = value.fireReason;
     const reasonOk = reason === undefined || (isRecord(reason) && (reason.source === "schedule" || reason.source === "webhook" || reason.source === "manual"));
-    return reasonOk && (value.triggerId === undefined || typeof value.triggerId === "string");
+    return reasonOk && (value.triggerId === undefined || typeof value.triggerId === "string")
+      && (value.requestedBy === undefined || typeof value.requestedBy === "string");
   }
   if (value.kind !== "webhook") return false;
   if (value.taskKind !== undefined && value.taskKind !== "schedule" && value.taskKind !== "webhook") return false;
@@ -43,8 +50,8 @@ export function isAgentEventData(value: unknown): value is AgentEventData {
 
 export const buildScheduleEvent = (input: { taskId: string; triggerId: string; title: string; fireReason?: EventFireReason }): AgentEventData =>
   ({ version: 1, kind: "schedule", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), ...(input.fireReason ? { fireReason: input.fireReason } : {}) });
-export const buildTaskEvent = (input: { taskId: string; title: string }): AgentEventData =>
-  ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title) });
+export const buildTaskEvent = (input: { taskId: string; title: string; requestedBy?: string }): AgentEventData =>
+  ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title), ...(input.requestedBy ? { requestedBy: input.requestedBy } : {}) });
 /** Display-only (D11): the summary never enters the model context, so clipping loses nothing the agent needs. */
 export const buildWebhookEvent = (input: { taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage }): AgentEventData => ({
   version: 1, kind: "webhook", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), status: input.status,
@@ -52,6 +59,16 @@ export const buildWebhookEvent = (input: { taskId: string; triggerId: string; ti
   ...(input.taskKind ? { taskKind: input.taskKind } : {}),
   ...(input.usage ? { usage: input.usage } : {}),
 });
+
+/** The result card of a task delivered to another agent's thread; null unless it ended completed or failed under an agent. Display-only (D14): unknown usage counts as tainted. */
+export function delegationEventOfTask(task: { id: string; title: string; agent?: string; status: string; result?: string; error?: string; sessionId?: string; kind?: string; usage?: Pick<RunUsage, "externalTools"> }): AgentEventData | null {
+  if (!task.agent || (task.status !== "completed" && task.status !== "failed")) return null;
+  return {
+    version: 1, kind: "delegation", taskId: task.id, title: clipTitle(task.title), from: task.agent, status: task.status,
+    summary: clip((task.status === "completed" ? task.result : task.error) ?? "", EVENT_TEXT_MAX), ...(task.sessionId ? { runSessionId: task.sessionId } : {}),
+    tainted: task.kind === "webhook" || (task.usage?.externalTools ?? true),
+  };
+}
 
 const usageOfTask = (usage: RunUsage, costEquivalent?: number): EventUsage =>
   ({ tokens: usage.input + usage.output + usage.cacheRead + usage.cacheWrite, cost: usage.cost, turns: usage.turns, ...(costEquivalent !== undefined ? { costEquivalent } : {}) });
@@ -68,7 +85,7 @@ export function webhookEventOfTask(task: { id: string; triggerId?: string; title
 }
 
 export function agentEventToUiMessage(data: AgentEventData, timestamp?: number): CustomMessage {
-  return { role: "custom", customType: AGENT_EVENT_UI_TYPE, content: data.kind === "webhook" ? data.summary : data.title, display: true, details: data, ...(timestamp !== undefined ? { timestamp } : {}) };
+  return { role: "custom", customType: AGENT_EVENT_UI_TYPE, content: data.kind === "webhook" || data.kind === "delegation" ? data.summary : data.title, display: true, details: data, ...(timestamp !== undefined ? { timestamp } : {}) };
 }
 
 const eventOf = (message: AgentMessage): AgentEventData | null =>
@@ -79,7 +96,7 @@ export function eventPromptIndexes(messages: readonly AgentMessage[]): Set<numbe
   const indexes = new Set<number>();
   messages.forEach((message, index) => {
     const previous = index > 0 ? eventOf(messages[index - 1]) : null;
-    if (message.role === "user" && previous && previous.kind !== "webhook") indexes.add(index);
+    if (message.role === "user" && previous && previous.kind !== "webhook" && previous.kind !== "delegation") indexes.add(index);
   });
   return indexes;
 }

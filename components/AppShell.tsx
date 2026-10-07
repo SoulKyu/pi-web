@@ -186,6 +186,7 @@ export function AppShell() {
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
+  const handToAgents = useMemo(() => agents.map((agent) => agent.name), [agents]);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -2553,6 +2554,7 @@ export function AppShell() {
           {showChat ? (
             <ChatWindow
               key={sessionKey}
+              handToAgents={handToAgents}
               session={selectedSession}
               searchTarget={searchTarget?.sessionId === selectedSession?.id ? searchTarget : null}
               onSearchTargetHandled={handleSearchTargetHandled}
