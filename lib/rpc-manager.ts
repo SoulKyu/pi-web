@@ -1424,6 +1424,10 @@ export class AgentSessionWrapper {
     pending.resolve(response);
   }
 
+  extensionErrorStatuses(): Array<{ key: string; text: string }> {
+    return this.getExtensionStatuses().filter(({ text }) => /^(error|failed)/.test(text.toLowerCase()));
+  }
+
   private getExtensionStatuses(): Array<{ key: string; text: string }> {
     return Array.from(this.extensionStatuses, ([key, text]) => ({ key, text }));
   }
@@ -1985,6 +1989,20 @@ declare global {
   var __piSessions: Map<string, AgentSessionWrapper> | undefined;
   var __piStartLocks: Map<string, Promise<{ session: AgentSessionWrapper; realSessionId: string }>> | undefined;
   var __piStartingSessionCwds: Map<string, number> | undefined;
+}
+
+export function countAliveRpcSessions(): number {
+  let alive = 0;
+  for (const session of getRegistry().values()) if (session.isAlive()) alive++;
+  return alive;
+}
+
+export function getExtensionErrorStatuses(): Array<{ sessionId: string; key: string; text: string }> {
+  const errors: Array<{ sessionId: string; key: string; text: string }> = [];
+  for (const [sessionId, session] of getRegistry()) {
+    if (session.isAlive()) for (const status of session.extensionErrorStatuses()) errors.push({ sessionId, ...status });
+  }
+  return errors;
 }
 
 function getRegistry(): Map<string, AgentSessionWrapper> {

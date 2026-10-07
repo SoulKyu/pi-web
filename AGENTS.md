@@ -44,6 +44,7 @@ app/api/
   agent-ops/triggers/[id]/route.ts PATCH enabled/edit (re-pins on profile or cwd change) | DELETE
   agent-ops/triggers/[id]/secret/route.ts POST rotate the webhook secret, returned once
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
+  agent-ops/health/route.ts        GET { health, level } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
   agent-ops/settings/route.ts      GET settings | PUT partial (400 on a failed validation)
@@ -152,6 +153,7 @@ lib/
   agent-ops/trigger-api.ts  trigger create/patch/rotate/delete logic behind the routes, toPublicTrigger (secret never leaves)
   agent-ops/redact.ts       verbatim pi-mem0 secret redaction + truncate (server-only)
   agent-ops/memory-review.ts pi-mem0 staging reader + decision writer (never the mem0 store)
+  agent-ops/health.ts       pure collectHealth / healthLevel (ok | warn | down) behind the rail dot
   agent-ops/settings.ts     ~/.pi/agent/agent-ops/settings.json: run cap, free-memory floor, pause, quiet hours; validated patches
   file-access.ts            allowed file roots for /api/files and worktrees
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check

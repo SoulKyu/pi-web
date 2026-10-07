@@ -101,6 +101,7 @@ export function purgeStaleFireTokens(now = Date.now()): number {
 declare global {
   var __agentOpsScheduler: ReturnType<typeof setInterval> | undefined;
   var __agentOpsLastPrune: number | undefined;
+  var __agentOpsLastTick: number | undefined;
   var __agentOpsLoggedRefusals: Map<string, string> | undefined;
 }
 
@@ -143,6 +144,7 @@ export function runSchedulerTick(kick: () => Promise<void>, create: TaskCreator 
     console.error("[agent-ops] scheduler tick failed:", error instanceof Error ? error.message : error); // a throw in a timer kills the process
   }
   void kick(); // created tasks never wait for a manual action
+  globalThis.__agentOpsLastTick = Date.now(); // the health gauge: the tick ran, even if paused or failed
 }
 
 /** `kick` is injected so tests drive the scheduler without loading rpc-manager;
