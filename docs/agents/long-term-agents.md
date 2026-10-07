@@ -24,6 +24,35 @@
 - Profile settings: PATCH `agents/[name]` answers 409 `agent_running` while the thread runs (`canEditProfile`). Model and thinking go to a live thread via `set_model` / `set_thinking_level`; role and tools call `shutdownWhenIdle()` so the next open re-snapshots.
 - Long-term profiles are never delegable (`lib/subagent-runtime.ts`: the `Agent` tool refuses them) and are hidden from Settings › Sub-agents (`app/api/subagents/profiles/route.ts`).
 
+## Threat model
+- **Scope.** One operator on a trusted LAN, headless host. The web password and its global throttle (`lib/auth-throttle.ts`) guard the UI; TLS is the reverse proxy's job.
+- **In scope.**
+  - (a) The model tricked by fetched content: web pages, MCP results, webhook payloads.
+  - (b) A destructive command run by mistake (`terraform apply`, `kubectl delete`, `rm -rf`, `git push --force`).
+  - (c) Secrets leaking to the model provider (environment, files under `~`).
+- **Out of scope.** An attacker on the LAN, multi-tenant use, root escalation.
+- **Barriers that hold when the model is tricked** (deterministic, enforced outside the model):
+  - Sanitized bash environment and read-only MCP policy on every agent-profile session (`lib/agent-profile-extensions.ts`, `lib/project-command-env.ts`, `lib/mcp-read-only-policy.ts`).
+  - Home-only `read`/`grep`/`find`/`ls` for isolated runs, by realpath; `~`, `@`, `file:` prefixes and Unicode spaces are rejected (`lib/agents/path-policy.ts`).
+  - Closed trigger tool allowlist, `TRIGGER_TOOL_ALLOWLIST` (`lib/agent-ops/trigger-store.ts`), checked on the live `get_tools` before the prompt. Per-trigger subsets that can only shrink it are (planned).
+  - Global and per-agent pause (`lib/agent-ops/settings.ts`): the scheduler skips, the webhook answers 503, the selectors and the thread run refuse, and `abortRunningTasks` (`lib/agent-ops/kick.ts`) aborts what is running.
+  - Per-agent MCP allowlist: every global server not listed is written `disabled` into the home (`lib/agents/mcp-access.ts`).
+  - Fail-closed webhook (`lib/agent-ops/webhook.ts`): secret digest, per-trigger throttle, 64 KB body cap, dedup token.
+  - The home is never a trusted project for pi, so no project file under it applies.
+  - `command_deny` hook on bash (planned), web-host egress allowlist (planned), path hooks.
+- **Barriers that need the model to cooperate** (prompt level, never a guarantee):
+  - Fences and system rules for fetched content (planned); the webhook payload is already fenced in `<untrusted_payload>`.
+  - `agent_approve` (planned).
+- **Lethal trifecta** (private data + untrusted content + exfiltration channel) for a web-reading agent:
+  - Zero-code answer: run a profile without `bash` (preset `read-only`). It keeps MCP fetch tools, has no shell and no network from bash.
+  - Alternative: a bubblewrap sandbox (planned); it needs a manual AppArmor test on the host.
+- **Not built.** Containers per agent, per-IP throttle, RBAC, an encrypted secret vault, an LLM injection classifier.
+- **Incident playbook.**
+  - Pause the agent from the rail.
+  - Reset its thread (`POST agents/[name]/thread/reset`).
+  - Review staged memories (`lib/agent-ops/memory-review.ts`).
+  - Rotate webhook secrets (`POST agent-ops/triggers/[id]/secret`). One-click quarantine automating these steps is (planned).
+
 ## Security rules
 - Trusted starts and re-snapshots resolve the profile through `resolveLongTermProfile` (`registry.ts`): global scope, exact name. A `.pi/agents` or `.agents/agents` file under the home never applies. A new trusted session must also have the agent's home as cwd.
 - `startRpcSession` refuses a new session of a long-term profile unless it is the trusted thread or an isolated run (`agentProfileTools`): `POST /api/agent/new` cannot start one.
