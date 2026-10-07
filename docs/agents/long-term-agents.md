@@ -41,7 +41,7 @@
   - The home is never a trusted project for pi, so no project file under it applies.
   - `command_deny` hook on bash (planned), web-host egress allowlist (planned), path hooks.
 - **Barriers that need the model to cooperate** (prompt level, never a guarantee):
-  - Fences and system rules for fetched content (planned); the webhook payload is already fenced in `<untrusted_payload>`.
+  - Fences and system rules for fetched content (shipped, a COOPERATIVE barrier: it needs the model to comply and is never a guarantee). `createUntrustedContentExtension()` (`lib/agents/untrusted-content.ts`, every agent-profile session) rewrites the text parts of `mcp`, `mcp__*`, `fetch_content`, `web_search`, `get_search_content` and `source_check` results into `<untrusted_content source="tool">…</untrusted_content>`; `fenceTag` defuses every opening or closing tag of that name in any case or spacing, so the content cannot close the fence. Long-term profiles also get the static `UNTRUSTED_CONTENT_RULE` in the system prompt, beside `MEMORY_MD_INSTRUCTION`. Webhook payloads keep their own `<untrusted_payload>` fence. Web content is not run through `redactSecrets`.
   - `agent_approve` (shipped, phase 1): a declared policy, not a barrier (the `command_deny` hook, planned, is). Phase 2 (notification actions) is not built: CSRF, cookie in the service worker, no actions on iOS.
 - **Lethal trifecta** (private data + untrusted content + exfiltration channel) for a web-reading agent:
   - Zero-code answer: run a profile without `bash` (preset `read-only`). It keeps MCP tools only when the server exposes them as direct tools (adapter `directTools`) that carry `readOnlyHint: true`; the adapter's generic `mcp` proxy is blocked (fail-closed). No shell and no network from bash.

@@ -7,6 +7,7 @@ import { parseFrontmatter } from "./frontmatter";
 import { parseNpmSource } from "./npm-source";
 import { writePrivateFileAtomicSync } from "./atomic-file";
 import { isExistingPathWithinRoots } from "./path-security";
+import { UNTRUSTED_CONTENT_RULE } from "./agents/untrusted-content";
 import { disabledBuiltInSubagents } from "./subagent-settings";
 import { PRESET_READ_ONLY } from "./tool-presets";
 import type { SessionEntry, SubagentSessionStatus } from "./types";
@@ -108,7 +109,7 @@ export interface MemoryPolicy {
 /** Static text on purpose: the file's content is never injected, so editing MEMORY.md never invalidates the prompt cache. */
 export const MEMORY_MD_INSTRUCTION = "Your home contains MEMORY.md: read it at the start of a task and keep it current (one line per fact, details in notes/).";
 export const withLongTermInstruction = (profile: { longTerm?: true }, appendSystemPrompt: string[]): string[] =>
-  profile.longTerm ? [...appendSystemPrompt, MEMORY_MD_INSTRUCTION] : appendSystemPrompt;
+  profile.longTerm ? [...appendSystemPrompt, MEMORY_MD_INSTRUCTION, UNTRUSTED_CONTENT_RULE] : appendSystemPrompt;
 
 export interface SubagentSessionResources {
   appendSystemPrompt: string[];
