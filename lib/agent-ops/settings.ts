@@ -34,8 +34,15 @@ export function validateAgentOpsSettingsPatch(body: unknown): { ok: true; patch:
 
 export function readAgentOpsSettings(path = agentOpsSettingsPath()): AgentOpsSettings {
   try {
-    const checked = validateAgentOpsSettingsPatch(JSON.parse(readFileSync(path, "utf8")));
-    return checked.ok ? { ...DEFAULT_AGENT_OPS_SETTINGS, ...checked.patch } : { ...DEFAULT_AGENT_OPS_SETTINGS };
+    const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (!isRecord(raw)) return { ...DEFAULT_AGENT_OPS_SETTINGS };
+    // Key by key: one bad or unknown key must not reset `paused` to false.
+    const kept: Partial<AgentOpsSettings> = {};
+    for (const [key, value] of Object.entries(raw)) {
+      const checked = validateAgentOpsSettingsPatch({ [key]: value });
+      if (checked.ok) Object.assign(kept, checked.patch);
+    }
+    return { ...DEFAULT_AGENT_OPS_SETTINGS, ...kept };
   } catch { return { ...DEFAULT_AGENT_OPS_SETTINGS }; }
 }
 
