@@ -1,8 +1,9 @@
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { AgentAvatar, LongTermAgent, ToolsPreset } from "./registry";
+import { pickRoadmapSettings, type AgentRoadmapSettings } from "./roadmap-settings";
 
 export interface AgentListItem { name: string; avatar: AgentAvatar; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string; threadSessionId?: string; createdAt: string; running: boolean; unread: number; paused: boolean }
-export interface AgentDetail extends AgentListItem { role: string; lastReadEntryId?: string }
+export interface AgentDetail extends AgentListItem, AgentRoadmapSettings { role: string; lastReadEntryId?: string }
 
 /** Client-safe card: explicit allowlist, never the role. */
 export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: number, paused = false): AgentListItem {
@@ -13,7 +14,8 @@ export function toAgentListItem(agent: LongTermAgent, running: boolean, unread: 
   };
 }
 export const toAgentDetail = (agent: LongTermAgent, running: boolean, unread: number): AgentDetail =>
-  ({ ...toAgentListItem(agent, running, unread), role: agent.role, ...(agent.lastReadEntryId ? { lastReadEntryId: agent.lastReadEntryId } : {}) });
+  ({ ...toAgentListItem(agent, running, unread), role: agent.role, ...(agent.lastReadEntryId ? { lastReadEntryId: agent.lastReadEntryId } : {}),
+    ...pickRoadmapSettings(agent) });
 
 export const unreadLabel = (unread: number): string => (unread <= 0 ? "" : unread > 99 ? "99+" : String(unread));
 export function modelLabel(model: string | undefined): string {

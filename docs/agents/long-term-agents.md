@@ -7,6 +7,12 @@
 - An agent is four things: a profile (`~/.pi/agent/agents/<name>.md`, frontmatter `longTerm`), space state (`agent-spaces/<name>.json`: avatar, `createdAt`, `threadSessionId`, `lastReadEntryId`), a home (`agents-home/<name>`, mode 700, the thread's cwd) and, after delete, a `agent-spaces/.trash/<name>-<stamp>/` holding `home` and `thread.jsonl`. Delete is reversible by hand; profile and space file are removed.
 - The name is the id and cannot be renamed. Every route resolves the name through `getLongTermAgent` first; `agentHome`, `spacePath`, `setThreadSessionId` and `setLastReadEntryId` take the registry's own names. The name is refused if any profile of any scope matches it case-insensitively (a built-in must not be shadowed) or the home / space file exists.
 - `createLongTermAgent` writes space state and home first and the profile last, since the profile is what lists the agent. A failed profile write removes the home and the space file, otherwise the name stays blocked.
+- **Roadmap profile keys.** Ten optional frontmatter keys, all in `ROADMAP_PROFILE_KEYS` (`lib/subagents.ts`, managed so a save never erases them) and mirrored by `AgentRoadmapSettings` (`lib/agents/roadmap-settings.ts`, camelCase) on `LongTermAgent`, `CreateAgentInput` and `AgentDetail`. A PATCH with `null` clears a key; a hand-edited out-of-range value is dropped on read. A new per-agent setting must go through `MANAGED_FRONTMATTER_KEYS`, `parseProfileFile`, `saveSubagentProfile`, then `registry.ts`, or the next save erases it. Nothing reads them yet:
+  - `memory_capture` (`auto`|`off`), `memory_hint` (≤ 500 chars), `memory_recall_limit` (0..20), `memory_recall_threshold` (0..1), `memory_save` (`direct`|`staged`): Phase D memory policy.
+  - `accepts_delegation` (boolean): Phase F delegation opt-in.
+  - `budget_tokens_per_day` (integer ≥ 0), `budget_usd_per_day` (≥ 0): Task 24 budgets.
+  - `command_deny` (≤ 50 regex sources): Task 42 command deny list.
+  - `web_allow_hosts` (≤ 100 hosts, `example.com` or `*.example.com`): Task 43 web allowlist.
 - A project profile under a home is never offered: homes are not project cwds.
 - The agent view's home tree accepts dropped files and has a Browse button, both through FileExplorer's existing upload flow (`POST /api/files/<home>?type=upload`, server unchanged). Dropped folders are refused client-side (`useDragDrop` skips directory entries).
 

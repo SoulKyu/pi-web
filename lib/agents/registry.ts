@@ -5,6 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { isPathWithinRoots } from "../path-security";
 import { listSubagentProfiles, listSubagentProfileSources, saveSubagentProfile, type SubagentProfile } from "../subagents";
+import { pickRoadmapSettings, ROADMAP_SETTING_KEYS, type AgentRoadmapSettings } from "./roadmap-settings";
 import { syncAgentMcpOverrides } from "./mcp-access";
 import { PRESET_DEFAULT, PRESET_FULL, PRESET_READ_ONLY } from "../tool-presets";
 
@@ -22,11 +23,13 @@ const MCP_SERVER_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 /** A route segment under /api/agents (the global MCP server list), so no agent may take it. */
 const RESERVED_AGENT_NAMES = new Set(["mcp-servers"]);
 export const AGENT_NAME_MAX = 64;
+const HOST_RE = /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+const compiles = (source: string) => { try { new RegExp(source); return true; } catch { return false; } };
 
 export interface AgentAvatar { emoji: string; color: string }
 export interface AgentSpaceState { name: string; avatar: AgentAvatar; createdAt: string; threadSessionId?: string; lastReadEntryId?: string }
-export interface LongTermAgent extends AgentSpaceState { role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string }
-export interface CreateAgentInput { name: string; role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; avatar: AgentAvatar; mcpServers?: string[] }
+export interface LongTermAgent extends AgentSpaceState, AgentRoadmapSettings { role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; mcpServers: string[]; home: string }
+export interface CreateAgentInput extends AgentRoadmapSettings { name: string; role: string; model?: string; thinking?: ThinkingLevel; toolsPreset: ToolsPreset; avatar: AgentAvatar; mcpServers?: string[] }
 export type UpdateAgentInput = Partial<Omit<CreateAgentInput, "name">>;
 
 export class AgentRegistryError extends Error {
@@ -89,10 +92,28 @@ function validateFields(body: Record<string, unknown>, require: boolean): { ok: 
     if (!Array.isArray(list) || list.length > MCP_SERVERS_MAX || !list.every((entry) => typeof entry === "string" && MCP_SERVER_NAME_RE.test(entry))) return fail("mcpServers must be a list of server names");
     input.mcpServers = [...new Set(list as string[])];
   }
+  if ("memoryCapture" in body) { if (body.memoryCapture != null && body.memoryCapture !== "auto" && body.memoryCapture !== "off") return fail("memoryCapture must be auto or off"); input.memoryCapture = body.memoryCapture ?? undefined; }
+  if ("memoryHint" in body) { if (body.memoryHint != null && (typeof body.memoryHint !== "string" || body.memoryHint.length > 500)) return fail("memoryHint must be at most 500 characters"); input.memoryHint = typeof body.memoryHint === "string" && body.memoryHint.trim() ? body.memoryHint.trim() : undefined; }
+  if ("memoryRecallLimit" in body) { if (body.memoryRecallLimit != null && (!Number.isInteger(body.memoryRecallLimit) || (body.memoryRecallLimit as number) < 0 || (body.memoryRecallLimit as number) > 20)) return fail("memoryRecallLimit must be an integer from 0 to 20"); input.memoryRecallLimit = body.memoryRecallLimit ?? undefined; }
+  if ("memoryRecallThreshold" in body) { if (body.memoryRecallThreshold != null && (typeof body.memoryRecallThreshold !== "number" || body.memoryRecallThreshold < 0 || body.memoryRecallThreshold > 1)) return fail("memoryRecallThreshold must be between 0 and 1"); input.memoryRecallThreshold = body.memoryRecallThreshold ?? undefined; }
+  if ("memorySave" in body) { if (body.memorySave != null && body.memorySave !== "direct" && body.memorySave !== "staged") return fail("memorySave must be direct or staged"); input.memorySave = body.memorySave ?? undefined; }
+  if ("acceptsDelegation" in body) { if (body.acceptsDelegation != null && typeof body.acceptsDelegation !== "boolean") return fail("acceptsDelegation must be a boolean"); input.acceptsDelegation = body.acceptsDelegation ?? undefined; }
+  if ("budgetTokensPerDay" in body) { if (body.budgetTokensPerDay != null && (!Number.isInteger(body.budgetTokensPerDay) || (body.budgetTokensPerDay as number) < 0)) return fail("budgetTokensPerDay must be an integer >= 0"); input.budgetTokensPerDay = body.budgetTokensPerDay ?? undefined; }
+  if ("budgetUsdPerDay" in body) { if (body.budgetUsdPerDay != null && (typeof body.budgetUsdPerDay !== "number" || body.budgetUsdPerDay < 0)) return fail("budgetUsdPerDay must be a number >= 0"); input.budgetUsdPerDay = body.budgetUsdPerDay ?? undefined; }
+  if ("commandDeny" in body) {
+    const list = body.commandDeny ?? [];
+    if (!Array.isArray(list) || list.length > 50 || !list.every((p) => typeof p === "string" && p.length <= 200 && compiles(p))) return fail("commandDeny must be a list of at most 50 valid regular expressions");
+    input.commandDeny = list.length ? [...new Set(list as string[])] : undefined;
+  }
+  if ("webAllowHosts" in body) {
+    const list = body.webAllowHosts ?? [];
+    if (!Array.isArray(list) || list.length > 100 || !list.every((h) => typeof h === "string" && HOST_RE.test(h))) return fail("webAllowHosts must be a list of host names (example.com or *.example.com)");
+    input.webAllowHosts = list.length ? [...new Set((list as string[]).map((h) => h.toLowerCase()))] : undefined;
+  }
   return { ok: true, input };
 }
 
-const KNOWN_FIELDS = new Set(["name", "role", "model", "thinking", "toolsPreset", "avatar", "mcpServers"]);
+const KNOWN_FIELDS = new Set(["name", "role", "model", "thinking", "toolsPreset", "avatar", "mcpServers", ...ROADMAP_SETTING_KEYS]);
 
 export function validateCreateInput(body: unknown): { ok: true; input: CreateAgentInput } | { ok: false; error: string } {
   if (!isRecord(body)) return { ok: false, error: "Invalid JSON body" };
@@ -146,6 +167,7 @@ function toAgent(profile: SubagentProfile): LongTermAgent {
   return {
     ...space, role: profile.systemPrompt, toolsPreset: presetFromTools(profile.tools), mcpServers: profile.mcpServers ?? [], home: agentHome(profile.name),
     ...(profile.model ? { model: profile.model } : {}), ...(profile.thinking ? { thinking: profile.thinking } : {}),
+    ...pickRoadmapSettings(profile),
   };
 }
 
@@ -169,6 +191,7 @@ function writeProfile(input: CreateAgentInput, color: string): void {
     ...(input.model ? { model: input.model } : {}), ...(input.thinking ? { thinking: input.thinking } : {}),
     inheritContext: false, runInBackground: false, promptMode: "append", color, enabled: true, longTerm: true,
     ...(input.mcpServers?.length ? { mcpServers: input.mcpServers } : {}),
+    ...pickRoadmapSettings(input),
   });
 }
 
@@ -198,6 +221,7 @@ export function updateLongTermAgent(name: string, patch: UpdateAgentInput): Long
     name, role: patch.role ?? current.role, toolsPreset: patch.toolsPreset ?? current.toolsPreset, avatar: patch.avatar ?? current.avatar,
     model: "model" in patch ? patch.model : current.model, thinking: "thinking" in patch ? patch.thinking : current.thinking,
     mcpServers: "mcpServers" in patch ? patch.mcpServers : current.mcpServers,
+    ...pickRoadmapSettings(Object.fromEntries(ROADMAP_SETTING_KEYS.map((key) => [key, key in patch ? patch[key] : current[key]]))),
   };
   if (patch.avatar) writeSpace({ ...(readSpace(name) ?? { name, createdAt: new Date().toISOString(), avatar: next.avatar }), avatar: patch.avatar });
   writeProfile(next, next.avatar.color);

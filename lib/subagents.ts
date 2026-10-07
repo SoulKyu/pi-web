@@ -47,6 +47,16 @@ export interface SubagentProfile {
   longTerm?: true;
   /** pi-mcp-adapter servers a long-term agent may use; every other global server is blocked in its home. */
   mcpServers?: string[];
+  memoryCapture?: "auto" | "off";
+  memoryHint?: string;
+  memoryRecallLimit?: number;
+  memoryRecallThreshold?: number;
+  memorySave?: "direct" | "staged";
+  acceptsDelegation?: boolean;
+  budgetTokensPerDay?: number;
+  budgetUsdPerDay?: number;
+  commandDeny?: string[];
+  webAllowHosts?: string[];
   enabled: boolean;
   scope: SubagentScope;
   filePath?: string;
@@ -133,6 +143,19 @@ const BUILTIN_TOOLS = new Set(DEFAULT_TOOLS);
 const SUBAGENT_CONTROL_TOOLS = new Set<string>(SUBAGENT_CONTROL_TOOL_NAMES);
 const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 
+/** Per-agent settings read by the roadmap features; managed so a profile save never drops them. */
+export const ROADMAP_PROFILE_KEYS = ["memory_capture", "memory_hint", "memory_recall_limit", "memory_recall_threshold", "memory_save", "accepts_delegation", "budget_tokens_per_day", "budget_usd_per_day", "command_deny", "web_allow_hosts"] as const;
+const HOST_RE = /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+function numberIn(value: unknown, min: number, max: number, integer: boolean): number | undefined {
+  return typeof value === "number" && value >= min && value <= max && (!integer || Number.isInteger(value)) ? value : undefined;
+}
+
+function regexSource(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 200) return false;
+  try { new RegExp(value); return true; } catch { return false; }
+}
+
 /**
  * Frontmatter keys the web UI owns. Everything else in a profile file belongs to
  * whichever runtime reads it (pi-subagents and friends), so a save from this app must
@@ -158,6 +181,7 @@ const MANAGED_FRONTMATTER_KEYS = new Set([
   "persist_session",
   "long_term",
   "mcp_servers",
+  ...ROADMAP_PROFILE_KEYS,
 ]);
 
 const FRONTMATTER_OPEN_RE = /^(?:\uFEFF)?---[ \t]*(?:\r\n|\n|\r)/;
@@ -307,6 +331,17 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) return null;
     const thinkingValue = stringValue(data?.thinking) as ThinkingLevel | undefined;
     const mcpServers = Array.isArray(data?.mcp_servers) ? data.mcp_servers.filter((entry): entry is string => typeof entry === "string") : [];
+    const memoryCapture = data?.memory_capture === "auto" || data?.memory_capture === "off" ? data.memory_capture : undefined;
+    const memorySave = data?.memory_save === "direct" || data?.memory_save === "staged" ? data.memory_save : undefined;
+    const memoryHint = stringValue(data?.memory_hint)?.slice(0, 500);
+    const memoryRecallLimit = numberIn(data?.memory_recall_limit, 0, 20, true);
+    const memoryRecallThreshold = numberIn(data?.memory_recall_threshold, 0, 1, false);
+    const budgetTokensPerDay = numberIn(data?.budget_tokens_per_day, 0, Infinity, true);
+    const budgetUsdPerDay = numberIn(data?.budget_usd_per_day, 0, Infinity, false);
+    const commandDeny = Array.isArray(data?.command_deny) ? data.command_deny.filter(regexSource).slice(0, 50) : [];
+    const webAllowHosts = Array.isArray(data?.web_allow_hosts)
+      ? data.web_allow_hosts.filter((host): host is string => typeof host === "string" && HOST_RE.test(host)).map((host) => host.toLowerCase()).slice(0, 100)
+      : [];
     const maxTurnsValue = typeof data?.max_turns === "number" ? Math.floor(data.max_turns) : undefined;
     const tools = parseTools(data?.tools, DEFAULT_TOOLS);
     const disallowedTools = new Set(parseTools(data?.disallowed_tools, []));
@@ -346,6 +381,16 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
       ...(typeof data?.persist_session === "boolean" ? { persistSession: data.persist_session } : {}),
       ...(data?.long_term === true ? { longTerm: true as const } : {}),
       ...(mcpServers.length > 0 ? { mcpServers } : {}),
+      ...(memoryCapture ? { memoryCapture } : {}),
+      ...(memoryHint ? { memoryHint } : {}),
+      ...(memoryRecallLimit !== undefined ? { memoryRecallLimit } : {}),
+      ...(memoryRecallThreshold !== undefined ? { memoryRecallThreshold } : {}),
+      ...(memorySave ? { memorySave } : {}),
+      ...(typeof data?.accepts_delegation === "boolean" ? { acceptsDelegation: data.accepts_delegation } : {}),
+      ...(budgetTokensPerDay !== undefined ? { budgetTokensPerDay } : {}),
+      ...(budgetUsdPerDay !== undefined ? { budgetUsdPerDay } : {}),
+      ...(commandDeny.length > 0 ? { commandDeny } : {}),
+      ...(webAllowHosts.length > 0 ? { webAllowHosts } : {}),
       enabled: booleanValue(data?.enabled, true),
       scope,
       filePath,
@@ -495,6 +540,16 @@ export function saveSubagentProfile(
   if (profile.persistSession !== undefined) managed.persist_session = profile.persistSession;
   if (profile.longTerm) managed.long_term = true;
   if (profile.mcpServers?.length) managed.mcp_servers = profile.mcpServers;
+  if (profile.memoryCapture) managed.memory_capture = profile.memoryCapture;
+  if (profile.memoryHint) managed.memory_hint = profile.memoryHint;
+  if (profile.memoryRecallLimit !== undefined) managed.memory_recall_limit = profile.memoryRecallLimit;
+  if (profile.memoryRecallThreshold !== undefined) managed.memory_recall_threshold = profile.memoryRecallThreshold;
+  if (profile.memorySave) managed.memory_save = profile.memorySave;
+  if (profile.acceptsDelegation !== undefined) managed.accepts_delegation = profile.acceptsDelegation;
+  if (profile.budgetTokensPerDay !== undefined) managed.budget_tokens_per_day = profile.budgetTokensPerDay;
+  if (profile.budgetUsdPerDay !== undefined) managed.budget_usd_per_day = profile.budgetUsdPerDay;
+  if (profile.commandDeny?.length) managed.command_deny = profile.commandDeny;
+  if (profile.webAllowHosts?.length) managed.web_allow_hosts = profile.webAllowHosts;
   // Managed keys win; keys this app does not own follow in their original order.
   const frontmatter: Record<string, unknown> = { ...managed };
   for (const [key, value] of Object.entries(unmanagedFrontmatter(stored))) {
