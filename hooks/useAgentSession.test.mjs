@@ -826,3 +826,15 @@ test("keeps the compaction control reachable while a turn is auto-compacting", (
   assert.doesNotMatch(controlBlock, /isStreaming && !isCompacting/);
   assert.match(controlBlock, /cursor: "pointer"/);
 });
+
+test("built-in /new and /clear reset an agent's own thread, else ask for a new session, without creating one first", async () => {
+  const source = await readFile(new URL("./useAgentSession.ts", import.meta.url), "utf8");
+  assert.match(source, /case "new":\s+case "clear":/);
+  assert.match(source, /session\?\.agentProfile\?\.trust === "trusted"/);
+  assert.match(source, /onResetThread\?\.\(session\.agentProfile\.name\)/);
+  assert.match(source, /onNewSessionRequested\?\.\(\)/);
+  assert.match(source, /startsOver \? sessionIdRef\.current/);
+  const input = await readFile(new URL("../components/ChatInput.tsx", import.meta.url), "utf8");
+  assert.match(input, /name: "new", description: "chat\.commandNew"/);
+  assert.match(input, /name: "clear", description: "chat\.commandClear"/);
+});

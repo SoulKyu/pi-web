@@ -57,3 +57,13 @@ test("the session detail route puts the agent profile trust on info so a run ope
   assert.match(route, /readSessionAgentProfileInfo\(entries as never\)/);
   assert.match(route, /agentProfile: agentProfileInfo/);
 });
+
+test("POST /api/agents/[name]/thread/reset archives under the lock and starts the new thread, keeping tasks and triggers", async () => {
+  const reset = await read("./[name]/thread/reset/route.ts");
+  assert.match(reset, /withThreadLock\(name/);
+  assert.match(reset, /agent_running/);
+  assert.match(reset, /archiveThread\(/);
+  assert.match(reset, /ensureThreadLocked\(/);
+  assert.match(reset, /registryErrorResponse/);
+  assert.doesNotMatch(reset, /cancelQueuedTasksOfAgent|deleteTriggersOfAgent/);
+});

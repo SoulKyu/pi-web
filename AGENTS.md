@@ -49,6 +49,7 @@ app/api/
   agents/route.ts                  GET long-term agents (name, avatar, running, unread) | POST create
   agents/[name]/route.ts           GET detail | PATCH profile (409 agent_running while the thread runs) | DELETE to .trash
   agents/[name]/thread/route.ts    POST open or create the pinned thread
+  agents/[name]/thread/reset/route.ts POST archive the thread to the trash and start a fresh one (409 agent_running)
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories

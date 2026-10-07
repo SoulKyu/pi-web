@@ -41,7 +41,7 @@ export function ensureThread(agent: LongTermAgent, deps: ThreadDeps = defaultDep
 }
 
 /** The body of ensureThread; the caller holds the agent's thread lock. */
-async function ensureThreadLocked(agent: LongTermAgent, deps: ThreadDeps): Promise<{ sessionId: string; path: string }> {
+export async function ensureThreadLocked(agent: LongTermAgent, deps: ThreadDeps = defaultDeps()): Promise<{ sessionId: string; path: string }> {
   const current = deps.readAgent(agent.name); // re-read inside the lock: a parallel call may have just created it, or a delete removed it
   if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
   if (current.threadSessionId) {

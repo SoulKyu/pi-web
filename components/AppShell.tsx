@@ -910,6 +910,28 @@ export function AppShell() {
     if (!isMobile) setRightPanelOpen(true);
   }, [handleOpenSession, isMobile, translate]);
 
+  // The one place that POSTs a reset: the profile dialog and /new, /clear both land here (the confirm is here too).
+  const resetAgentThread = useCallback(async (name: string) => {
+    if (!window.confirm(translate("agents.profile.resetConfirm", { name }))) return;
+    let response: Response;
+    try {
+      response = await fetch(`/api/agents/${encodeURIComponent(name)}/thread/reset`, { method: "POST" });
+    } catch (error) {
+      window.alert(translate("agents.error", { error: error instanceof Error ? error.message : String(error) }));
+      return;
+    }
+    if (response.status === 409) { window.alert(translate("agents.profile.running")); return; }
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      window.alert(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
+      return;
+    }
+    pendingAgentRef.current = null; // the old thread id must not keep the agent view open on the archived session
+    setAgentUnreadMarker(null);
+    reloadAgents();
+    await openAgent(name);
+  }, [openAgent, reloadAgents, translate]);
+
   useEffect(() => {
     if (agentMountOpenedRef.current || !initialNavigation.agentName) return;
     agentMountOpenedRef.current = true;
@@ -1301,6 +1323,7 @@ export function AppShell() {
       onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
       onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
       onDeleted={handleAgentDeleted}
+      onThreadReset={() => void resetAgentThread(agentDetail.name)}
     />
   ) : null;
   const agentSpaceRight = activeAgent && agentDetail ? (
@@ -2507,6 +2530,8 @@ export function AppShell() {
               onSessionStatsChange={handleSessionStatsChange}
               onSessionStatsPanelOpen={openSessionStatsPanel}
               onOpenSettings={openSettingsSection}
+              onNewSessionRequested={() => { if (activeCwd) handleNewSession(`cmd-${Date.now()}`, activeCwd); }}
+              onResetThread={resetAgentThread}
               onContextUsageChange={handleContextUsageChange}
               onOpenFile={handleOpenLinkedFile}
               onOpenSession={handleOpenSession}

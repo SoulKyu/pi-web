@@ -12,12 +12,13 @@ import { AgentTriggers } from "./AgentTriggers";
 
 const TRIGGERS_POLL_MS = 10_000;
 
-export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSaved, onDeleted }: {
+export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSaved, onDeleted, onThreadReset }: {
   agent: AgentDetail;
   onOpenSession: (sessionId: string) => void;
   onOpenFile: ComponentProps<typeof FileExplorer>["onOpenFile"];
   onProfileSaved: (agent: AgentDetail) => void;
   onDeleted: () => void;
+  onThreadReset: () => void;
 }) {
   const { t } = useI18n();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -89,7 +90,7 @@ export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSave
       >
         {t("agents.space.profile")}
       </button>
-      {profileOpen && <AgentProfileDialog agent={agent} onClose={() => setProfileOpen(false)} onSaved={onProfileSaved} onDeleted={onDeleted} />}
+      {profileOpen && <AgentProfileDialog agent={agent} onClose={() => setProfileOpen(false)} onSaved={onProfileSaved} onDeleted={onDeleted} onThreadReset={onThreadReset} />}
     </div>
   );
 }

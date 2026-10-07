@@ -165,7 +165,7 @@ export interface SlashCommandInfo {
 
 export type BuiltinSlashCommandResult =
   | { handled: false }
-  | { handled: true; message?: string; error?: string; action?: "openSessionStats" | "openSettings" };
+  | { handled: true; message?: string; error?: string; action?: "openSessionStats" | "openSettings" | "resetThread" | "newSession" };
 
 export interface UseAgentSessionOptions {
   session: SessionInfo | null;
@@ -187,6 +187,10 @@ export interface UseAgentSessionOptions {
   /** Opens Settings on a section; a bare `/mcp` the built-in MCP extension owns opens Settings › MCP. */
   onOpenSettings?: (section: SettingsSection) => void;
   setToolPreset?: (preset: ToolPreset) => void;
+  /** `/new` and `/clear` outside an agent thread: the same as the New session button. */
+  onNewSessionRequested?: () => void;
+  /** `/new` and `/clear` in an agent's own thread: archive it and open a fresh one. */
+  onResetThread?: (agentName: string) => Promise<void>;
   deferInitialScroll?: boolean;
 }
 
@@ -319,7 +323,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const {
     session, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
     modelsRefreshKey, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsPanelOpen,
-    onOpenSettings,
+    onOpenSettings, onNewSessionRequested, onResetThread,
   } = opts;
 
   const isNew = session === null && newSessionCwd !== null;
@@ -2047,7 +2051,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
     const [, commandName, rawArgs = ""] = match;
     const args = rawArgs.trim();
-    const sid = sessionIdRef.current ?? await ensureNewSession();
+    // /new and /clear need no session: on an empty draft they must not create one first.
+    const startsOver = commandName === "new" || commandName === "clear";
+    const sid = startsOver ? sessionIdRef.current : sessionIdRef.current ?? await ensureNewSession();
     const complete = (result: BuiltinSlashCommandResult): BuiltinSlashCommandResult => {
       if (!result.handled) return result;
       if (result.error) {
@@ -2164,6 +2170,16 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           return completed;
         }
 
+        case "new":
+        case "clear": {
+          if (session?.agentProfile?.trust === "trusted") {
+            await onResetThread?.(session.agentProfile.name);
+            return complete({ handled: true, action: "resetThread" });
+          }
+          onNewSessionRequested?.();
+          return complete({ handled: true, action: "newSession" });
+        }
+
         default:
           return { handled: false };
       }
@@ -2172,7 +2188,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     } finally {
       if (commandName === "compact") setIsCompacting(false);
     }
-  }, [activeLeafId, addNotice, ensureNewSession, isCompacting, loadModels, loadSession, loadSlashCommands, loadTools, promoteNewSession, onOpenSettings, onSessionForked, onSessionStatsPanelOpen, slashCommandsForMcp]);
+  }, [activeLeafId, addNotice, ensureNewSession, isCompacting, loadModels, loadSession, loadSlashCommands, loadTools, promoteNewSession, onOpenSettings, onSessionForked, onSessionStatsPanelOpen, slashCommandsForMcp, session, onNewSessionRequested, onResetThread]);
 
   // Let AgentSession.prompt decide atomically whether to queue against the
   // current run or start a new turn if it settled while the request was in
