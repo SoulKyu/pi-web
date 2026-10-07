@@ -66,3 +66,12 @@ test("AgentSpaceRight aborts the memory poll on agent switch and unmount", () =>
   assert.match(right, /signal\?\.aborted/);
   assert.match(right, /controller\.abort\(\)/);
 });
+
+test("the reset flow has one POST in AppShell, reached from the dialog and from /new, /clear", () => {
+  assert.match(shell, /\/thread\/reset`/);
+  assert.match(shell, /agents\.profile\.resetConfirm/);
+  assert.match(shell, /onThreadReset=\{\(\) => void resetAgentThread\(agentDetail\.name\)\}/);
+  assert.match(shell, /onResetThread=\{resetAgentThread\}/);
+  assert.match(dialog, /agents\.profile\.reset"/);
+  assert.doesNotMatch(dialog, /thread\/reset/);
+});

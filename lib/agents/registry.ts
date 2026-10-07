@@ -198,6 +198,20 @@ function patchSpace(name: string, patch: Partial<AgentSpaceState>): void {
 export function setThreadSessionId(name: string, sessionId: string): void { patchSpace(name, { threadSessionId: sessionId }); }
 export function setLastReadEntryId(name: string, entryId: string): void { patchSpace(name, { lastReadEntryId: entryId }); }
 
+/** Reversible by hand like delete: the thread file moves under .trash and the space forgets it, so the next open starts fresh. Returns the trash directory, or null when there was no file to move. */
+export function archiveThread(name: string, threadPath: string | undefined): string | null {
+  const space = readSpace(name);
+  if (!space || !getLongTermAgent(name)) throw new AgentRegistryError("not_found", `agent not found: ${name}`);
+  let trash: string | null = null;
+  if (threadPath && existsSync(threadPath)) {
+    trash = join(agentSpacesDir(), ".trash", `${name}-${new Date().toISOString().replace(/[:.]/g, "-")}`);
+    mkdirSync(trash, { recursive: true, mode: 0o700 });
+    renameSync(threadPath, join(trash, "thread.jsonl"));
+  }
+  writeSpace({ name, avatar: space.avatar, createdAt: space.createdAt });
+  return trash;
+}
+
 /** Reversible by hand: home and thread move under .trash; profile and space state are removed. Returns the trash directory. */
 export function deleteLongTermAgent(name: string, threadPath?: string): string {
   const profile = longTermProfiles().find((candidate) => candidate.name === name);

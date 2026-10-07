@@ -9,7 +9,7 @@ import type { ToolsPreset } from "@/lib/agents/registry";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
 
-export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted }: { agent: AgentDetail; onClose: () => void; onSaved: (agent: AgentDetail) => void; onDeleted: () => void }) {
+export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThreadReset }: { agent: AgentDetail; onClose: () => void; onSaved: (agent: AgentDetail) => void; onDeleted: () => void; onThreadReset: () => void }) {
   const { t } = useI18n();
   const [emoji, setEmoji] = useState(agent.avatar.emoji);
   const [color, setColor] = useState(agent.avatar.color);
@@ -133,7 +133,10 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted }: { age
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-          <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid #e5484d", background: "none", color: "#e5484d" }}>{t("agents.profile.delete")}</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid #e5484d", background: "none", color: "#e5484d" }}>{t("agents.profile.delete")}</button>
+            <button type="button" disabled={busy} onClick={() => { onThreadReset(); onClose(); }} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
             <button type="submit" disabled={busy || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
