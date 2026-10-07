@@ -185,7 +185,7 @@ export function AppShell() {
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
-  const { agents, agentsHomeDir, paused: allPaused, reload: reloadAgents } = useAgentsPoll();
+  const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -884,7 +884,7 @@ export function AppShell() {
     }
   }, [handleSelectSession, sessionCatalog]);
 
-  const openAgent = useCallback(async (name: string) => {
+  const openAgent = useCallback(async (name: string, entryId?: string | null) => {
     let response: Response;
     let data: { sessionId?: string; lastReadEntryId?: string | null; error?: string };
     try {
@@ -909,6 +909,7 @@ export function AppShell() {
     setAgentUnreadMarker(data.lastReadEntryId ?? null);
     pendingAgentRef.current = { sessionId: data.sessionId, agentName: name };
     await handleOpenSession(data.sessionId);
+    if (entryId) setSearchTarget({ sessionId: data.sessionId, entryId });
     if (!isMobile) setRightPanelOpen(true);
   }, [handleOpenSession, isMobile, translate]);
 
@@ -937,7 +938,7 @@ export function AppShell() {
   useEffect(() => {
     if (agentMountOpenedRef.current || !initialNavigation.agentName) return;
     agentMountOpenedRef.current = true;
-    void openAgent(initialNavigation.agentName);
+    void openAgent(initialNavigation.agentName, initialNavigation.entryId); // runs once, so the entry is scrolled to once
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the ?agent= the page loaded with
   }, []);
 
@@ -2113,6 +2114,8 @@ export function AppShell() {
         onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
         orientation={isMobile ? "horizontal" : "vertical"}
         paused={allPaused}
+        error={agentsError}
+        lastOkAt={agentsLastOkAt}
         onPauseChanged={reloadAgents}
       />}
 
@@ -2157,6 +2160,8 @@ export function AppShell() {
           onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
           orientation={isMobile ? "horizontal" : "vertical"}
           paused={allPaused}
+          error={agentsError}
+          lastOkAt={agentsLastOkAt}
           onPauseChanged={reloadAgents}
           />}
         {/* Top bar with sidebar toggle */}

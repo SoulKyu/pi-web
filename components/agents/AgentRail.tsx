@@ -44,11 +44,12 @@ function useHealthPoll(): { health: AgentOpsHealth; level: HealthLevel } | null 
 }
 
 /** Polls the agent list: the running dot and the unread badge must move, so 5 s while the tab is visible, 30 s hidden. */
-export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: string; paused: boolean; error: string | null; reload: () => void } {
+export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: string; paused: boolean; error: string | null; lastOkAt: number | null; reload: () => void } {
   const [agents, setAgents] = useState<AgentListItem[]>([]);
   const [agentsHomeDir, setAgentsHomeDir] = useState<string | undefined>();
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastOkAt, setLastOkAt] = useState<number | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const reload = useCallback(() => setReloadTick((tick) => tick + 1), []);
 
@@ -63,6 +64,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
         setAgents(data.agents);
         setAgentsHomeDir(data.agentsHomeDir);
         setPaused(data.paused === true);
+        setLastOkAt(Date.now());
         setError(null);
       } catch (cause) {
         if (controller.signal.aborted) return;
@@ -84,12 +86,12 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
     };
   }, [reloadTick]);
 
-  return { agents, agentsHomeDir, paused, error, reload };
+  return { agents, agentsHomeDir, paused, error, lastOkAt, reload };
 }
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
 
-export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, orientation, paused, onPauseChanged }: {
+export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, orientation, paused, error, lastOkAt, onPauseChanged }: {
   agents: readonly AgentListItem[];
   activeAgent: string | null;
   onSelectAgent: (name: string) => void;
@@ -97,6 +99,8 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   onShowSessions: () => void;
   orientation: "vertical" | "horizontal";
   paused: boolean;
+  error: string | null;
+  lastOkAt: number | null;
   onPauseChanged: () => void;
 }) {
   const { t, locale } = useI18n();
@@ -143,6 +147,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
       {healthState?.health.quietHours && <span role="img" aria-label={t("agentOps.quietHours.active")} title={t("agentOps.quietHours.active")} style={{ fontSize: 12 }}>🌙</span>}
       <button type="button" onClick={() => void togglePause()} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
       {pauseError && <span role="alert" title={t("agents.error", { error: pauseError })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span>}
+      {error && lastOkAt !== null && <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>}
       <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto" }), color: activeAgent === null ? "var(--accent)" : "var(--text-muted)" }}>☰</button>
     </nav>
   );

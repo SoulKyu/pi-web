@@ -36,24 +36,26 @@ function isThreadBusy(agentName: string): boolean {
   return Boolean(live?.isAlive() && live.isRunning());
 }
 
-/** After a terminal write: a failed run of a long-term agent pushes; a finished isolated run posts its summary card. Neither blocks nor throws. */
+/** After a terminal write: a finished isolated run posts its summary card, a failed run of a long-term agent pushes (after the card, so the push can open its entry). Never blocks the runner, never throws. */
 export function handleTaskEnd(task: AgentTask): void {
   if (!task.agent) return;
   const agentName = task.agent;
-  if (task.status === "failed") {
-    notifyAgent((locale) => ({
+  void pushBudgetReachedOnce(agentName); // a run that reaches the daily budget: one push per agent per day
+  void (async () => {
+    let entryId: string | undefined;
+    if (task.target === "isolated") {
+      const agent = getLongTermAgent(agentName);
+      const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
+      if (agent && event) entryId = await appendThreadEvent(agent, event).catch((error) => { console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error); return undefined; });
+    }
+    if (task.status !== "failed") return;
+    await notifyAgent((locale) => ({
       title: agentName,
       body: localeText(locale, "agentRunFailed").replace("{name}", agentName).replace("{title}", task.title),
-      url: `/?agent=${encodeURIComponent(agentName)}`,
+      url: `/?agent=${encodeURIComponent(agentName)}${entryId ? `&entry=${encodeURIComponent(entryId)}` : ""}`,
       tag: `pi-agent:${agentName}`,
-    })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
-  }
-  void pushBudgetReachedOnce(agentName); // a run that reaches the daily budget: one push per agent per day
-  if (task.target === "isolated") {
-    const agent = getLongTermAgent(agentName);
-    const event = webhookEventOfTask({ ...task, ...(task.usage ? { costEquivalent: priceRecord(task.usage).costEquivalent } : {}), result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
-    if (agent && event) void appendThreadEvent(agent, event).catch((error) => console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error));
-  }
+    }));
+  })().catch((error) => console.error("[agent-ops] task end:", error instanceof Error ? error.message : error));
 }
 
 /** Pause: running tasks of the scope are aborted (cancelled), queued ones wait. */

@@ -1457,6 +1457,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.rail.running": "运行中",
     "agents.rail.needsInput": "需要你的回答",
     "agents.rail.failed": "失败",
+    "agents.rail.stale": "离线 · 数据截至 {time}",
     "agents.drawer.home": "主页与触发器",
     "agents.drawer.status": "状态、任务、记忆",
     "agents.loadFailed": "无法加载智能体：{error}",

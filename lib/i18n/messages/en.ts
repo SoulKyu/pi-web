@@ -1457,6 +1457,7 @@ export const enLocale: LocalePlugin = {
     "agents.rail.running": "running",
     "agents.rail.needsInput": "needs your answer",
     "agents.rail.failed": "failed",
+    "agents.rail.stale": "offline · data from {time}",
     "agents.drawer.home": "Home & triggers",
     "agents.drawer.status": "Status, tasks, memory",
     "agents.loadFailed": "Could not load agents: {error}",

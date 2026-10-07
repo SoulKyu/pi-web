@@ -27,3 +27,8 @@ test("the mobile agent drawer has two tabs and remembers the last one", () => {
   assert.match(source, /agents\.drawer\.home/);
   assert.match(source, /agents\.drawer\.status/);
 });
+
+test("?entry= is handed to the existing search scroll once the agent thread is open", () => {
+  assert.match(source, /void openAgent\(initialNavigation\.agentName, initialNavigation\.entryId\)/);
+  assert.match(source, /await handleOpenSession\(data\.sessionId\);\n    if \(entryId\) setSearchTarget\(\{ sessionId: data\.sessionId, entryId \}\)/);
+});

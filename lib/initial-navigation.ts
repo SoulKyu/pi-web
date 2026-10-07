@@ -4,6 +4,7 @@ export interface InitialNavigation {
   requestedCwd: string | null;
   sessionId: string | null;
   agentName: string | null;
+  entryId: string | null;
   sidebarCollapsed: boolean;
 }
 
@@ -14,10 +15,14 @@ export function getInitialNavigation(
 
   const agentName = searchParams.get("agent")?.trim() || null;
 
+  const entry = searchParams.get("entry")?.trim() ?? "";
+  const entryId = agentName && /^[A-Za-z0-9_-]{1,64}$/.test(entry) ? entry : null;
+
   return {
     requestedCwd: agentName ? null : requestedCwd,
     sessionId: agentName || requestedCwd ? null : (searchParams.get("session") || null),
     agentName,
+    entryId,
     sidebarCollapsed: searchParams.get("sidebar") === "collapsed",
   };
 }

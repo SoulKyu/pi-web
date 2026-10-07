@@ -78,6 +78,8 @@
 
 ## Rail and navigation
 - `?agent=` wins over `?session=` and `?cwd=` (`lib/initial-navigation.ts`, `agentName`). `AppShell.openAgent` opens the thread; `pendingAgentRef = { sessionId, agentName }` stays on a matching selection and is cleared only when a different session is picked. The `?agent=` mount effect runs once (ref guard, Strict Mode).
+- Deep link `/?agent=<name>&entry=<id>` (Task 38): `entryId` is parsed only with `?agent=`, trimmed, `[A-Za-z0-9_-]{1,64}` else null. After the mount `openAgent(name, entryId)` resolves, `searchTarget = { sessionId, entryId }` hands over to the search-scroll path (pages upward with `before=`, scrolls to `[data-entry-id]`); an entry never found behaves like a search miss (no dialog). It runs once, in the mount effect. The failure push of an isolated run uses this url; `agent_notify` keeps `/?agent=<name>`.
+- Rail stale notice: `useAgentsPoll` keeps the last good snapshot on a failed poll and records `lastOkAt`; `AgentRail` shows a muted `agents.rail.stale` line ("offline · data from 14:02") while `error` is set and a snapshot exists. Nothing when the first poll fails; it disappears on the next successful poll.
 - Deleting an agent (`handleAgentDeleted`) lands on a neutral draft and `router.replace("/")`.
 - Homes are left out of `GET /api/sessions` (`isAgentHomePath`) but resolvable by id, so the thread opens through the normal path.
 - Layout (`showAgentPanel`): the right panel shows the file viewer whenever a file/terminal tab is active, the agent panel otherwise. Mobile ⓘ toggles a drawer stacking `AgentSpaceLeft` then `AgentSpaceRight`.
