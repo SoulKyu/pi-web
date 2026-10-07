@@ -1,5 +1,6 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
 import { createAgentNotifyExtension } from "./agents/agent-notify";
+import { createHomePathPolicyExtension } from "./agents/path-policy";
 import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
 import { createProjectCommandBashExtension } from "./project-command-env";
 
@@ -11,11 +12,12 @@ type ProjectShellSettings = { getShellCommandPrefix(): string | undefined; getSh
  * read-only MCP policy a read-only preset could still call writing MCP tools.
  */
 export function agentProfileExtensionFactories(options: {
-  cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension;
+  cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension; homeOnly?: string;
 }): InlineExtension[] {
   return [
     ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),
     createReadOnlyMcpPolicyExtension(),
+    ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
     createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
     ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName })] : []),
   ];

@@ -2494,6 +2494,7 @@ export async function startRpcSession(
             extensionFactories: agentProfileExtensionFactories({
               cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
               agentName: snapshotProfile?.name, exactSystemPrompt: usesExactSystemPrompt ? exactSystemPromptExtension : undefined,
+              homeOnly: options.agentProfileTools !== undefined ? sessionCwd : undefined,
             }),
             // The profile loads user extensions: a user bash extension wins over the host one, like a normal session.
             extensionsOverride: (base) => preferUserBashExtension(base),

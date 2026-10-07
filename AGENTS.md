@@ -131,6 +131,7 @@ lib/
   agents/queue.ts           isolated / thread task selectors for the two runners
   agents/thread-run.ts      thread event run: open, wait idle, card, prompt
   agents/agent-notify.ts    agent_notify push tool, trusted threads only
+  agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/memory.ts          mem0 snapshot reader + forget requests
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
   agent-ops/runner.ts       FIFO runner: slots, one maxRunMs deadline, fire-and-forget abort
