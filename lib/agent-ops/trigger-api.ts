@@ -12,7 +12,9 @@ export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 
 
 /** Not a stored field: `repin: true` re-resolves the profile and renews the pin. */
 const PATCH_ONLY_FIELDS = ["repin"] as const;
-const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "dedupWindowMs", "maxActiveTasks"] as const;
+const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "dedupWindowMs", "maxActiveTasks", "runTarget", "model", "tools", "maxRunMs"] as const;
+/** Optional fields a PATCH clears with an explicit null. */
+const CLEARABLE_FIELDS = ["runTarget", "model", "tools", "maxRunMs"] as const;
 const NOT_FOUND = { ok: false, status: 404, error: "Trigger not found" } as const;
 const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -64,10 +66,14 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
   for (const field of EDITABLE_FIELDS) merged[field] = field in body ? body[field] : existing[field];
   const clearSchedule = body.everyMinutes === null;
   if (clearSchedule || merged.everyMinutes === undefined) delete merged.everyMinutes;
+  const cleared = CLEARABLE_FIELDS.filter((field) => merged[field] === null || merged[field] === undefined);
+  for (const field of cleared) delete merged[field];
   const invalid = validateTriggerFields(merged as unknown as TriggerInput);
   if (invalid) return refuse(invalid);
   const updated: TriggerConfig = { ...existing, ...(merged as unknown as Omit<TriggerInput, "webhookSecret">) };
   if (clearSchedule) delete updated.everyMinutes;
+  for (const field of cleared) delete updated[field];
+  if (merged.tools) updated.tools = [...new Set(merged.tools as string[])];
   if (body.repin === true || updated.profile !== existing.profile) {
     const built = buildTriggerConfig(merged as unknown as TriggerInput, resolveIn);
     if (!built.ok) return refuse(built.error);

@@ -11,7 +11,6 @@ import { startAgentProfileRun } from "./spawn";
 import { assertTaskStillStartable } from "./start-guard";
 import { readAgentOpsSettings, isPausedFor } from "./settings";
 import { listTasks, recoverInterrupted, updateTask, type AgentTask } from "./task-store";
-import { triggerRunPin } from "./trigger-store";
 import { localeText, notifyAgent } from "../web-push";
 
 declare global { var __agentOpsRecovered: boolean | undefined; }
@@ -34,7 +33,7 @@ function isThreadBusy(agentName: string): boolean {
   return Boolean(live?.isAlive() && live.isRunning());
 }
 
-/** After a terminal write: a failed run of a long-term agent pushes; a finished webhook run posts its summary card. Neither blocks nor throws. */
+/** After a terminal write: a failed run of a long-term agent pushes; a finished isolated run posts its summary card. Neither blocks nor throws. */
 export function handleTaskEnd(task: AgentTask): void {
   if (!task.agent) return;
   const agentName = task.agent;
@@ -46,7 +45,7 @@ export function handleTaskEnd(task: AgentTask): void {
       tag: `pi-agent-failed:${task.id}`,
     })).catch((error) => console.error("[agent-ops] failure push:", error instanceof Error ? error.message : error));
   }
-  if (task.target === "isolated" && task.kind === "webhook") {
+  if (task.target === "isolated") {
     const agent = getLongTermAgent(agentName);
     const event = webhookEventOfTask({ ...task, result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
     if (agent && event) void appendThreadEvent(agent, event).catch((error) => console.error("[agent-ops] summary card:", error instanceof Error ? error.message : error));
@@ -76,7 +75,7 @@ export function kickRunner(): Promise<void> {
   });
   const isolated = runPendingTasks({
     maxConcurrent: 2, capacity, slotKey: "__agentOpsRunning", select: (queued) => selectIsolatedTasks(queued, pausedNow),
-    start: (task) => startAgentProfileRun(task.profile, task.cwd, task.prompt, triggerRunPin(task), () => assertTaskStillStartable(task)),
+    start: (task) => startAgentProfileRun(task, () => assertTaskStillStartable(task)),
     onRunEnd: () => void kickRunner(), onTaskEnd: handleTaskEnd,
   });
   const thread = runPendingTasks({

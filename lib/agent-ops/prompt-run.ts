@@ -22,11 +22,11 @@ export interface PromptRunSession {
 /** The authoritative trigger tool check: the tools the session actually activated, extension
  *  tools included (lib/rpc-manager.ts:1104). The profile hash cannot see installed extensions.
  *  `get_tools` does not wait for extension binding, so wait first. Refusal or any failure shuts the session down. */
-export async function enforceTriggerTools(session: PromptRunSession): Promise<void> {
+export async function enforceTriggerTools(session: PromptRunSession, tools?: readonly string[]): Promise<void> {
   try {
     await session.waitUntilReady();
-    const tools = await session.send({ type: "get_tools" }) as Array<{ name: string; active: boolean }>;
-    const refusal = checkActiveTriggerTools(tools.filter((t) => t.active).map((t) => t.name));
+    const available = await session.send({ type: "get_tools" }) as Array<{ name: string; active: boolean }>;
+    const refusal = checkActiveTriggerTools(available.filter((t) => t.active).map((t) => t.name), tools ? new Set(tools) : undefined);
     if (refusal) throw new Error(refusal);
   } catch (error) {
     await session.shutdown().catch(() => {});

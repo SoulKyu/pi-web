@@ -61,7 +61,7 @@ async function runOne(task: AgentTask, deps: RunnerDeps, key: SlotKey): Promise<
   let handle: RunHandle | undefined;
   try {
     // One deadline for the whole run, start included: a start stuck in preflight or an MCP wait has no handle to abort.
-    const maxRunMs = deps.maxRunMs ?? DEFAULT_MAX_RUN_MS;
+    const maxRunMs = task.maxRunMs ?? deps.maxRunMs ?? DEFAULT_MAX_RUN_MS;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new RunTimeoutError(`timeout after ${maxRunMs} ms`)), maxRunMs);
     });

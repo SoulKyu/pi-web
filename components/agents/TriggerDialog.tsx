@@ -4,6 +4,8 @@ import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from 
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
+import { TRIGGER_TOOL_NAMES } from "@/lib/agent-ops/trigger-tools";
+import type { ModelOption } from "./NewAgentDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle } from "./dialog-styles";
 import { requestTrigger, type TriggerResponse } from "./trigger-view";
 
@@ -24,6 +26,11 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const [webhook, setWebhook] = useState(false);
   const [dedupMinutes, setDedupMinutes] = useState(String((trigger?.dedupWindowMs ?? 15 * MS_PER_MINUTE) / MS_PER_MINUTE));
   const [maxActiveTasks, setMaxActiveTasks] = useState(String(trigger?.maxActiveTasks ?? 1));
+  const [runTarget, setRunTarget] = useState<"thread" | "isolated">(trigger?.runTarget ?? "thread");
+  const [model, setModel] = useState(trigger?.model ?? "");
+  const [tools, setTools] = useState<string[]>(trigger?.tools ?? [...TRIGGER_TOOL_NAMES]);
+  const [maxRunMinutes, setMaxRunMinutes] = useState(trigger?.maxRunMs ? String(trigger.maxRunMs / MS_PER_MINUTE) : "");
+  const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -32,6 +39,26 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   useEffect(() => openStackedDialog(document, dialogRef.current, () => onCloseRef.current()), []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const home = await (await fetch(`/api/agents/${encodeURIComponent(agentName)}`, { signal: controller.signal })).json() as { agent?: { home?: string }; home?: string };
+        const cwd = home.agent?.home ?? home.home;
+        if (!cwd) return;
+        const response = await fetch(`/api/models?cwd=${encodeURIComponent(cwd)}`, { cache: "no-store", signal: controller.signal });
+        const data = await response.json() as { modelList?: ModelOption[] };
+        if (response.ok && data.modelList) setModelList(data.modelList);
+      } catch { /* the agent's default stays the only option */ }
+    })();
+    return () => controller.abort();
+  }, [agentName]);
+
+  const isWebhook = trigger ? trigger.hasWebhookSecret : webhook;
+  const isScheduled = everyMinutes.trim() !== "" && !isWebhook;
+  const isolated = isWebhook || (isScheduled && runTarget === "isolated");
+  const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -42,10 +69,18 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
       dedupWindowMs: Number(dedupMinutes) * MS_PER_MINUTE, maxActiveTasks: Number(maxActiveTasks),
     };
     const every = everyMinutes.trim() ? Number(everyMinutes) : undefined;
+    // Absent on create, null on edit: a PATCH clears an optional field only with an explicit null.
+    const unset = trigger ? null : undefined;
+    const run = {
+      runTarget: isScheduled && runTarget === "isolated" ? "isolated" : unset,
+      model: isolated && model ? model : unset,
+      tools: isolated && tools.length && tools.length < TRIGGER_TOOL_NAMES.length ? tools : unset,
+      maxRunMs: isolated && maxRunMinutes.trim() ? Math.round(Number(maxRunMinutes) * MS_PER_MINUTE) : unset,
+    };
     const result = await requestTrigger(trigger ? `/api/agent-ops/triggers/${trigger.id}` : "/api/agent-ops/triggers", {
       method: trigger ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(trigger ? { ...fields, everyMinutes: every ?? null } : { ...fields, everyMinutes: every, webhook }),
+      body: JSON.stringify(trigger ? { ...fields, ...run, everyMinutes: every ?? null } : { ...fields, ...run, everyMinutes: every, webhook }),
     });
     setBusy(false);
     if ("error" in result) { setError(result.error); return; }
@@ -70,11 +105,49 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
           {t("agentOps.trigger.everyMinutes")}
           <input type="number" min={1} step={1} value={everyMinutes} onChange={(event) => setEveryMinutes(event.target.value)} style={fieldStyle} />
         </label>
+        {isScheduled && (
+          <fieldset style={{ ...labelStyle, border: 0, padding: 0, margin: 0 }}>
+            <legend style={{ padding: 0 }}>{t("agentOps.trigger.runIn")}</legend>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="radio" name="runTarget" checked={runTarget === "thread"} onChange={() => setRunTarget("thread")} />
+              {t("agentOps.trigger.runInThread")}
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="radio" name="runTarget" checked={runTarget === "isolated"} onChange={() => setRunTarget("isolated")} />
+              {t("agentOps.trigger.runInIsolated")}
+            </label>
+          </fieldset>
+        )}
         {!trigger && (
           <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" checked={webhook} onChange={(event) => setWebhook(event.target.checked)} />
             {t("agentOps.trigger.webhookField")}
           </label>
+        )}
+        {isolated && (
+          <>
+            <label style={labelStyle}>
+              {t("agentOps.trigger.model")}
+              <select value={model} onChange={(event) => setModel(event.target.value)} style={fieldStyle}>
+                <option value="">{t("agents.model.default")}</option>
+                {!modelInList && <option value={model}>{model}</option>}
+                {modelList.map((entry) => <option key={`${entry.provider}/${entry.id}`} value={`${entry.provider}/${entry.id}`}>{entry.name || entry.id}</option>)}
+              </select>
+            </label>
+            <fieldset style={{ ...labelStyle, border: 0, padding: 0, margin: 0 }}>
+              <legend style={{ padding: 0 }}>{t("agentOps.trigger.tools")}</legend>
+              {TRIGGER_TOOL_NAMES.map((tool) => (
+                <label key={tool} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" checked={tools.includes(tool)} onChange={(event) => setTools(event.target.checked ? [...tools, tool] : tools.filter((name) => name !== tool))} />
+                  {tool}
+                </label>
+              ))}
+            </fieldset>
+            <label style={labelStyle}>
+              {t("agentOps.trigger.maxDuration")}
+              <input type="number" min={1} max={60} step="any" value={maxRunMinutes} onChange={(event) => setMaxRunMinutes(event.target.value)} style={fieldStyle} />
+            </label>
+          </>
         )}
         <label style={labelStyle}>
           {t("agentOps.trigger.dedupMinutes")}
@@ -87,7 +160,7 @@ export function TriggerDialog({ trigger, agentName, onClose, onSaved }: {
         {error && <div role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !promptTemplate.trim()} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
+          <button type="submit" disabled={busy || !name.trim() || !promptTemplate.trim() || (isolated && tools.length === 0)} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
             {busy ? t("agentOps.trigger.saving") : trigger ? t("agentOps.trigger.save") : t("agentOps.trigger.create")}
           </button>
         </div>

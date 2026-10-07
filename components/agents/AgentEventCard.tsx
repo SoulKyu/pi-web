@@ -9,7 +9,7 @@ export function AgentEventCard({ message, onOpenSession }: { message: CustomMess
   if (!data) return null;
   const webhook = data.kind === "webhook";
   const icon = data.kind === "schedule" ? "⏱" : data.kind === "task" ? "▶" : "🪝";
-  const label = t(data.kind === "schedule" ? "agents.event.schedule" : data.kind === "task" ? "agents.event.task" : "agents.event.webhook");
+  const label = t(data.kind === "schedule" ? "agents.event.schedule" : data.kind === "task" ? "agents.event.task" : (webhook && data.taskKind === "schedule") ? "agents.event.isolated" : "agents.event.webhook");
   return (
     <div className={webhook ? "agent-event agent-event-webhook" : "agent-event"} role="note">
       <div className="agent-event-head">

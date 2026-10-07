@@ -20,6 +20,8 @@ export interface AgentTask {
   kind?: "schedule" | "task" | "webhook";
   /** Why a trigger fired this task (journal line of the same fire). */
   fireReason?: FireReason;
+  /** Per-trigger run settings copied at creation: `provider/modelId`, tool subset of the trigger allowlist, duration cap in ms. */
+  model?: string; tools?: string[]; maxRunMs?: number;
   /** Counted from the run's own wrapper events; the same numbers go to runs.jsonl. Absent when a cancel won the terminal write: runs.jsonl is the source of truth. */
   usage?: RunUsage;
 }
@@ -38,7 +40,7 @@ function readOne(id: string): AgentTask | null {
     return typeof raw?.id === "string" ? raw : null;
   } catch { return null; }
 }
-export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256" | "agent" | "target" | "kind" | "fireReason">>): AgentTask {
+export function createTask(input: Pick<AgentTask, "profile" | "cwd" | "title" | "prompt" | "origin"> & Partial<Pick<AgentTask, "triggerId" | "pinnedProfileSha256" | "agent" | "target" | "kind" | "fireReason" | "model" | "tools" | "maxRunMs">>): AgentTask {
   mkdirSync(storeDir, { recursive: true });
   const task: AgentTask = { id: randomUUID(), status: "queued", createdAt: new Date().toISOString(), ...input };
   writePrivateFileAtomicSync(taskPath(task.id), JSON.stringify(task, null, 2));

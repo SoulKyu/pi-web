@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { agentHome, resolveLongTermProfile } from "../agents/registry";
+import { TRIGGER_TOOL_NAMES } from "./trigger-tools";
+import { splitModel } from "../agents/agent-view";
 import type { SubagentProfile, SubagentScope } from "../subagents";
 
 export interface TriggerConfig {
@@ -19,6 +21,14 @@ export interface TriggerConfig {
   dedupWindowMs: number;
   /** Ingestion is refused while this many tasks of the trigger are queued or running. */
   maxActiveTasks: number;
+  /** Schedule triggers only (default thread); a webhook trigger always runs isolated. */
+  runTarget?: "thread" | "isolated";
+  /** `provider/modelId` for isolated runs; absent = the agent's own model. */
+  model?: string;
+  /** Strict subset of TRIGGER_TOOL_ALLOWLIST for isolated runs; absent = the whole allowlist. It can only shrink. */
+  tools?: string[];
+  /** Run duration cap in ms for this trigger's tasks (60 s..1 h); absent = the runner default. */
+  maxRunMs?: number;
   /** The exact profile the trigger was validated against. Only contentSha256 is compared:
    *  identical content means identical behavior, so a global↔project move with the same bytes is accepted on purpose.
    *  Built-ins have no filePath and pin the resolved snapshot. */
@@ -34,12 +44,12 @@ export const hashWebhookSecret = (secret: string): string => sha256Of(secret);
 /** Closed allowlist. A blocklist (bash/write/edit/powershell) misses every extension tool
  *  that runs code: a subagent tool spawning a child with bash, an MCP adapter, an
  *  interactive shell. Anything not listed here is refused. */
-export const TRIGGER_TOOL_ALLOWLIST: ReadonlySet<string> = new Set(["read", "grep", "find", "ls", "memory_search", "memory_save"]);
+export const TRIGGER_TOOL_ALLOWLIST: ReadonlySet<string> = new Set<string>(TRIGGER_TOOL_NAMES);
 
 /** Authoritative check, run in start() on the tools the session actually activated
  *  (`get_tools`, lib/rpc-manager.ts:1104), extension tools included. */
-export function checkActiveTriggerTools(activeTools: readonly string[]): string | null {
-  const outside = activeTools.filter((t) => !TRIGGER_TOOL_ALLOWLIST.has(t));
+export function checkActiveTriggerTools(activeTools: readonly string[], allowed: ReadonlySet<string> = TRIGGER_TOOL_ALLOWLIST): string | null {
+  const outside = activeTools.filter((t) => !allowed.has(t));
   return outside.length ? `trigger run refused: tools outside the allowlist: ${outside.join(", ")}` : null;
 }
 
@@ -82,7 +92,10 @@ export function triggerRunPin(task: { origin: string; pinnedProfileSha256?: stri
 }
 
 export type TriggerInput = Pick<TriggerConfig, "name" | "profile" | "promptTemplate">
-  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "dedupWindowMs" | "maxActiveTasks">>;
+  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "dedupWindowMs" | "maxActiveTasks" | "runTarget" | "model" | "tools" | "maxRunMs">>;
+
+const MIN_RUN_MS = 60_000;
+const MAX_RUN_MS = 3_600_000;
 
 /** Field checks that need no profile lookup, so an edit of a trigger whose profile vanished can still be validated. */
 export function validateTriggerFields(input: TriggerInput): string | null {
@@ -95,6 +108,14 @@ export function validateTriggerFields(input: TriggerInput): string | null {
   // An explicit null must not fall through to the defaults below: it would be saved as is.
   for (const field of ["dedupWindowMs", "maxActiveTasks", "everyMinutes"] as const) {
     if (input[field] === null) return `${field} must be a number`;
+  }
+  if (input.runTarget !== undefined && input.runTarget !== "thread" && input.runTarget !== "isolated") return "runTarget must be thread or isolated";
+  if (input.model !== undefined && (typeof input.model !== "string" || !splitModel(input.model))) return "model must be provider/modelId";
+  if (input.tools !== undefined && (!Array.isArray(input.tools) || !input.tools.length || input.tools.some((t) => !TRIGGER_TOOL_ALLOWLIST.has(t)))) {
+    return "tools must be a subset of the trigger allowlist";
+  }
+  if (input.maxRunMs !== undefined && (!Number.isInteger(input.maxRunMs) || input.maxRunMs < MIN_RUN_MS || input.maxRunMs > MAX_RUN_MS)) {
+    return `maxRunMs must be an integer between ${MIN_RUN_MS} and ${MAX_RUN_MS}`;
   }
   const dedupWindowMs = input.dedupWindowMs ?? 15 * 60_000;
   if (!(dedupWindowMs > 0) || !Number.isFinite(dedupWindowMs)) return "dedupWindowMs must be greater than 0";
@@ -124,6 +145,10 @@ export function buildTriggerConfig(
       enabled: input.enabled ?? true,
       ...(input.everyMinutes !== undefined ? { everyMinutes: input.everyMinutes } : {}),
       promptTemplate: input.promptTemplate,
+      ...(input.runTarget !== undefined ? { runTarget: input.runTarget } : {}),
+      ...(input.model !== undefined ? { model: input.model } : {}),
+      ...(input.tools !== undefined ? { tools: [...new Set(input.tools)] } : {}),
+      ...(input.maxRunMs !== undefined ? { maxRunMs: input.maxRunMs } : {}),
       dedupWindowMs: input.dedupWindowMs ?? 15 * 60_000, maxActiveTasks: input.maxActiveTasks ?? 1,
       pinnedProfile: { scope: profile.scope, ...(profile.filePath ? { filePath: profile.filePath } : {}), contentSha256 },
     },

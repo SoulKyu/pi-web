@@ -33,8 +33,13 @@ export function createTriggerTask(trigger: TriggerConfig, rawText: string, creat
   const common = {
     agent: trigger.profile, profile: trigger.profile, cwd: triggerHome(trigger), origin: "trigger" as const, triggerId: trigger.id,
     ...(fireReason ? { fireReason } : {}),
+    ...(trigger.model ? { model: trigger.model } : {}), ...(trigger.tools ? { tools: trigger.tools } : {}), ...(trigger.maxRunMs ? { maxRunMs: trigger.maxRunMs } : {}),
     pinnedProfileSha256: trigger.pinnedProfile.contentSha256, // webhook (isolated) tasks re-check it in start(); a schedule thread task is only admitted at fire time (thread runs are trusted, a Profile settings edit re-pins)
   };
+  if (kind === "schedule" && trigger.runTarget === "isolated") {
+    // The raw template is the user's own text (no payload to fence); the run is untrusted, narrowed to the allowlist, and posts a summary card.
+    return create({ ...common, target: "isolated", kind, title: trigger.name, prompt: trigger.promptTemplate }).id;
+  }
   if (kind === "schedule") {
     // Trusted: the agent's own schedule runs in its thread as a plain prompt; nothing external is in it.
     return create({ ...common, target: "thread", kind, title: trigger.name, prompt: trigger.promptTemplate }).id;

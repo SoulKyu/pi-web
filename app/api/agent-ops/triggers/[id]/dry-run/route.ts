@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { activeTaskCount, planIngestion } from "@/lib/agent-ops/scheduler";
+import { readAgentOpsSettings, isPausedFor } from "@/lib/agent-ops/settings";
 import { getTrigger, triggerPinStatus, triggersDir, TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
 
 export const dynamic = "force-dynamic";
@@ -20,12 +21,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ error: "Invalid JSON body" }, { status: 400, headers });
   }
   const plan = planIngestion(trigger, payload ?? "", Date.now(), activeTaskCount(trigger.id));
-  const target = trigger.webhookSecretSha256 ? "isolated" : "thread";
+  const target = trigger.webhookSecretSha256 ? "isolated" : (trigger.runTarget ?? "thread");
+  // A schedule trigger fires its raw template; only a webhook trigger fences a payload.
+  const prompt = trigger.webhookSecretSha256 ? plan.prompt : trigger.promptTemplate;
+  const paused = isPausedFor(readAgentOpsSettings(), trigger.profile);
+  const shown = paused ? { ...plan, verdict: "refused" as const, reason: "agent paused" } : plan;
   return Response.json({
     plan: {
-      ...plan,
+      ...shown,
+      ...(prompt !== undefined ? { prompt } : {}),
       tokenFree: !existsSync(join(triggersDir(), plan.tokenName ?? "")),
-      tools: target === "isolated" ? [...TRIGGER_TOOL_ALLOWLIST] : [],
+      tools: target === "isolated" ? (trigger.tools ?? [...TRIGGER_TOOL_ALLOWLIST]) : [],
       pinStatus: triggerPinStatus(trigger),
       target,
     },
