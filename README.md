@@ -46,7 +46,7 @@ For port and hostname, command-line options override the corresponding environme
 | --- | --- | --- |
 | `--help`, `-h` | Print startup options and exit | — |
 | `--port <port>`, `-p <port>`, or `PORT` | Server port | `30141` |
-| `--hostname <host>`, `-H <host>`, or `PI_WEB_HOSTNAME` | Bind hostname (`127.0.0.1` keeps it on this machine) | `0.0.0.0` |
+| `--hostname <host>`, `-H <host>`, or `PI_WEB_HOSTNAME` | Bind hostname | `127.0.0.1` |
 | `--no-open` or `PI_WEB_NO_OPEN=1` | Do not open a browser automatically | Browser opens |
 | `PI_WEB_SKIP_VERSION_CHECK=1` | Disable Pi Web update checks | Unset |
 | `PI_WEB_ALLOWED_HOSTS` | Additional exact proxy or custom hostnames, comma-separated | Unset |
@@ -63,7 +63,7 @@ pi-web -p 8080 -H 0.0.0.0 --no-open
 
 ### Remote Access
 
-Pi Web listens on every interface by default, which exposes an agent that can execute high-privilege actions. On a trusted LAN, require a long random password (or bind to `127.0.0.1`):
+Binding to a non-loopback address exposes an agent that can execute high-privilege actions. On a trusted LAN, require a long random password:
 
 ```bash
 PI_WEB_PASSWORD='a-long-random-password' pi-web --hostname 0.0.0.0
