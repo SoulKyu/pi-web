@@ -44,6 +44,8 @@ app/api/
   agent-ops/triggers/[id]/route.ts PATCH enabled/edit (re-pins on profile or cwd change) | DELETE
   agent-ops/triggers/[id]/secret/route.ts POST rotate the webhook secret, returned once
   agent-ops/triggers/[id]/log/route.ts GET ?limit= fire journal newest first + rejectedUnauthenticated count
+  agent-ops/triggers/[id]/dry-run/route.ts POST { payload? } plan of a fire (verdict, fenced prompt, tokenFree, tools, pinStatus, target), writes nothing
+  agent-ops/triggers/[id]/fire/route.ts POST { payload? } manual fire, no dedup token: 202 { taskId } | 409 { reason }
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
   agent-ops/health/route.ts        GET { health, level } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused)
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)

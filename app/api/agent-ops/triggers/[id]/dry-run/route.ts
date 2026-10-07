@@ -1,0 +1,33 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { activeTaskCount, planIngestion } from "@/lib/agent-ops/scheduler";
+import { getTrigger, triggerPinStatus, triggersDir, TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
+
+export const dynamic = "force-dynamic";
+
+// POST /api/agent-ops/triggers/[id]/dry-run { payload? } - What a fire would do, without doing it: no token, no task, no journal line, no model.
+// `tools` is the isolated run's allowlist; a thread target runs with the agent's own tools, reported as [].
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const headers = { "Cache-Control": "no-store" };
+  const trigger = getTrigger(id);
+  if (!trigger) return Response.json({ error: "Trigger not found" }, { status: 404, headers });
+  let payload: unknown;
+  try {
+    const raw = await req.text();
+    payload = raw.trim() ? (JSON.parse(raw) as { payload?: unknown }).payload : undefined;
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400, headers });
+  }
+  const plan = planIngestion(trigger, payload ?? "", Date.now(), activeTaskCount(trigger.id));
+  const target = trigger.webhookSecretSha256 ? "isolated" : "thread";
+  return Response.json({
+    plan: {
+      ...plan,
+      tokenFree: !existsSync(join(triggersDir(), plan.tokenName ?? "")),
+      tools: target === "isolated" ? [...TRIGGER_TOOL_ALLOWLIST] : [],
+      pinStatus: triggerPinStatus(trigger),
+      target,
+    },
+  }, { headers });
+}

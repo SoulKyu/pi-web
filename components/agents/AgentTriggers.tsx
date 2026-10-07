@@ -51,6 +51,31 @@ function TriggerJournal({ triggerId }: { triggerId: string }) {
   );
 }
 
+interface DryRunPlan { verdict: "accepted" | "refused"; reason?: string; prompt?: string; tokenFree: boolean; tools: string[]; pinStatus: string; target: "thread" | "isolated" }
+const PROMPT_LINES = 40;
+
+function TriggerTestPanel({ plan, template, onClose }: { plan: DryRunPlan; template: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const [all, setAll] = useState(false);
+  const lines = (plan.prompt ?? template).split("\n");
+  const clipped = !all && lines.length > PROMPT_LINES;
+  return (
+    <div style={{ display: "grid", gap: 4, fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 6, padding: 8 }}>
+      <div>{t("agentOps.trigger.testVerdict", { verdict: plan.verdict })}</div>
+      {plan.reason && <div>{t("agentOps.trigger.testReason", { reason: plan.reason })}</div>}
+      <div>{t("agentOps.trigger.testTokenFree", { value: plan.tokenFree ? t("agentOps.trigger.yes") : t("agentOps.trigger.no") })}</div>
+      <div>{t("agentOps.trigger.testTarget", { target: plan.target })}</div>
+      <div>{t("agentOps.trigger.testPin", { status: plan.pinStatus })}</div>
+      <div>{t("agentOps.trigger.testTools", { tools: plan.tools.length ? plan.tools.join(", ") : t("agentOps.trigger.testToolsThread") })}</div>
+      <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "var(--font-mono)", color: "var(--text)" }}>{(clipped ? lines.slice(0, PROMPT_LINES) : lines).join("\n")}</pre>
+      <div style={{ display: "flex", gap: 6 }}>
+        {lines.length > PROMPT_LINES && <button type="button" onClick={() => setAll(!all)} style={smallButton}>{all ? t("agentOps.trigger.showLess") : t("agentOps.trigger.showAll")}</button>}
+        <button type="button" onClick={onClose} style={smallButton}>{t("agentOps.trigger.testClose")}</button>
+      </div>
+    </div>
+  );
+}
+
 interface Reveal { triggerId: string; triggerName: string; secret: string }
 
 function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged }: {
@@ -64,6 +89,8 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   const { locale, t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [plan, setPlan] = useState<DryRunPlan | null>(null);
+  const [fired, setFired] = useState<string | null>(null);
   const url = `/api/agent-ops/triggers/${trigger.id}`;
   const history = tasksOfTrigger(tasks, trigger.id);
   const { active, lastFireAt } = triggerActivity(tasks, trigger.id);
@@ -72,11 +99,11 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
     trigger.hasWebhookSecret ? t("agentOps.trigger.webhook") : null,
   ].filter(Boolean).join(" · ") || t("agentOps.trigger.noSchedule");
 
-  const run = async (init: RequestInit, path = url) => {
+  const run = async (init: RequestInit, path = url, changes = true) => {
     const result = await requestTrigger(path, init);
     setError("error" in result ? result.error : null);
     if ("error" in result) return null;
-    onChanged();
+    if (changes) onChanged();
     return result.data;
   };
   const toggle = () => void run({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: !trigger.enabled }) });
@@ -89,6 +116,19 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
     if (window.confirm(t("agentOps.trigger.repinConfirm", { name: trigger.name, profile: trigger.profile }))) {
       void run({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repin: true }) });
     }
+  };
+  const test = async () => {
+    const data = await run({ method: "POST" }, `${url}/dry-run`, false);
+    const dryRun = (data as { plan?: DryRunPlan } | null)?.plan;
+    if (dryRun) setPlan(dryRun);
+  };
+  const runNow = async () => {
+    if (!window.confirm(t("agentOps.trigger.runNowConfirm", { name: trigger.name }))) return;
+    const response = await fetch(`${url}/fire`, { method: "POST" }).catch(() => null);
+    const body = await response?.json().catch(() => ({})) as { taskId?: string; reason?: string; error?: string } | undefined;
+    if (response?.ok && body?.taskId) { setError(null); setFired(t("agentOps.trigger.runStarted", { id: body.taskId.slice(0, 8) })); onChanged(); }
+    else if (response?.status === 409) { setError(null); setFired(t("agentOps.trigger.runRefused", { reason: body?.reason ?? "" })); }
+    else setError(body?.error ?? "fire");
   };
   const remove = () => {
     if (window.confirm(t("agentOps.trigger.deleteConfirm", { name: trigger.name }))) void run({ method: "DELETE" });
@@ -114,10 +154,14 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
         </div>
       )}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => void test()} style={smallButton}>{t("agentOps.trigger.test")}</button>
+        <button type="button" onClick={() => void runNow()} style={smallButton}>{t("agentOps.trigger.runNow")}</button>
         <button type="button" onClick={onEdit} style={smallButton}>{t("agentOps.trigger.edit")}</button>
         <button type="button" onClick={() => void rotate()} style={smallButton}>{trigger.hasWebhookSecret ? t("agentOps.trigger.rotate") : t("agentOps.trigger.generate")}</button>
         <button type="button" onClick={remove} style={smallButton}>{t("agentOps.trigger.delete")}</button>
       </div>
+      {plan && <TriggerTestPanel plan={plan} template={trigger.promptTemplate} onClose={() => setPlan(null)} />}
+      {fired && <div role="status" style={{ fontSize: 11, color: "var(--text-muted)" }}>{fired}</div>}
       {history.length > 0 && (
         <details onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
           <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--text-muted)" }}>{t("agentOps.trigger.history", { count: history.length })}</summary>

@@ -42,7 +42,7 @@ export function createTriggerTask(trigger: TriggerConfig, rawText: string, creat
   return create({ ...common, target: "isolated", kind, title: `[${trigger.name}] alert`, prompt: buildWebhookPrompt(trigger, rawText) }).id;
 }
 
-function activeTaskCount(triggerId: string): number {
+export function activeTaskCount(triggerId: string): number {
   return listTasks().filter((t) => t.triggerId === triggerId && (t.status === "queued" || t.status === "running")).length;
 }
 
@@ -61,9 +61,11 @@ function admissionRefusal(trigger: TriggerConfig): string | null {
   return pin === "drift" ? "trigger profile drift" : null;
 }
 
+const payloadText = (body: unknown): string => typeof (body as { text?: unknown })?.text === "string" ? (body as { text: string }).text : JSON.stringify(body ?? null);
+
 /** Pure: no file, no token. Callers pass the active-task count so dry-runs and caps share one decision. */
 export function planIngestion(trigger: TriggerConfig, body: unknown, now: number, activeTasks: number): IngestionPlan {
-  const raw = typeof (body as { text?: unknown })?.text === "string" ? (body as { text: string }).text : JSON.stringify(body ?? null);
+  const raw = payloadText(body);
   const payloadHash = createHash("sha256").update(redactSecrets(raw)).digest("hex").slice(0, 16);
   const bucket = Math.floor(now / trigger.dedupWindowMs);
   const tokenName = `${trigger.id}.${bucket}_${payloadHash}`;
@@ -87,6 +89,24 @@ export function ingestTriggerPayload(trigger: TriggerConfig, body: unknown, crea
   if (!claimFireToken(plan.tokenName!)) return refuse("duplicate within dedup window");
   const taskId = createTriggerTask(trigger, plan.text, create, "webhook", { source: "webhook", bucket: plan.bucket, payloadHash: plan.payloadHash });
   appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "webhook", verdict: "accepted", bucket: plan.bucket, payloadHash: plan.payloadHash, taskId });
+  return { accepted: true, taskId };
+}
+
+/** Manual "Run now": same admission, cap and pause as a real fire, but no dedup token (a person asked for it).
+ *  A trigger with a webhook secret runs isolated from the fenced payload; the others run their template in the thread. */
+export function fireTriggerNow(trigger: TriggerConfig, create: TaskCreator = createTask, payload?: unknown): IngestResult {
+  const refuse = (reason: string): IngestResult => {
+    appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "manual", verdict: "refused", reason });
+    return { accepted: false, reason };
+  };
+  const reason = admissionRefusal(trigger)
+    ?? (isPausedFor(readAgentOpsSettings(), trigger.profile) ? "agent paused" : null)
+    ?? (activeTaskCount(trigger.id) >= trigger.maxActiveTasks ? CAP_REASON : null);
+  if (reason) return refuse(reason);
+  const isolated = Boolean(trigger.webhookSecretSha256);
+  const text = payload === undefined ? "(manual fire, no payload)" : payloadText(payload);
+  const taskId = createTriggerTask(trigger, text, create, isolated ? "webhook" : "schedule", { source: "manual" });
+  appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "manual", verdict: "accepted", taskId });
   return { accepted: true, taskId };
 }
 
