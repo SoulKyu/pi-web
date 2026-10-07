@@ -21,3 +21,8 @@ test("the divider also renders once before a process group that contains the fir
   assert.match(chat, /unreadAt > userIdx && \(unreadAt < finalAssistantIdx \|\| \(unreadAt === finalAssistantIdx && !finalAnswerMessage\)\)/);
   assert.match(chat, /rendered\.push\(unreadDivider\)/);
 });
+
+test("day separators render only in the agent view, before the message", () => {
+  assert.match(chat, /session\?\.agentProfile && keyPrefix === "message" && messageTimestamp !== undefined/);
+  assert.match(chat, /<div className="day-separator" role="separator">\{dayLabel\}<\/div>/);
+});

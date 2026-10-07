@@ -1969,6 +1969,7 @@ span.token.table {
 }
 
 .agent-unread-divider { text-align: center; font-size: 11px; color: #e5484d; border-top: 1px solid #e5484d; margin: 8px 0; padding-top: 2px; }
+.day-separator { position: sticky; top: 0; z-index: 1; text-align: center; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--bg); margin: 8px 0; padding-top: 2px; }
 .agent-unread-digest { text-align: center; font-size: 11px; color: var(--text-muted); margin: 8px 0 0; }
 .agent-jump-unread { align-self: center; margin-right: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-panel); color: var(--text); font-size: 12px; cursor: pointer; pointer-events: auto; box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 16%, transparent); }
 .agent-jump-unread:hover:not(:disabled) { background: var(--bg-hover); }

@@ -160,3 +160,6 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 - Why not `.pi/prompts`: `prompts` is a trust-requiring project entry (`lib/project-trust.ts`) and a home is never trusted.
 - The "+" chip is always shown; without an `onOpenFolder` handler (the file tree has no reveal API) it only carries the hint `agents.prompts.hint` as its title. The chip bar never writes to the server.
 - The role field of the create and profile dialogs has a folded help (`agents.new.roleHelp`).
+
+## Day separators (`lib/day-separators.ts`, `components/ChatWindow.tsx`)
+Agent view only: a sticky `.day-separator` renders before a message or event card whose timestamp opens a new LOCAL calendar day (`isNewDay`, compared with `getFullYear/getMonth/getDate`, never a UTC string). The previous timestamp is the nearest earlier message that has one; with none, the first loaded message gets a label, so the top separator moves up as older pages load. The year shows only outside the current year. Messages without a timestamp get no separator. Only top-level (`message` prefix) entries are labelled: messages folded inside a process group are not. No "Today"/"Yesterday" words, no minimap nodes, no day folding.

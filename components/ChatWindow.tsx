@@ -20,6 +20,7 @@ import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ExtensionStatusBar } from "./ExtensionStatusBar";
 import { AnsiText } from "./AnsiText";
 import { useI18n } from "@/hooks/useI18n";
+import { isNewDay } from "@/lib/day-separators";
 import { phaseLabel } from "@/lib/chat-phase-label";
 import { useAgentSession, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
@@ -243,7 +244,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
 const JUMP_UNREAD_MAX_PAGES = 20;
 
 export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
 
@@ -1158,15 +1159,30 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     {view}
                   </div>
                 );
+                let dayLabel: string | null = null;
+                const messageTimestamp = (msg as AgentMessage & { timestamp?: number }).timestamp;
+                if (session?.agentProfile && keyPrefix === "message" && messageTimestamp !== undefined) {
+                  let prevTimestamp: number | undefined;
+                  for (let j = idx - 1; j >= 0 && prevTimestamp === undefined; j--) {
+                    prevTimestamp = (messages[j] as AgentMessage & { timestamp?: number }).timestamp;
+                  }
+                  dayLabel = isNewDay(prevTimestamp, messageTimestamp, locale);
+                }
+                const dayAndNode = dayLabel === null ? node : (
+                  <Fragment key={`${keyPrefix}-day-${messageKey}`}>
+                    <div className="day-separator" role="separator">{dayLabel}</div>
+                    {node}
+                  </Fragment>
+                );
                 if (idx === unreadAt && keyPrefix === "message") {
                   return (
                     <Fragment key={`${keyPrefix}-unread-${messageKey}`}>
                       {unreadDivider}
-                      {node}
+                      {dayAndNode}
                     </Fragment>
                   );
                 }
-                return node;
+                return dayAndNode;
               };
 
               const rendered: ReactNode[] = [];

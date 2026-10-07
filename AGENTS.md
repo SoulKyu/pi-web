@@ -145,6 +145,7 @@ lib/
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
+  agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
   agents/memory.ts          mem0 snapshot reader + forget requests
   agents/curation-prompt.ts curationPrompt(): weekly memory curation trigger template
@@ -177,6 +178,7 @@ lib/
   linked-directory.ts       directory links leading outside the allowed roots + the allow-link check
   file-paths.ts             client/server path encoding helpers
   file-tree-visibility.ts   which entries the file tree lists (git check-ignore, name-list fallback)
+  day-separators.ts         isNewDay(prev, next, locale): local-calendar-day label for the agent thread separators (client-safe)
   display-path.ts           display-only ~ / ./ path shortening for settings panels
   default-cwd.ts            dated ~/pi-cwd/YYYYMMDD path for "Use default directory"
   worktree.ts               project/worktree resolution and git worktree operations
