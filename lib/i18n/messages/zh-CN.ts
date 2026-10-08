@@ -1583,5 +1583,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.approve.approved": "已批准",
     "agents.approve.denied": "已拒绝",
     "agents.approve.pending": "等待你的答复",
+    "agents.tasks.requestedBy": "由 {name} 请求",
+    "agents.delegate.label": "委派给",
   },
 };

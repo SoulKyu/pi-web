@@ -7,6 +7,8 @@ export const AGENT_EVENT_UI_TYPE = "agent-event";
 export const AGENT_NOTIFY_TOOL = "agent_notify";
 /** Client-safe name of the trusted-thread approval tool (lib/agents/agent-approve.ts registers it). */
 export const AGENT_APPROVE_TOOL = "agent_approve";
+/** Client-safe name of the trusted-thread delegation tool (lib/agents/agent-delegate.ts registers it). */
+export const AGENT_DELEGATE_TOOL = "agent_delegate";
 export const EVENT_TEXT_MAX = 2000;
 const TITLE_MAX = 80;
 

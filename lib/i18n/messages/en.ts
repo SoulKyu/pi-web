@@ -1583,5 +1583,7 @@ export const enLocale: LocalePlugin = {
     "agents.approve.approved": "approved",
     "agents.approve.denied": "denied",
     "agents.approve.pending": "waiting for your answer",
+    "agents.tasks.requestedBy": "requested by {name}",
+    "agents.delegate.label": "Delegated to",
   },
 };

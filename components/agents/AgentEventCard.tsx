@@ -32,6 +32,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
     <div className={webhook ? "agent-event agent-event-webhook" : "agent-event"} role="note">
       <div className="agent-event-head">
         <span aria-hidden>{icon}</span> <strong>{label}</strong> · <span>{data.title}</span>
+        {data.kind === "task" && data.requestedBy && data.requestedBy !== "user" && <span className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.tasks.requestedBy", { name: data.requestedBy })}</span>}
         {webhook && data.status === "failed" && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
         {webhook && data.status === "failed" && retryState === "idle" && (
           <button type="button" className="agent-event-link" onClick={() => void requestTaskAction(`/api/agent-ops/tasks/${data.taskId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "retry" }) }).then((failure) => setRetryState(failure ?? "done"))}>{t("agentOps.retry")}</button>

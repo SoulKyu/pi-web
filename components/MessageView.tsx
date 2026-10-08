@@ -22,7 +22,7 @@ import { CODEMODE_TOOL_NAME, codemodeCalls, codemodeScript, codemodeScriptPrevie
 import { AgentEventCard } from "./agents/AgentEventCard";
 import { RecallCard } from "@/components/agents/RecallCard";
 import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
-import { AGENT_APPROVE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
+import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
@@ -1175,6 +1175,16 @@ function ToolCallBlock({ block, result, duration, onOpenSession }: { block: Tool
       <div className="agent-notify" role="note">
         ⚠ <strong>{t("agents.notify.label")}:</strong> {String((block.input as { text?: unknown } | undefined)?.text ?? "")}{" "}
         {result && !result.isError && <span className="agent-notify-sent">({t("agents.notify.sent")})</span>}
+      </div>
+    );
+  }
+  if (block.toolName === AGENT_DELEGATE_TOOL) {
+    const input = block.input as { agent?: unknown; task?: unknown } | undefined;
+    const answer = result?.content.map((part) => (part.type === "text" ? part.text : "")).join("").trim();
+    return (
+      <div className="agent-notify" role="note">
+        ↪ <strong>{t("agents.delegate.label")} {String(input?.agent ?? "")}:</strong> {String(input?.task ?? "")}
+        {answer && <div style={{ color: "var(--text-muted)" }}>{answer}</div>}
       </div>
     );
   }

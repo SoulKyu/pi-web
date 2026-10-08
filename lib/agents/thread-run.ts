@@ -33,6 +33,13 @@ export function waitUntilIdle(session: Pick<ThreadSessionLike, "isRunning" | "on
   });
 }
 
+/** D14: a request from another agent is labelled as such and told where to leave files; the user's own tasks and triggers are sent as written. */
+export function promptOfTask(task: AgentTask): string {
+  const from = task.requestedBy;
+  if (!from || from === "user") return task.prompt;
+  return `[Request from agent ${from}, not from the user. Put files meant for ${from} under ${task.cwd}/outbox/${task.id}/ and cite absolute paths in your answer.]\n\n${task.prompt}`;
+}
+
 /** D2/D12: the event becomes a card then a prompt in the agent's own thread. Abort ends the turn; the thread stays open. */
 export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps = defaultDeps()): Promise<RunHandle> {
   if (!task.agent) throw new Error("thread task without an agent");
@@ -47,6 +54,6 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   const overBudget = (deps.budgetRefusal ?? triggerBudgetRefusal)(task);
   if (overBudget) throw new Error(overBudget);
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
-  const run = watchPromptRun(session, task.prompt);
+  const run = watchPromptRun(session, promptOfTask(task));
   return { sessionId, done: run.done, abort: run.abort, usage: run.usage };
 }

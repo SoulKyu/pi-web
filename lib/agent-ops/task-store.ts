@@ -9,7 +9,7 @@ import type { FireReason } from "./scheduler";
 export type AgentTaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export interface AgentTask {
   id: string; profile: string; cwd: string; title: string; prompt: string;
-  origin: "ui" | "trigger"; triggerId?: string;
+  origin: "ui" | "trigger" | "agent"; triggerId?: string;
   status: AgentTaskStatus; sessionId?: string; result?: string; error?: string;
   createdAt: string; startedAt?: string; completedAt?: string;
   /** Set by trigger ingestion; verified by start() before spawning. */

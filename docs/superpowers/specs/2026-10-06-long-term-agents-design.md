@@ -204,3 +204,5 @@ Order: 1 → 4 → 2 → 3. Phase 4 early makes the thread "remember" from the s
 - **Same Unix user**: an agent with `bash` can forge decision/forget files or read the memory store, as already documented for Agent Ops. The structural mitigation remains the read-only allowlist for untrusted runs. A trusted agent is trusted by definition.
 - **Two pi-web processes** (worktree dev server next to live) would run two schedulers against the same stores. This is documented; never run both.
 - **Auto-capture cost**: one extraction LLM call per trusted turn (GLM via headroom), accepted in D13.
+
+D14 (2026-10-07): agent-to-agent delegation through the task queue; results are display-only cards; depth 1; opt-in per target.

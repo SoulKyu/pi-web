@@ -1,5 +1,6 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
 import { createAgentApproveExtension } from "./agents/agent-approve";
+import { createAgentDelegateExtension } from "./agents/agent-delegate";
 import { createAgentNotifyExtension } from "./agents/agent-notify";
 import { createHomePathPolicyExtension } from "./agents/path-policy";
 import { createUntrustedContentExtension } from "./agents/untrusted-content";
@@ -23,6 +24,6 @@ export function agentProfileExtensionFactories(options: {
     ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
     createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
     createUntrustedContentExtension(),
-    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName })] : []),
+    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName }), createAgentDelegateExtension({ agentName: options.agentName })] : []),
   ];
 }

@@ -1583,5 +1583,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.approve.approved": "已核准",
     "agents.approve.denied": "已拒絕",
     "agents.approve.pending": "等待你的回覆",
+    "agents.tasks.requestedBy": "由 {name} 請求",
+    "agents.delegate.label": "委派給",
   },
 };

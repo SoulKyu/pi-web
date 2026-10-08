@@ -144,6 +144,7 @@ lib/
   agents/fence.ts           client-safe fenceTag / fenceExternal / newFenceId (no node import; the composer injects fenced text too)
   agents/untrusted-content.ts re-exports the fence, tool_result fence for external tools, UNTRUSTED_CONTENT_RULE
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
+  agents/agent-delegate.ts  agent_delegate: delegationRefusal() + queue a thread task for an opted-in agent (D14), trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)

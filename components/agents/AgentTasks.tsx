@@ -37,6 +37,7 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
         <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
+        {task.requestedBy && task.requestedBy !== "user" && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agents.tasks.requestedBy", { name: task.requestedBy })}</span>}
         {task.status === "queued" && task.notBefore && (
           <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agentOps.task.waitsUntil", { time: new Date(task.notBefore).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</span>
         )}
