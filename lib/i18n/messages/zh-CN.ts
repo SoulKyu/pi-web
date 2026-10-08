@@ -375,6 +375,8 @@ export const zhCNLocale: LocalePlugin = {
     "chat.waitingModel": "正在等待模型...",
     "chat.runningCommand": "正在运行命令...",
     "chat.thinking": "正在思考...",
+    "chat.plannotatorCard": "待批注的计划",
+    "chat.plannotatorOpen": "打开",
     "chat.processDetails": "处理详情",
     "chat.message": "条消息",
     "chat.messages": "条消息",

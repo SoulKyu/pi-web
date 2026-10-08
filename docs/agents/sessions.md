@@ -63,3 +63,7 @@ pi-mem0 appends one `pi-mem0:recall` custom entry per run of an agent session (`
 
 ## Exported session HTML
 - `/api/sessions/[id]/export` delegates to pi's export helper, then makes the generated HTML's recursive tree helpers iterative, so very deep linear sessions do not overflow the browser call stack.
+
+## Plannotator link card
+
+`ToolCallBlock` shows a "📝 Plan to annotate [Open]" card under a tool result that links to a Plannotator plan page. The server reads `PLANNOTATOR_PORT` (one port, a comma list or an `a-b` range, 64 ports at most; anything invalid disables the feature) and `PLANNOTATOR_URL_HOST` (default `127.0.0.1`) in `lib/plannotator.ts`; `GET /api/agent-ops/health` returns it as `plannotator: { host, ports } | null`. `AppShell` runs the one health poll (`useHealthPoll`, also feeding the rail dot) and threads `plannotator` through `ChatWindow` → `MessageView` (memo comparator) → `ToolCallBlock`. `plannotatorLinks` (client-safe) keeps `http(s)` URLs whose host equals the configured host exactly (`localhost` / `127.0.0.1` count as one for a loopback host) and whose port is listed; deduplicated, 5 at most. The card is a plain `target="_blank" rel="noopener noreferrer"` link, never an iframe: the page is `http` on another port (mixed content behind HTTPS) and its frame headers are unknown.

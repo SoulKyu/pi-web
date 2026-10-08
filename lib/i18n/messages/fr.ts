@@ -375,6 +375,8 @@ export const frLocale: LocalePlugin = {
     "chat.waitingModel": "En attente du modèle...",
     "chat.runningCommand": "Exécution de la commande...",
     "chat.thinking": "Réflexion...",
+    "chat.plannotatorCard": "Plan à annoter",
+    "chat.plannotatorOpen": "Ouvrir",
     "chat.processDetails": "Détails du processus",
     "chat.message": "message",
     "chat.messages": "messages",

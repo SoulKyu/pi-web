@@ -4,6 +4,7 @@ import { collectHealth, healthLevel } from "@/lib/agent-ops/health";
 import { runningCount } from "@/lib/agent-ops/runner";
 import { inQuietHours } from "@/lib/agent-ops/quiet-hours";
 import { readAgentOpsSettings } from "@/lib/agent-ops/settings";
+import { plannotatorConfig } from "@/lib/plannotator";
 import { countAliveRpcSessions, getExtensionErrorStatuses } from "@/lib/rpc-manager";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET() {
       paused: settings.paused,
       quietHours: inQuietHours(settings.quietHours, new Date()),
     });
-    return NextResponse.json({ health, level: healthLevel(health) }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ health, level: healthLevel(health), plannotator: plannotatorConfig() }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

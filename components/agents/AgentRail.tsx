@@ -5,22 +5,24 @@ import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentListItem } from "@/lib/agents/agent-view";
 import type { AgentOpsHealth } from "@/lib/agent-ops/health";
+import type { PlannotatorConfig } from "@/lib/plannotator";
 import { AgentAvatar } from "./AgentAvatar";
 
 type HealthLevel = "ok" | "warn" | "down";
+export interface HealthState { health: AgentOpsHealth; level: HealthLevel; plannotator: PlannotatorConfig | null }
 const HEALTH_COLORS: Record<HealthLevel, string> = { ok: "#3fb950", warn: "#d29922", down: "#f85149" };
 
 /** Polls the internal health gauges every 30 s while the tab is visible; null until the first answer or when the route fails. */
-function useHealthPoll(): { health: AgentOpsHealth; level: HealthLevel } | null {
-  const [state, setState] = useState<{ health: AgentOpsHealth; level: HealthLevel } | null>(null);
+export function useHealthPoll(): HealthState | null {
+  const [state, setState] = useState<HealthState | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const load = async () => {
       try {
         const response = await fetch("/api/agent-ops/health", { cache: "no-store", signal: controller.signal });
-        const data = await response.json() as { health?: AgentOpsHealth; level?: HealthLevel };
-        setState(response.ok && data.health && data.level ? { health: data.health, level: data.level } : null);
+        const data = await response.json() as { health?: AgentOpsHealth; level?: HealthLevel; plannotator?: PlannotatorConfig | null };
+        setState(response.ok && data.health && data.level ? { health: data.health, level: data.level, plannotator: data.plannotator ?? null } : null);
       } catch {
         if (!controller.signal.aborted) setState(null);
       }
@@ -91,7 +93,8 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
 
-export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, orientation, paused, error, lastOkAt, onPauseChanged }: {
+export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, orientation, paused, error, lastOkAt, onPauseChanged, healthState }: {
+  healthState: HealthState | null;
   agents: readonly AgentListItem[];
   activeAgent: string | null;
   onSelectAgent: (name: string) => void;
@@ -106,7 +109,6 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
 }) {
   const { t, locale } = useI18n();
   const vertical = orientation === "vertical";
-  const healthState = useHealthPoll();
   const healthTitle = healthState && [
     t(`agents.health.${healthState.level}`),
     t("agents.health.details", {

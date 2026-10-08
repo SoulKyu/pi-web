@@ -48,7 +48,7 @@ app/api/
   agent-ops/triggers/[id]/dry-run/route.ts POST { payload? } plan of a fire (verdict, fenced prompt, tokenFree, tools, pinStatus, target), writes nothing
   agent-ops/triggers/[id]/fire/route.ts POST { payload? } manual fire, no dedup token: 202 { taskId } | 409 { reason }
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
-  agent-ops/health/route.ts        GET { health, level } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused)
+  agent-ops/health/route.ts        GET { health, level, plannotator } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused); plannotator: { host, ports } | null from PLANNOTATOR_PORT / PLANNOTATOR_URL_HOST
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
   agent-ops/settings/route.ts      GET settings | PUT partial (400 on a failed validation)
@@ -115,6 +115,8 @@ app/api/
   app-update/route.ts              GET current vs latest published pi-web version
 
 lib/
+  plannotator.ts            plannotatorConfig(): PLANNOTATOR_PORT (port, list, a-b range) + PLANNOTATOR_URL_HOST, exposed by the health route
+  plannotator-links.ts      plannotatorLinks(): Plannotator page URLs in a tool result (exact host, listed port, max 5; client-safe)
   agent-client.ts           typed fetch helper for /api/agent commands
   rpc-manager.ts            AgentSessionWrapper, registry, startRpcSession
   session-reader.ts         SessionManager wrappers, path cache, buildSessionContext adapter

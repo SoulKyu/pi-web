@@ -11,7 +11,7 @@ import { FileViewer } from "./FileViewer";
 import { TabBar, type Tab } from "./TabBar";
 import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
-import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
+import { AgentRail, useAgentsPoll, useHealthPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { TasksBoard } from "./agents/TasksBoard";
 import { AgentAvatar } from "./agents/AgentAvatar";
@@ -189,6 +189,7 @@ export function AppShell() {
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
+  const healthState = useHealthPoll();
   const handToAgents = useMemo(() => agents.map((agent) => agent.name), [agents]);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
@@ -2125,6 +2126,7 @@ export function AppShell() {
         error={agentsError}
         lastOkAt={agentsLastOkAt}
         onPauseChanged={reloadAgents}
+        healthState={healthState}
       />}
 
       {/* Left sidebar */}
@@ -2172,6 +2174,7 @@ export function AppShell() {
           error={agentsError}
           lastOkAt={agentsLastOkAt}
           onPauseChanged={reloadAgents}
+          healthState={healthState}
           />}
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
@@ -2562,6 +2565,7 @@ export function AppShell() {
           {showChat ? (
             <ChatWindow
               key={sessionKey}
+              plannotator={healthState?.plannotator ?? null}
               handToAgents={handToAgents}
               session={selectedSession}
               searchTarget={searchTarget?.sessionId === selectedSession?.id ? searchTarget : null}
