@@ -1,0 +1,32 @@
+// Mermaid's "base" theme derives its color series from primary/secondary/tertiary lightness,
+// which are near-black here, so every series is set explicitly from Tron hues.
+const SERIES = ["#00d8ff", "#ff9a00", "#ff4d5e", "#2ef2b0", "#4f9dff", "#ff4dc4", "#7fe9ff", "#ffbf66", "#ff7a87", "#7dffd0", "#8cc0ff", "#ff8fdc"];
+
+export const TRON_MERMAID_THEME_VARIABLES: Record<string, string | boolean> = {
+  darkMode: true,
+  background: "#000000",
+  primaryColor: "#03080b",
+  primaryTextColor: "#dff6ff",
+  primaryBorderColor: "#00d8ff",
+  lineColor: "#00d8ff",
+  secondaryColor: "#140c00",
+  secondaryBorderColor: "#ff9a00",
+  tertiaryColor: "#0a1a22",
+  tertiaryBorderColor: "#0e3a4a",
+  textColor: "#dff6ff",
+  noteBkgColor: "#0a1a22",
+  noteTextColor: "#dff6ff",
+  noteBorderColor: "#ff9a00",
+  pieStrokeColor: "#0e3a4a",
+  pieOuterStrokeColor: "#00d8ff",
+  pieTitleTextColor: "#dff6ff",
+  pieSectionTextColor: "#000000",
+  pieLegendTextColor: "#dff6ff",
+  doneTaskBkgColor: "#0e3a4a",
+  doneTaskBorderColor: "#00d8ff",
+  fontFamily: "var(--font-geist), ui-sans-serif, sans-serif",
+  ...Object.fromEntries(SERIES.map((color, i) => [`pie${i + 1}`, color])),
+  ...Object.fromEntries(SERIES.map((color, i) => [`cScale${i}`, color])),
+  ...Object.fromEntries(SERIES.map((_, i) => [`cScaleLabel${i}`, "#000000"])),
+  ...Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`gitBranchLabel${i}`, "#dff6ff"])),
+};

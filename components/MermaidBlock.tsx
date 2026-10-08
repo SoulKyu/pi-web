@@ -3,6 +3,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tronSyntaxTheme } from "@/lib/tron-syntax-theme";
+import { TRON_MERMAID_THEME_VARIABLES } from "@/lib/mermaid-theme";
 import { useI18n } from "@/hooks/useI18n";
 import { copyText } from "@/lib/clipboard";
 
@@ -54,23 +55,7 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
         securityLevel: "strict",
         suppressErrorRendering: true,
         theme: "base",
-        themeVariables: {
-          darkMode: true,
-          background: "#000000",
-          primaryColor: "#03080b",
-          primaryTextColor: "#dff6ff",
-          primaryBorderColor: "#00d8ff",
-          lineColor: "#00d8ff",
-          secondaryColor: "#140c00",
-          secondaryBorderColor: "#ff9a00",
-          tertiaryColor: "#0a1a22",
-          tertiaryBorderColor: "#0e3a4a",
-          textColor: "#dff6ff",
-          noteBkgColor: "#0a1a22",
-          noteTextColor: "#dff6ff",
-          noteBorderColor: "#ff9a00",
-          fontFamily: "var(--font-geist), ui-sans-serif, sans-serif",
-        },
+        themeVariables: TRON_MERMAID_THEME_VARIABLES,
       });
 
       const parsed = await mermaid.parse(code, { suppressErrors: true });
