@@ -191,6 +191,7 @@ export function AppShell() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  const shortcutsFromMobileLayerRef = useRef(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
@@ -1811,7 +1812,7 @@ export function AppShell() {
         {mobile && (
           <button
             type="button"
-            onClick={() => { setMobileToolbarMoreOpen(false); setShortcutsOpen(true); }}
+            onClick={() => { shortcutsFromMobileLayerRef.current = true; setMobileToolbarMoreOpen(false); setShortcutsOpen(true); }}
             title={translate("shortcuts.open")}
             aria-label={translate("shortcuts.open")}
             style={{
@@ -2312,7 +2313,10 @@ export function AppShell() {
                     background: "color-mix(in srgb, var(--bg-panel) 94%, var(--bg))",
                     boxShadow: "4px 0 18px rgba(0,0,0,0.12)",
                     backdropFilter: "blur(10px)",
+                    overflowX: "auto",
+                    scrollbarWidth: "none",
                   }}
+                  className="mobile-toolbar-actions-scroll"
                 >
                   {renderChatToolbarActions(true)}
                 </div>
@@ -2855,7 +2859,13 @@ export function AppShell() {
         onOpen={(name, entryId) => { setInboxOpen(false); void openAgent(name, entryId); }}
       />
     )}
-    {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
+    {shortcutsOpen && <ShortcutsDialog onClose={() => {
+      setShortcutsOpen(false);
+      if (shortcutsFromMobileLayerRef.current) {
+        shortcutsFromMobileLayerRef.current = false;
+        requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-mobile-toolbar-more]")?.focus());
+      }
+    }} />}
     {/* After Settings, so it opens above it (z-index 1100 over 1000) when Settings › MCP asks for it. */}
     {projectTrustDialogOpen && projectTrustCwd && (
       <ProjectTrustDialog

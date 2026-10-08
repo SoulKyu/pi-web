@@ -109,3 +109,12 @@ test("closes top-bar dropdowns when the file panel expands to full width", () =>
   assert.match(source, /onClick=\{handleRightPanelExpandToggle\}/);
   assert.match(source, /if \(rightPanelFullWidth\) setActiveTopPanel\(null\);/);
 });
+
+test("the narrow-mobile actions layer scrolls instead of clipping", () => {
+  assert.match(source, /data-mobile-toolbar-actions="true"[\s\S]*?overflowX: "auto",\s*scrollbarWidth: "none",/);
+});
+
+test("closing the shortcuts dialog opened from the mobile layer refocuses the more toggle", () => {
+  assert.match(source, /shortcutsFromMobileLayerRef\.current = true; setMobileToolbarMoreOpen\(false\); setShortcutsOpen\(true\);/);
+  assert.match(source, /document\.querySelector<HTMLElement>\("\[data-mobile-toolbar-more\]"\)\?\.focus\(\)/);
+});
