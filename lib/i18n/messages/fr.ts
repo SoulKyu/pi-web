@@ -1733,5 +1733,9 @@ export const frLocale: LocalePlugin = {
     "agents.event.injectClipped": "Injecter (tronqué)",
     "agents.event.injectClippedHint": "Injecte le texte tronqué de cette carte, pas le résultat complet",
     "agents.tasks.handedFrom": "confié depuis le fil de {name}",
+    "agents.pending.label": "Demandes en attente auprès d'autres agents",
+    "agents.pending.queued": "en attente de {name} · en file depuis {age}",
+    "agents.pending.running": "en attente de {name} · en cours depuis {age}",
+    "agents.pending.cancel": "Annuler la demande « {title} »",
   },
 };

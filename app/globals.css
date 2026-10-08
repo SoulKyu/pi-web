@@ -2060,6 +2060,9 @@ span.token.table {
     padding-bottom: 6px !important;
   }
 }
+@media (max-width: 640px), (pointer: coarse) and (max-height: 500px) {
+  html[data-keyboard-open] .agent-pending-strip { display: none; }
+}
 
 .agent-unread-divider { text-align: center; font-size: 11px; color: #e5484d; border-top: 1px solid #e5484d; margin: 8px 0; padding-top: 2px; }
 .day-separator { position: sticky; top: 0; z-index: 1; text-align: center; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--bg); margin: 8px 0; padding-top: 2px; }
@@ -2088,6 +2091,13 @@ span.token.table {
 .agent-event-summary.is-collapsed { max-height: 16em; overflow: hidden; }
 .agent-event-toggle { margin-top: 4px; padding: 2px 0; border: none; background: none; color: var(--accent); font-size: 11px; cursor: pointer; }
 .agent-event-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.agent-pending-strip { display: grid; gap: 2px; max-width: var(--chat-content-max-width, 820px); max-height: 7.5em; overflow-y: auto; margin: 0 auto 6px; padding: 0 16px; font-size: 12px; color: var(--text-muted); }
+.agent-pending-item { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.agent-pending-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+.agent-pending-item button { flex-shrink: 0; min-height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 5px; background: none; color: var(--text-muted); font-size: 11px; cursor: pointer; }
+.agent-pending-item button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.agent-pending-error { color: #e5484d; }
+@media (pointer: coarse) { .agent-pending-item button { min-height: 32px; } }
 .agent-event-prompt summary { cursor: pointer; font-size: 11px; color: var(--text-dim); }
 
 .recall-card { border-left: 3px solid var(--border); background: var(--bg-panel); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }

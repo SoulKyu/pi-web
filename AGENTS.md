@@ -261,6 +261,7 @@ components/
   agents/AgentRail.tsx     long-term agent rail: avatars, running dot, unread badge, Tasks and Sessions buttons
   agents/InboxPanel.tsx    inbox dialog: per-agent lines that open the agent at the entry, 10 s refresh only while open
   agents/TasksBoard.tsx    global tasks board dialog: every agent's tasks grouped by agent, 5 s refresh only while open
+  agents/PendingRequests.tsx pending strip in a trusted thread: own outgoing requests still queued/running, Cancel; 10 s poll only while the tab is visible
   agents/AgentAvatar.tsx   agent avatar (color + glyph)
   agents/NewAgentDialog.tsx create a long-term agent
   agents/AgentProfileDialog.tsx edit a long-term agent's profile

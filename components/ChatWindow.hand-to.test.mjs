@@ -18,3 +18,9 @@ test("hand-over targets carry paused and running from the rail poll; the compose
   assert.match(chat, /mentionAgents=\{mentionTargets\.length > 0 \? mentionTargets : undefined\}/);
   assert.match(chat, /<QueueTaskDialog agentName=\{handTargets\[0\]\.name\} targetAgents=\{handTargets\}/);
 });
+
+test("a trusted thread shows the pending strip, refreshed at once after a queue", () => {
+  assert.match(chat, /import \{ PendingRequests \} from "\.\/agents\/PendingRequests";/);
+  assert.match(chat, /\{trustedAgentName \? <PendingRequests agentName=\{trustedAgentName\} refreshKey=\{pendingRefresh\} \/> : null\}/);
+  assert.equal(chat.match(/setPendingRefresh\(\(tick\) => tick \+ 1\)/g)?.length, 2); // dialog and @Name
+});

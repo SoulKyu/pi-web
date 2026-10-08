@@ -1733,5 +1733,9 @@ export const zhTWLocale: LocalePlugin = {
     "agents.event.injectClipped": "注入（已截斷）",
     "agents.event.injectClippedHint": "注入此卡片中已截斷的文字，而非完整結果",
     "agents.tasks.handedFrom": "由 {name} 移交",
+    "agents.pending.label": "等待其他代理處理的請求",
+    "agents.pending.queued": "等待 {name} · 已排隊 {age}",
+    "agents.pending.running": "等待 {name} · 執行中 {age}",
+    "agents.pending.cancel": "取消請求「{title}」",
   },
 };

@@ -1733,5 +1733,9 @@ export const enLocale: LocalePlugin = {
     "agents.event.injectClipped": "Inject (truncated)",
     "agents.event.injectClippedHint": "Injects the truncated text this card holds, not the full result",
     "agents.tasks.handedFrom": "handed over from {name}",
+    "agents.pending.label": "Requests waiting on other agents",
+    "agents.pending.queued": "waiting on {name} · queued {age}",
+    "agents.pending.running": "waiting on {name} · running {age}",
+    "agents.pending.cancel": "Cancel the request “{title}”",
   },
 };

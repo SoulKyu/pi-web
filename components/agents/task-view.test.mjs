@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-const { formatTaskDuration, isActiveTask } = await (await import("jiti")).createJiti(import.meta.url).import("./task-view.ts");
+const { formatTaskDuration, isActiveTask, outgoingRequests } = await (await import("jiti")).createJiti(import.meta.url).import("./task-view.ts");
 
 test("formatTaskDuration counts from start to completion, or to now while running", () => {
   const base = { createdAt: "2026-01-01T00:00:00.000Z", startedAt: "2026-01-01T00:00:10.000Z" };
@@ -17,4 +17,17 @@ test("formatTaskDuration of a queued task counts from creation and never goes ne
 
 test("isActiveTask is true for queued and running only", () => {
   assert.deepEqual(["queued", "running", "completed", "failed", "cancelled"].map((status) => isActiveTask({ status })), [true, true, false, false, false]);
+});
+
+test("outgoingRequests keeps the requester's queued and running tasks, oldest first", () => {
+  const tasks = [
+    { id: "a", deliverTo: "Julien", status: "running", createdAt: "2026-01-01T00:02:00.000Z" },
+    { id: "b", deliverTo: "Julien", status: "queued", createdAt: "2026-01-01T00:01:00.000Z" },
+    { id: "c", deliverTo: "Julien", status: "completed", createdAt: "2026-01-01T00:00:00.000Z" },
+    { id: "d", deliverTo: "Julien", status: "cancelled", createdAt: "2026-01-01T00:00:00.000Z" },
+    { id: "e", deliverTo: "Martin", status: "queued", createdAt: "2026-01-01T00:00:00.000Z" },
+    { id: "f", status: "queued", createdAt: "2026-01-01T00:00:00.000Z" },
+  ];
+  assert.deepEqual(outgoingRequests(tasks, "Julien").map((task) => task.id), ["b", "a"]);
+  assert.deepEqual(outgoingRequests(tasks, "Nobody"), []);
 });

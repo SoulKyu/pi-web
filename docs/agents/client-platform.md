@@ -27,4 +27,4 @@ On mobile, the agent view's drawer shows a two-tab header (`role="tablist"`, `ag
 
 ## Keyboard-open height budget (phones)
 
-With the software keyboard open on a small iPhone, the page keeps a horizontal agent rail with names (~56 px), the find bar when open (~60 px) and the composer. The message area shrinks (about 130 px) but stays usable; close the find bar to regain the space.
+With the software keyboard open on a small iPhone, the page keeps a horizontal agent rail with names (~56 px), the find bar when open (~60 px) and the composer. The message area shrinks (about 130 px) but stays usable; close the find bar to regain the space. The pending requests strip (`.agent-pending-strip`) is hidden while the keyboard is open, in a separate rule after the pinned keyboard-open block.

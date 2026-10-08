@@ -6,6 +6,11 @@ export function isActiveTask(task: Pick<AgentTaskListItem, "status">): boolean {
   return ACTIVE.has(task.status);
 }
 
+/** A7: the requester's own hand-overs and reviews still waiting on another agent, oldest first. */
+export function outgoingRequests<T extends Pick<AgentTaskListItem, "deliverTo" | "status" | "createdAt">>(tasks: readonly T[], requester: string): T[] {
+  return tasks.filter((task) => task.deliverTo === requester && isActiveTask(task)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 /** "42s" / "3m 05s" / "1h 02m": run time from start (or creation while queued) to completion (or now). */
 export function formatTaskDuration(task: Pick<AgentTaskListItem, "createdAt" | "startedAt" | "completedAt">, now = Date.now()): string {
   const from = Date.parse(task.startedAt ?? task.createdAt);
