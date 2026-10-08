@@ -1651,6 +1651,23 @@ span.token.table {
   50% { opacity: 0.5; }
 }
 
+/* Reduced motion: shared keyframes (blink / pulse / spin) stop wherever they are set.
+   Inline styles are matched on the keyframe name and "animation" separately because
+   browsers re-serialise the style attribute in their own order; !important beats inline. */
+@media (prefers-reduced-motion: reduce) {
+  [style*="animation"][style*="spin"],
+  [style*="animation"][style*="pulse"],
+  [style*="animation"][style*="blink"],
+  [class*="animate-[spin"],
+  [class*="animate-[pulse"],
+  [class*="animate-[blink"],
+  .animate-spin,
+  .animate-pulse,
+  .agent-dot-needs-input {
+    animation: none !important;
+  }
+}
+
 @keyframes notice-shelf-in {
   from {
     opacity: 0;

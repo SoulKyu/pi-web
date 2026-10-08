@@ -14,6 +14,9 @@
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.
 - Autoplay policy requires unlocking sound from a user gesture: `ChatInput` calls the unlock hook from interactive controls, and `ChatWindow` plays the tone from `onAgentEnd`.
 
+## Reduced motion
+- One `@media (prefers-reduced-motion: reduce)` rule in `app/globals.css` stops the shared `blink` / `pulse` / `spin` keyframes: inline `style` users are matched as `[style*="animation"][style*="<name>"]` (browsers reorder the serialised `animation` shorthand), Tailwind as `.animate-spin`, `.animate-pulse` and `[class*="animate-[<name>"]`, plus the rail's `.agent-dot-needs-input`. `!important` is what beats an inline `style`. `app/reduced-motion.test.mjs` fails when a component adds one of these keyframes in a form the rule does not cover. Other animations keep their own `prefers-reduced-motion` blocks (notice shelf, extension widget pulse).
+
 ## Push and badges on iOS
 - Web Push and app badges need iOS/iPadOS 16.4+ (installed web app). Every push feature (agent notifications, needs-your-answer, failure pushes) degrades silently when push is unsupported or not configured; the rail dot and the `document.title` `(n)` prefix remain the in-page signal.
 
