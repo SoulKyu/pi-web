@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentMemoryItem, Mem0Health } from "@/lib/agents/memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
+import { MemoryRowActions } from "./MemoryRowActions";
 import { ConfigButton, ConfigDetail, ConfigEmptyState, ConfigFooter, ConfigFooterStatus, ConfigNotice, ConfigPanelShell } from "./SettingsUi";
 
 interface MemoryResponse {
@@ -23,6 +24,7 @@ export function MemoryConfig({ embedded = false, onClose }: { embedded?: boolean
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [queued, setQueued] = useState(0);
+  const [saveQueued, setSaveQueued] = useState(false);
   const [now, setNow] = useState(0);
 
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -41,6 +43,7 @@ export function MemoryConfig({ embedded = false, onClose }: { embedded?: boolean
     const controller = new AbortController();
     setSelected(new Set());
     setQueued(0);
+    setSaveQueued(false);
     void load(controller.signal);
     return () => controller.abort();
   }, [load]);
@@ -116,6 +119,7 @@ export function MemoryConfig({ embedded = false, onClose }: { embedded?: boolean
                     <span>{formatRelativeTime(item.createdAt, locale)}</span>
                     <span style={{ border: "1px solid var(--border)", borderRadius: 6, padding: "0 6px" }}>{item.source}</span>
                   </div>
+                  <MemoryRowActions scope={scope} item={item} onQueued={() => { setSaveQueued(true); setError(null); }} onError={setError} />
                 </div>
               </li>
             ))}
@@ -124,7 +128,8 @@ export function MemoryConfig({ embedded = false, onClose }: { embedded?: boolean
       </ConfigDetail>
       <ConfigFooter status={error
         ? <ConfigFooterStatus tone="error" summary={t("memory.error", { error })} />
-        : queued > 0 ? <ConfigFooterStatus summary={t("memory.queued", { count: queued })} /> : undefined}>
+        : queued > 0 ? <ConfigFooterStatus summary={t("memory.queued", { count: queued })} />
+        : saveQueued ? <ConfigFooterStatus summary={t("memory.saveQueued")} /> : undefined}>
         <ConfigButton variant="danger" disabled={selected.size === 0} onClick={() => void forgetSelected()}>
           {t("memory.forgetSelected", { count: selected.size })}
         </ConfigButton>

@@ -145,3 +145,18 @@ export function requestScopeForget(scope: string, memoryId: string, dir = mem0Di
   writePrivateFileAtomicSync(join(dir, "forget", `${id}.json`), JSON.stringify({ memoryId, scope }));
   return id;
 }
+
+export const SAVE_TEXT_MAX = 4096;
+export const isSaveText = (text: unknown): text is string => typeof text === "string" && text.trim().length > 0 && text.trim().length <= SAVE_TEXT_MAX && !text.includes("[REDACTED]");
+
+/** Promote (`scope` = user) or correct (`replaces` = the old id, same scope): pi-mem0's watcher stores `text` verbatim, then forgets `replaces`.
+ *  The caller validated `replaces` against one snapshot read; pi-mem0 re-checks the owner. */
+export function requestScopeSave(scope: string, text: string, replaces?: string, dir = mem0Dir()): string {
+  if (!isRequestScope(scope)) throw new Error("invalid scope");
+  if (!isSaveText(text)) throw new Error("invalid text");
+  if (replaces !== undefined && !MEMORY_ID_RE.test(replaces)) throw new Error("invalid memory id");
+  mkdirSync(join(dir, "save"), { recursive: true, mode: 0o700 });
+  const id = randomUUID();
+  writePrivateFileAtomicSync(join(dir, "save", `${id}.json`), JSON.stringify({ scope, text: text.trim(), ...(replaces ? { replaces } : {}), source: "pi-web" }));
+  return id;
+}

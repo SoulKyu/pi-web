@@ -69,6 +69,7 @@ app/api/
   agents/[name]/memory/forget/route.ts POST request a forget
   memory/route.ts                  GET ?scope=user|project:<id>|agent:<name> pi-mem0 scope snapshot + { scopes, health } (400 on a bad scope)
   memory/forget/route.ts           POST { scope, memoryIds } (1-50) queue forget requests: 202 { requestIds } | 404 unknown id
+  memory/save/route.ts             POST { scope, text, replaces? } promote / correct: queue a pi-mem0 save request (text 1-4096, no [REDACTED]; replaces checked against the snapshot): 202 { requestId } | 404 unknown replaces
   agent/new/route.ts               POST { cwd, type: prompt|ensure_session (start only), message?, toolNames?, provider?, modelId?, thinkingLevel?, agentProfile? }
   agent/[id]/route.ts              GET state | POST any command
   agent/[id]/events/route.ts       GET SSE stream
@@ -168,7 +169,7 @@ lib/
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
-  agents/memory.ts          mem0 snapshot reader + forget requests
+  agents/memory.ts          mem0 snapshot reader + forget and save requests
   agents/curation-prompt.ts curationPrompt(): weekly memory curation trigger template
   agents/agent-detail-extras.ts server-only AgentDetail fields (memorySnapshotPath)
   agent-ops/task-store.ts   JSON task files: immutable terminal states, wx claim lock, recovery
@@ -271,7 +272,7 @@ components/
   agents/dialog-styles.ts  shared styles of the agent dialogs
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
-  MemoryConfig.tsx         Settings › Memory: scope selector, filter, source badge, forget selected
+  MemoryConfig.tsx         Settings › Memory: scope selector, filter, source badge, forget selected, per-row promote / correct (MemoryRowActions.tsx, shared with the agent panel)
   McpConfig.tsx            Settings › MCP: servers, switches, exposure, remove/undo, Test, sign-in, Code mode, trust
   mcp-config-helpers.ts    pure helpers and requests for McpConfig
   McpSignIn.tsx            a server's Sign-in row in Settings › MCP

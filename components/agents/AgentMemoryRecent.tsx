@@ -4,6 +4,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import type { AgentMemoryItem, JournalEvent, Mem0Health } from "@/lib/agents/memory";
+import { MemoryRowActions } from "../MemoryRowActions";
 import { requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
@@ -16,6 +17,7 @@ export function AgentMemoryRecent({ agentName, items, events = [], onOpenSession
   const { locale, t } = useI18n();
   const [tab, setTab] = useState<"recent" | "journal">("recent");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [gaveUp, setGaveUp] = useState<ReadonlySet<string>>(new Set());
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -103,9 +105,11 @@ export function AgentMemoryRecent({ agentName, items, events = [], onOpenSession
                 ? <span style={{ marginLeft: "auto", color: "var(--text-muted)" }}>{t("agents.memory.forgetting")}</span>
                 : <button type="button" onClick={() => void forget(item.id)} style={{ ...smallButton, marginLeft: "auto" }}>{t("agents.memory.forget")}</button>}
             </div>
+            <MemoryRowActions scope={`agent:${agentName}`} item={item} onQueued={() => { setSaving(true); setError(null); }} onError={setError} />
           </li>
         ))}
       </ul>
+      {saving && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("memory.saveQueued")}</div>}
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
       {healthNotes}
     </>
