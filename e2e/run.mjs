@@ -168,7 +168,8 @@ try {
   async function post(path, body) {
     const response = await fetch(`${base}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Mutating API calls need an Origin (lib/request-security.ts isApiRequestAllowed).
+      headers: { "Content-Type": "application/json", Origin: base },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(60_000),
     });
