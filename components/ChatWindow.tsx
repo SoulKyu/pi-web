@@ -40,6 +40,7 @@ import type { AppUpdateResponse } from "@/lib/api-types";
 import type { ToolEntry } from "@/lib/tool-presets";
 import type { SettingsSection } from "@/lib/settings-navigation";
 import { findChatScrollAnchor, type ChatScrollPosition } from "@/lib/chat-scroll-position";
+import { PerspectiveGrid } from "@/components/tron";
 import {
   captureScrollDistance,
   getPromptAnchorSpacerHeight,
@@ -1136,25 +1137,26 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <PerspectiveGrid className="z-0 opacity-50" />
       {isDragOver && (
-        <div className="pointer-events-none absolute inset-0 z-50 flex animate-[drop-zone-in_0.15s_ease_both] items-center justify-center bg-[rgba(37,99,235,0.06)] backdrop-blur-[1px]">
+        <div className="pointer-events-none absolute inset-0 z-50 flex animate-[drop-zone-in_0.15s_ease_both] items-center justify-center bg-[rgb(0_216_255/0.06)] backdrop-blur-[1px]">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             {[0, 0.8, 1.6].map((delay) => (
               <div
                 key={delay}
-                className="absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgba(37,99,235,0.5)] animate-[drop-ripple_2.4s_ease-out_infinite_backwards]"
+                className="absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgb(0_216_255/0.5)] animate-[drop-ripple_2.4s_ease-out_infinite_backwards]"
                 style={{ transformOrigin: "center", animationDelay: `${delay}s` }}
               />
             ))}
           </div>
           <svg
             width="280" height="280" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg"
-            className="drop-shadow-[0_6px_18px_rgba(37,99,235,0.18)]"
+            className="drop-shadow-[0_6px_18px_rgb(0_216_255/0.18)]"
           >
-            <rect x="28" y="44" width="84" height="60" rx="8" fill="rgba(37,99,235,0.08)" stroke="rgba(37,99,235,0.50)" strokeWidth="1.8"/>
-            <path d="M36 100 L54 72 L68 88 L80 74 L104 100Z" fill="rgba(37,99,235,0.16)" stroke="rgba(37,99,235,0.40)" strokeWidth="1.4" strokeLinejoin="round"/>
-            <circle cx="96" cy="58" r="8" fill="rgba(37,99,235,0.22)" stroke="rgba(37,99,235,0.55)" strokeWidth="1.6"/>
-            <g stroke="rgba(37,99,235,0.45)" strokeWidth="1.4" strokeLinecap="round">
+            <rect x="28" y="44" width="84" height="60" rx="8" fill="rgb(0 216 255 / 0.08)" stroke="rgb(0 216 255 / 0.50)" strokeWidth="1.8"/>
+            <path d="M36 100 L54 72 L68 88 L80 74 L104 100Z" fill="rgb(0 216 255 / 0.16)" stroke="rgb(0 216 255 / 0.40)" strokeWidth="1.4" strokeLinejoin="round"/>
+            <circle cx="96" cy="58" r="8" fill="rgb(0 216 255 / 0.22)" stroke="rgb(0 216 255 / 0.55)" strokeWidth="1.6"/>
+            <g stroke="rgb(0 216 255 / 0.45)" strokeWidth="1.4" strokeLinecap="round">
               <line x1="96" y1="46" x2="96" y2="43"/>
               <line x1="96" y1="70" x2="96" y2="73"/>
               <line x1="84" y1="58" x2="81" y2="58"/>
@@ -1199,7 +1201,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
           // so it shows its scrollbar instead of hiding it behind the minimap (#788).
           // A stable gutter keeps the centred column from shifting when a short
           // session grows past one screen.
-          className="scrollbar-subtle min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-4 [scrollbar-gutter:stable]"
+          className="scrollbar-subtle relative z-[1] min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-4 [scrollbar-gutter:stable]"
           style={{ visibility: pendingScrollRestore ? "hidden" : undefined }}
         >
           <div style={{ minWidth: 0, padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
@@ -1549,7 +1551,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 onAbort={closeQuotedSelection}
                 isStreaming={false}
               />
-              {quoteError && <div role="alert" style={{ color: "#dc2626", fontSize: 12, overflowWrap: "anywhere" }}>{quoteError}</div>}
+              {quoteError && <div role="alert" style={{ color: "var(--color-tron-red)", fontSize: 12, overflowWrap: "anywhere" }}>{quoteError}</div>}
             </fieldset>
           ) : <>
           <button
@@ -1721,11 +1723,11 @@ function NoticeShelf({ notices, floating = false, onPauseChange }: { notices: No
     >
       {notices.map((notice, index) => {
         const color = notice.type === "error"
-          ? "#ef4444"
+          ? "var(--color-tron-red)"
           : notice.type === "warning"
-            ? "#d97706"
+            ? "var(--color-tron-orange)"
             : notice.type === "success"
-              ? "#10b981"
+              ? "var(--color-tron-cyan)"
               : "var(--accent)";
         return (
           <div

@@ -820,8 +820,8 @@ pre, code {
   transform: rotate(45deg) translateY(-1px);
 }
 .markdown-body blockquote {
-  border-left: 3px solid color-mix(in srgb, var(--border) 75%, var(--text-muted));
-  border-radius: 0 6px 6px 0;
+  border-left: 3px solid var(--color-tron-cyan);
+  border-radius: 0;
   margin: 6px 0;
   padding: 6px 11px;
   background: var(--bg-subtle);
@@ -853,7 +853,7 @@ pre, code {
 .markdown-body tr:last-child td { border-bottom: 0; }
 .markdown-body th {
   background: var(--bg-panel);
-  color: color-mix(in srgb, var(--text) 88%, var(--text-muted));
+  color: var(--color-tron-cyan);
   font-weight: 650;
 }
 .markdown-body tbody tr:nth-child(even) td { background: var(--bg-subtle); }
@@ -973,16 +973,15 @@ pre, code {
   min-width: 0;
   max-width: 100%;
   margin: 6px 0;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  border: 1px solid var(--color-tron-line);
+  border-radius: 0;
   overflow: hidden;
   background: var(--bg);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 42%, transparent);
 }
 .markdown-code-header {
   padding: 5px 10px;
   background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-tron-line);
   color: var(--text-dim);
   font-size: 11px;
   display: flex;
@@ -991,8 +990,11 @@ pre, code {
   gap: 8px;
 }
 .markdown-code-lang {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
+  color: var(--color-tron-cyan);
+  font-family: var(--font-hud);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   font-weight: 650;
 }
 .markdown-code-actions {
