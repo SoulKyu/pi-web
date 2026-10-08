@@ -1712,5 +1712,7 @@ export const enLocale: LocalePlugin = {
     "chat.find.close": "Close find",
     "chat.find.count": "{current}/{total}",
     "chat.find.loadedOnly": "Loaded messages only",
+    "agents.tasks.promptLength": "{count} / {max} characters",
+    "agents.tasks.promptTooLong": "Too long: a task is limited to {max} characters. Shorten it to queue it.",
   },
 };

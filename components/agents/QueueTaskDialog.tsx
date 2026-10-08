@@ -1,21 +1,27 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 
 const REVIEW_TOOLS = ["read", "grep", "find", "ls", "memory_search"];
+// Mirrors PROMPT_MAX in app/api/agents/[name]/tasks/route.ts, counted the same way (prompt.length); the route stays authoritative.
+const PROMPT_MAX = 20_000;
 
 /** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread.
  *  `purpose="review"` queues an isolated read-only review run instead of a thread task. */
 export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, purpose = "handoff", onClose, onQueued }: { agentName: string; targetAgents?: string[]; quote?: string; deliverTo?: string; purpose?: "handoff" | "review"; onClose: () => void; onQueued: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [prompt, setPrompt] = useState(purpose === "review" ? t("agents.askReview.prompt") : "");
   const [target, setTarget] = useState(agentName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const lengthId = useId();
+  const overCap = prompt.length > PROMPT_MAX;
+  const showLength = prompt.length > PROMPT_MAX / 2;
+  const formatCount = (value: number) => new Intl.NumberFormat(locale).format(value);
 
   // The shell re-renders on every poll with a fresh onClose: open the dialog once, call the latest one.
   const onCloseRef = useRef(onClose);
@@ -60,12 +66,14 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
         )}
         <label style={labelStyle}>
           {t("agents.tasks.prompt")}
-          <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t("agents.tasks.promptPlaceholder")} rows={6} required style={{ ...fieldStyle, resize: "vertical" }} />
+          <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t("agents.tasks.promptPlaceholder")} rows={6} required aria-describedby={showLength ? lengthId : undefined} aria-invalid={overCap || undefined} style={{ ...fieldStyle, resize: "vertical" }} />
           {error && <span role="alert" style={{ color: "var(--text-muted)" }}>{t("agents.error", { error })}</span>}
         </label>
+        {showLength && <span id={lengthId} style={{ justifySelf: "end", marginTop: -6, fontSize: 12, fontVariantNumeric: "tabular-nums", color: overCap ? "var(--text)" : "var(--text-muted)", fontWeight: overCap ? 600 : undefined }}>{t("agents.tasks.promptLength", { count: formatCount(prompt.length), max: formatCount(PROMPT_MAX) })}</span>}
+        {overCap && <span role="alert" style={{ fontSize: 12, color: "var(--text)" }}>{t("agents.tasks.promptTooLong", { max: formatCount(PROMPT_MAX) })}</span>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !prompt.trim()} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", cursor: "pointer" }}>{t("agents.tasks.queue")}</button>
+          <button type="submit" disabled={busy || !prompt.trim() || overCap} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", cursor: "pointer" }}>{t("agents.tasks.queue")}</button>
         </div>
       </form>
     </div>

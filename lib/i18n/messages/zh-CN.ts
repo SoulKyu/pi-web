@@ -1712,5 +1712,7 @@ export const zhCNLocale: LocalePlugin = {
     "chat.find.close": "关闭查找",
     "chat.find.count": "{current}/{total}",
     "chat.find.loadedOnly": "仅限已加载的消息",
+    "agents.tasks.promptLength": "{count} / {max} 个字符",
+    "agents.tasks.promptTooLong": "过长：任务最多 {max} 个字符。请缩短后再排队。",
   },
 };

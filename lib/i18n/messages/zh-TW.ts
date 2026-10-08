@@ -1712,5 +1712,7 @@ export const zhTWLocale: LocalePlugin = {
     "chat.find.close": "關閉尋找",
     "chat.find.count": "{current}/{total}",
     "chat.find.loadedOnly": "僅限已載入的訊息",
+    "agents.tasks.promptLength": "{count} / {max} 個字元",
+    "agents.tasks.promptTooLong": "過長：任務最多 {max} 個字元。請縮短後再排入佇列。",
   },
 };
