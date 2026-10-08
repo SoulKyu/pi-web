@@ -36,6 +36,7 @@ import { skillExpansionToCommand } from "@/lib/slash-display";
 import { useGroupDrag, type GroupDragHandlers } from "@/hooks/useGroupDrag";
 import { useI18n } from "@/hooks/useI18n";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
+import { Led } from "./ui/led";
 import type { SidebarMenuAnchor } from "./SidebarMenu";
 import {
   ArchiveIcon,
@@ -45,7 +46,6 @@ import {
   PinIcon,
   PlusIcon,
   RestoreIcon,
-  SpinnerIcon,
   TrashIcon,
 } from "./SidebarIcons";
 
@@ -594,7 +594,7 @@ const SessionRowView = memo(function SessionRowView({
   let metaState = "";
   let metaTitle: string | undefined;
   if (status.running) {
-    meta = <SpinnerIcon size={12} label={t("sidebar.agentRunning")} />;
+    meta = <Led status="running" label={t("sidebar.agentRunning")} />;
     metaState = " is-running";
     metaTitle = t("sidebar.agentRunning");
   } else if (status.unread) {
@@ -804,7 +804,7 @@ export function ActivitySummary({ running, unread, t }: { running: number; unrea
           title={t("sidebar.agentRunning")}
           aria-label={`${t("sidebar.agentRunning")} (${running})`}
         >
-          <SpinnerIcon size={10} />
+          <Led status="running" />
           {running}
         </span>
       )}

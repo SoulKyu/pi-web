@@ -1,0 +1,152 @@
+/* Tron identity for the upstream sidebar (sidebar.css, sidebar-menu.css) and
+   its pickers. Loaded after them: upstream keeps the structure, this file the
+   look, so an upstream sync rarely conflicts here.
+   Cyan = system, selection, focus · orange = the user's session, running work
+   · red = errors and destructive actions. Square corners; glows only on focus,
+   the active item and running state. */
+
+/* Focus: a cyan hairline with its glow instead of the 2px accent outline. */
+.session-tree button:focus-visible,
+.sidebar-new-button:focus-visible,
+.sidebar-search-toggle:focus-visible,
+.sidebar-tab:focus-visible,
+.sidebar-archive-back:focus-visible,
+.sidebar-tool-button:focus-visible,
+.sidebar-menu-item:focus-visible,
+.sidebar-menu-secondary:focus-visible,
+.sidebar-toast-action:focus-visible,
+.sidebar-toast-dismiss:focus-visible,
+.project-picker-button:focus-visible {
+  outline: 1px solid var(--color-tron-cyan);
+  outline-offset: -1px;
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+/* HUD labels: the tabs and the section headers. */
+.sidebar-tab-label,
+.session-tree-pinned-label,
+.sidebar-menu-header,
+.sidebar-sheet-title {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.session-tree-pinned-label {
+  color: var(--color-tron-cyan);
+}
+
+.sidebar-tab.is-selected {
+  border-top-color: var(--color-tron-cyan);
+  background: linear-gradient(180deg, rgb(0 216 255 / 0.1), transparent);
+  box-shadow: 0 -6px 12px -8px var(--color-tron-cyan);
+}
+
+.sidebar-tab.is-selected .sidebar-tab-icon,
+.sidebar-search-toggle.is-active {
+  color: var(--color-tron-cyan);
+}
+
+/* The selected session: the user's own, an orange trace on the left. */
+.session-tree-session.is-selected:not(.is-confirming) {
+  background: linear-gradient(90deg, rgb(255 154 0 / 0.12), transparent);
+  box-shadow: inset 2px 0 0 var(--color-tron-orange), -6px 0 12px -6px var(--color-tron-orange);
+}
+
+.session-tree-session.is-selected .session-tree-title {
+  color: #fff;
+}
+
+.session-tree-session.is-confirming {
+  background: color-mix(in srgb, var(--color-tron-red) 6%, transparent);
+  box-shadow: inset 2px 0 0 var(--color-tron-red);
+}
+
+/* Status LEDs: running is orange and glows, unread is cyan. */
+.session-tree-pinned-dot.is-running {
+  background: var(--color-tron-orange);
+  box-shadow: 0 0 8px var(--color-tron-orange);
+}
+
+.session-tree-unread,
+.session-tree-summary-dot,
+.session-tree-pinned-dot.is-unread {
+  background: var(--color-tron-cyan);
+  box-shadow: 0 0 8px var(--color-tron-cyan);
+}
+
+.session-tree-meta.is-running,
+.session-tree-summary-running {
+  color: var(--color-tron-orange);
+}
+
+/* Destructive buttons: red fill, black text. */
+.session-tree .session-tree-confirm-delete,
+.sidebar-worktree-force {
+  color: #000;
+}
+
+.session-tree .session-tree-confirm-delete:hover,
+.sidebar-worktree-force:hover {
+  box-shadow: 0 0 10px rgb(255 77 94 / 0.6);
+}
+
+/* Fields: hairline, cyan glow while typing. */
+.session-tree-rename,
+.sidebar-worktree-input,
+.sidebar-search-input:focus,
+.sidebar-menu-filter-input:focus {
+  border-color: var(--color-tron-cyan);
+  box-shadow: var(--shadow-glow-cyan);
+  outline: none;
+}
+
+/* Floating surfaces (menus, the phone sheet, the toast) glow on a hairline. */
+.sidebar-menu,
+.sidebar-toast {
+  border-color: var(--color-tron-line);
+  background: var(--color-tron-panel);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.sidebar-sheet {
+  border-top: 1px solid var(--color-tron-line);
+  border-radius: 0;
+  background: var(--color-tron-panel);
+  box-shadow: 0 -8px 20px -8px rgb(0 216 255 / 0.35);
+}
+
+.sidebar-sheet-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.sidebar-menu-item.is-checked .sidebar-menu-icon,
+.sidebar-menu.is-classic .sidebar-menu-item.is-checked .sidebar-menu-icon,
+.sidebar-toast-action {
+  color: var(--color-tron-cyan);
+}
+
+.sidebar-worktree-create {
+  border-color: var(--color-tron-cyan);
+  background: var(--color-tron-cyan);
+  color: #000;
+}
+
+/* The new-session project/worktree boxes: square, cyan when open. */
+.project-picker-button {
+  border-radius: 0;
+}
+
+.project-picker-button[aria-expanded="true"] {
+  border-color: var(--color-tron-cyan);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.new-session-brand-name {
+  font-family: var(--font-hud);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgb(0 216 255 / 0.45);
+}

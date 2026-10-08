@@ -21,7 +21,7 @@
   overscroll-behavior: contain;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
@@ -53,7 +53,7 @@
   padding: 0 8px;
   box-sizing: border-box;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -78,12 +78,12 @@
 
 .sidebar-menu-item.is-danger,
 .sidebar-menu-item.is-danger .sidebar-menu-icon {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .sidebar-menu-item.is-danger:not([aria-disabled="true"]):hover,
 .sidebar-menu-item.is-danger:focus-visible {
-  background: rgba(239, 68, 68, 0.08);
+  background: color-mix(in srgb, var(--color-tron-red) 8%, transparent);
 }
 
 .sidebar-menu-icon {
@@ -166,7 +166,7 @@
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
@@ -184,8 +184,8 @@
 
 .sidebar-menu-secondary.is-danger:not([aria-disabled="true"]):hover,
 .sidebar-menu-secondary.is-danger:focus-visible {
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--color-tron-red) 8%, transparent);
+  color: var(--color-tron-red);
 }
 
 .sidebar-menu-secondary[aria-disabled="true"] {
@@ -213,7 +213,7 @@
   padding: 0 8px;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   outline: none;
   background: var(--bg);
   color: var(--text);
@@ -346,7 +346,7 @@
 .sidebar-menu.is-classic .sidebar-worktree-cancel {
   height: auto;
   padding: 4px 0;
-  border-radius: 5px;
+  border-radius: 0;
   font-size: 11px;
 }
 
@@ -370,7 +370,7 @@
   gap: 6px;
   padding: 7px 10px;
   border-bottom: 1px solid var(--border);
-  background: rgba(239, 68, 68, 0.06);
+  background: color-mix(in srgb, var(--color-tron-red) 6%, transparent);
 }
 
 .sidebar-worktree-confirm-text {
@@ -388,7 +388,7 @@
   flex: none;
   height: auto;
   padding: 3px 9px;
-  border-radius: 5px;
+  border-radius: 0;
   font-size: 11px;
 }
 
@@ -440,7 +440,7 @@
   overscroll-behavior: contain;
   padding: 4px 0 max(8px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
-  border-radius: 12px 12px 0 0;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
@@ -584,7 +584,7 @@ html[data-keyboard-open] .sidebar-sheet {
   padding: 0 4px 0 12px;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -634,7 +634,7 @@ html[data-keyboard-open] .sidebar-sheet {
   height: 26px;
   padding: 0 7px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--accent);
   font: inherit;
@@ -657,7 +657,7 @@ html[data-keyboard-open] .sidebar-sheet {
   height: 24px;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
@@ -726,7 +726,7 @@ html[data-keyboard-open] .sidebar-sheet {
   padding: 0 8px;
   box-sizing: border-box;
   border: 1px solid var(--accent);
-  border-radius: 5px;
+  border-radius: 0;
   outline: none;
   background: var(--bg);
   color: var(--text);
@@ -749,7 +749,7 @@ html[data-keyboard-open] .sidebar-sheet {
   flex: 1;
   height: 26px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text-muted);
   font: inherit;
@@ -770,8 +770,8 @@ html[data-keyboard-open] .sidebar-sheet {
 
 /* Force-removing a checkout discards its changes. */
 .sidebar-worktree-force {
-  border-color: #ef4444;
-  background: #ef4444;
+  border-color: var(--color-tron-red);
+  background: var(--color-tron-red);
   color: #fff;
   font-weight: 600;
 }
@@ -799,7 +799,7 @@ html[data-keyboard-open] .sidebar-sheet {
 
 .sidebar-worktree-error {
   margin-top: 6px;
-  color: #ef4444;
+  color: var(--color-tron-red);
   font-size: 11px;
   line-height: 1.35;
   overflow-wrap: anywhere;

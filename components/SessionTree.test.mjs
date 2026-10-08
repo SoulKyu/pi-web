@@ -213,11 +213,11 @@ test("a fork's row keeps its name's suffix in view; other titles stay one span",
   assert.match(cssRule(".session-tree-title-suffix"), /flex: none;\s*white-space: pre;/, "never shrinks; keeps its leading space");
 });
 
-test("a running row shows the labelled spinner and cannot be archived from the row", () => {
+test("a running row shows the labelled running LED and cannot be archived from the row", () => {
   const html = rowMarkup(render({ rows: [sessionRow(session("run"), { status: { running: true, unread: true } })] }), "session:group:run");
   // The spinner takes the time's place at the right, and the row says it is running.
   assert.match(html, /class="session-tree-row session-tree-session is-running"/);
-  assert.match(html, /<span class="session-tree-title">first run<\/span><span class="session-tree-meta is-running" title="Agent running…"><svg[^>]*class="sidebar-spin" role="img" aria-label="Agent running…"/);
+  assert.match(html, /<span class="session-tree-title">first run<\/span><span class="session-tree-meta is-running" title="Agent running…"><span data-status="running" role="img" aria-label="Agent running…"/);
   assert.doesNotMatch(html, /session-tree-slot/);
   assert.doesNotMatch(html, /session-tree-unread/);
   assert.doesNotMatch(html, /aria-label="Archive"/);
@@ -473,20 +473,21 @@ test("row CSS stays flat, themed and quiet", () => {
   assert.doesNotMatch(css, /&/, "no CSS nesting");
   assert.doesNotMatch(css, /@starting-style|prefers-color-scheme/);
   const colors = new Set((css.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).map((color) => color.toLowerCase()));
-  for (const color of colors) assert.ok(["#ef4444", "#0891b2", "#f87171", "#fff"].includes(color), `unexpected color ${color}`);
+  // Tron: hues come from the --color-tron-* tokens; only white remains as a literal.
+  for (const color of colors) assert.ok(["#fff"].includes(color), `unexpected color ${color}`);
   // Hover and selection are a rounded box inset from the edges, not a full-width band.
   assert.match(cssRule(".session-tree-scroll"), /--session-tree-inset-left: max\(6px, var\(--session-tree-scrollbar, 0px\)\);\s*--session-tree-inset-right: max\(0px, calc\(6px - var\(--session-tree-scrollbar, 0px\)\)\);/);
   // The scrollbar's room is kept while everything fits, so rows keep their width when it starts to scroll.
   assert.match(cssRule(".session-tree-scroll"), /overflow-y: auto;[\s\S]*?scrollbar-gutter: stable;/);
   assert.match(css, /@supports not \(scrollbar-gutter: stable\) \{\s*\.session-tree-scroll \{\s*overflow-y: scroll;\s*\}\s*\}/);
-  assert.match(cssRule(".session-tree-session"), /right: var\(--session-tree-inset-right\);\s*left: var\(--session-tree-inset-left\);[\s\S]*?border-radius: 7px;/);
+  assert.match(cssRule(".session-tree-session"), /right: var\(--session-tree-inset-right\);\s*left: var\(--session-tree-inset-left\);[\s\S]*?border-radius: 0;/);
   assert.match(cssRule(".session-tree-session.is-running:hover .session-tree-meta"), /display: flex;/);
   assert.match(cssRule(".session-tree-session.is-selected"), /^\s*background: var\(--bg-selected\);\s*$/);
   // Selection deepens the title to the text color; no heavier weight.
   assert.match(cssRule(".session-tree-title"), /color: color-mix\(in srgb, var\(--text\) 75%, var\(--bg-panel\)\);/);
   assert.match(cssRule(".session-tree-session.is-selected .session-tree-title"), /^\s*color: var\(--text\);\s*$/);
   assert.doesNotMatch(css, /border-left/);
-  assert.match(cssRule(".session-tree-group"), /right: var\(--session-tree-inset-right\);\s*left: var\(--session-tree-inset-left\);[\s\S]*?border-radius: 7px;/);
+  assert.match(cssRule(".session-tree-group"), /right: var\(--session-tree-inset-right\);\s*left: var\(--session-tree-inset-left\);[\s\S]*?border-radius: 0;/);
   assert.match(cssRule(".session-tree-action"), /display: none;/);
   assert.match(cssRule(".session-tree.is-mobile .session-tree-more-action"), /display: flex;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.session-tree-unread::after \{\s*animation: none;/);

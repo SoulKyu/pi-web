@@ -26,11 +26,6 @@ test("stats icons keep their intended size", () => {
   assert.match(shell, /\[&_svg\]:size-3!/);
 });
 
-test("a selected row in delete-confirm is fully red; the version keeps its case", () => {
-  assert.match(sidebar, /isSelected && !confirmDelete && "border-l-tron-orange/);
-  assert.match(sidebar, /showVersion \? "normal-case text-tron-cyan"/);
-});
-
 test("the agent color tints the inside of the hex", () => {
   assert.match(renderToStaticMarkup(h(HexAvatar, { label: "ops", color: "#7c3aed" })), /background:color-mix\(in srgb, #7c3aed 30%, #000\)/);
 });

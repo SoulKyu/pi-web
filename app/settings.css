@@ -1605,7 +1605,7 @@
   margin: 0;
   padding: 0 8px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);

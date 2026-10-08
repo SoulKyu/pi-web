@@ -278,9 +278,9 @@ test("focus never goes to an opener that is hidden: the row's own button takes i
 });
 
 test("menu, sheet and toast styles: layers above the drawer, reduced motion", () => {
-  assert.match(cssRule(".sidebar-menu"), /position: fixed;[\s\S]*z-index: 400;[\s\S]*border-radius: 8px;[\s\S]*box-shadow: 0 6px 20px rgba\(0, 0, 0, 0\.10\);/);
+  assert.match(cssRule(".sidebar-menu"), /position: fixed;[\s\S]*z-index: 400;[\s\S]*border-radius: 0;[\s\S]*box-shadow: 0 6px 20px rgba\(0, 0, 0, 0\.10\);/);
   assert.match(cssRule(".sidebar-sheet-backdrop"), /position: fixed;\s*inset: 0;/);
-  assert.match(cssRule(".sidebar-sheet"), /position: relative;\s*z-index: 1;[\s\S]*padding: 4px 0 max\(8px, env\(safe-area-inset-bottom\)\);[\s\S]*border-radius: 12px 12px 0 0;/);
+  assert.match(cssRule(".sidebar-sheet"), /position: relative;\s*z-index: 1;[\s\S]*padding: 4px 0 max\(8px, env\(safe-area-inset-bottom\)\);[\s\S]*border-radius: 0;/);
   // The sheet sits at the bottom of the visible area, which the software
   // keyboard shrinks (iOS keeps the layout viewport, and bottom: 0, under it),
   // and drops the home indicator inset the keyboard covers.
@@ -366,7 +366,7 @@ test("a classic menu: main's dropdown look, paths cut at their left, a footer an
   assert.match(cssRule(".sidebar-menu.is-classic .sidebar-menu-icon svg"), /width: 10px;\s*height: 10px;/);
   assert.match(cssRule(".sidebar-menu-label.is-path"), /direction: rtl;\s*text-align: left;/);
   // A dirty checkout's question in its row: red-tinted, its two buttons small.
-  assert.match(cssRule(".sidebar-worktree-confirm"), /padding: 7px 10px;\s*border-bottom: 1px solid var\(--border\);\s*background: rgba\(239, 68, 68, 0\.06\);/);
+  assert.match(cssRule(".sidebar-worktree-confirm"), /padding: 7px 10px;\s*border-bottom: 1px solid var\(--border\);\s*background: color-mix\(in srgb, var\(--color-tron-red\) 6%, transparent\);/);
   // Focus goes in again when the body changes, and a filter may ask for more choices.
   assert.match(source, /\}, \[visible, sheet, custom, focusKey\]\);/);
   assert.equal(sidebarMenuHasFilter(projectMenu, 9), false);
@@ -444,6 +444,6 @@ test("filter and secondary action styles: sticky field, room for a finger, a cap
   assert.match(cssRule(".sidebar-menu-row > .sidebar-menu-item"), /flex: 1;\s*min-width: 0;/);
   assert.match(cssRule(".sidebar-menu-secondary"), /width: 28px;\s*height: 28px;/);
   assert.match(cssRule(".sidebar-sheet .sidebar-menu-secondary"), /width: 48px;\s*height: 48px;/);
-  assert.match(css, /\.sidebar-menu-secondary\.is-danger:not\(\[aria-disabled="true"\]\):hover,\s*\.sidebar-menu-secondary\.is-danger:focus-visible \{\s*background: rgba\(239, 68, 68, 0\.08\);\s*color: #ef4444;/);
+  assert.match(css, /\.sidebar-menu-secondary\.is-danger:not\(\[aria-disabled="true"\]\):hover,\s*\.sidebar-menu-secondary\.is-danger:focus-visible \{\s*background: color-mix\(in srgb, var\(--color-tron-red\) 8%, transparent\);\s*color: var\(--color-tron-red\);/);
   assert.match(css, /@media \(pointer: coarse\) \{\s*\.sidebar-menu-item \{\s*height: 40px;\s*\}[\s\S]*?\.sidebar-menu-secondary \{\s*width: 40px;\s*height: 40px;/);
 });

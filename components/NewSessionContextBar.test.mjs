@@ -126,7 +126,7 @@ test("client code stays parseable by Safari 16.2 and its CSS flat", () => {
   // The files tab's boxes (main's), 11px, the path and the branch in code
   // type; here without the box until hovered or open.
   assert.match(rules, /\.project-picker \{\s*display: flex;\s*align-items: center;\s*gap: 6px;\s*min-width: 0;\s*box-sizing: border-box;\s*font-size: 11px;\s*font-weight: 400;\s*line-height: 1;/);
-  assert.match(rules, /\.project-picker-button \{[^}]*height: 29px;\s*padding: 0 10px;\s*border: 1px solid var\(--border\);\s*border-radius: 7px;\s*background: var\(--bg-hover\);/);
+  assert.match(rules, /\.project-picker-button \{[^}]*height: 29px;\s*padding: 0 10px;\s*border: 1px solid var\(--border\);\s*border-radius: 0;\s*background: var\(--bg-hover\);/);
   assert.match(rules, /\.project-picker-path \{[^}]*font-family: var\(--font-mono\);/);
   assert.match(rules, /\.project-picker\.is-inline \.project-picker-button \{\s*border-color: transparent;\s*background: transparent;\s*\}/);
   assert.match(rules, /\.project-picker\.is-inline \.project-picker-button:hover,\s*\.project-picker\.is-inline \.project-picker-button\[aria-expanded="true"\] \{\s*background: var\(--bg-hover\);/);

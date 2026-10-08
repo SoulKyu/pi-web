@@ -1572,7 +1572,7 @@ pre, code {
   height: 29px;
   padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 0;
   background: var(--bg-hover);
   color: var(--text-muted);
   font: inherit;

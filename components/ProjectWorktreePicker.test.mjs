@@ -213,7 +213,7 @@ test("client code stays parseable by Safari 16.2 and its CSS flat", () => {
   assert.doesNotMatch(rules.replace(/@media[^{]*\{/g, ""), /\{[^}]*\{|&/, "no nested rules");
   // One look in both places, main's: the header buttons' grey box, 11px, the
   // path and the branch in code type, cut at their left.
-  assert.match(rules, /\.project-picker-button \{\s*display: inline-flex;\s*flex: 0 1 auto;\s*align-items: center;\s*gap: 6px;\s*min-width: 0;\s*height: 29px;\s*padding: 0 10px;\s*border: 1px solid var\(--border\);\s*border-radius: 7px;\s*background: var\(--bg-hover\);/);
+  assert.match(rules, /\.project-picker-button \{\s*display: inline-flex;\s*flex: 0 1 auto;\s*align-items: center;\s*gap: 6px;\s*min-width: 0;\s*height: 29px;\s*padding: 0 10px;\s*border: 1px solid var\(--border\);\s*border-radius: 0;\s*background: var\(--bg-hover\);/);
   assert.match(rules, /\.project-picker-path \{[^}]*font-family: var\(--font-mono\);[^}]*direction: rtl;/);
   assert.match(rules, /\.project-picker-icon\.is-linked,/);
   assert.doesNotMatch(rules, /is-name|project-picker-divider/);
@@ -224,7 +224,7 @@ test("client code stays parseable by Safari 16.2 and its CSS flat", () => {
   assert.match(rules, /\.project-picker\.is-stacked \.project-picker-label,\s*\.project-picker\.is-stacked \.project-picker-path \{\s*flex: 1 1 0;\s*\}/);
   assert.match(rules, /\.project-picker-path > span \{\s*unicode-bidi: plaintext;/);
   assert.match(rules, /\.project-picker-button\.is-inactive,\s*\.project-picker-button\.is-inactive:hover \{[^}]*cursor: default;/);
-  assert.match(menuCss, /\.sidebar-worktree-force \{\s*border-color: #ef4444;/);
+  assert.match(menuCss, /\.sidebar-worktree-force \{\s*border-color: var\(--color-tron-red\);/);
 });
 
 /** The removal body inside the menu surface, as the picker hands it over. */
