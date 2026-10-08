@@ -11,8 +11,8 @@ Rollback: `git reset --hard a507131` on `local` while nothing is pushed there.
 - [x] resolve conflicts (list below; details in the merge commit body)
 - [x] fonts (#1074): kept; defaults = Tron fonts via `--font-ui-default`/`--font-mono-default`; no theme plumbing
 - [x] merge commit + gate: tsc OK, lint OK, 3548 pass / 20 fail / 1 skipped (failures listed below)
-- [ ] fork contributions on the new sidebar (inventory below), each with a failing test first
-- [ ] Origin check on new routes `sessions/[id]/fork`, `sessions/ui-state` (+ tests)
+- [x] fork contributions on the new sidebar (inventory below), each with a failing test first
+- [x] Origin check on new routes: already enforced (`isApiRequestAllowed`); tests send Origin + pin the refusal (`c2313bb`)
 - [ ] Tron pass on new upstream components (codemod dry run, write, hand touch-ups) + palette test
 - [ ] gate after each Tron commit
 - [ ] 4.4 final checks (`diff --stat`, fork files back to upstream)
@@ -30,9 +30,9 @@ All 19 resolved in `3be73b0`:
 - [x] SettingsPanel.tsx · [x] SettingsPanel.test.mjs · [x] useAgentSession.ts · [x] i18n en/zh-CN/zh-TW (+ fr.ts) · [x] session-reader.ts
 
 Failures after the merge (20), each owned by a follow-up commit:
-- [ ] ui-state + fork route tests (12): no `Origin` header (fork `request-security`) → fix(fork)
-- [ ] NewSessionContextBar.test: fork find bar sits between hero and composer → fix(fork)
-- [ ] shortcut-label.test: New session Ctrl+Alt+N hint → contribution C10
+- [x] ui-state + fork route tests (12) `c2313bb`: no `Origin` header (fork `request-security`) → fix(fork)
+- [x] NewSessionContextBar.test `9fe1bcf`: fork find bar sits between hero and composer → fix(fork)
+- [x] shortcut-label.test `a6c64ee`: New session Ctrl+Alt+N hint → contribution C10
 - [ ] session-sidebar-tron.test (4), polish-frame.test (1): old sidebar Tron pins → Tron pass
 - [ ] tron-settings.test: radius in upstream settings.css font rules → Tron pass
 
@@ -45,15 +45,15 @@ Follow-ups noted:
 ## Fork contributions on the sidebar
 
 Inventory (sub-agent, 2026-10-08). Reapply test-first on the new components:
-- [ ] C1 status-enriched row label (running/unread) — 648fc0c — partial upstream → SessionTree row
-- [ ] C2 ArrowUp/Down row focus, modifier+arrows left to rail shortcuts — 648fc0c/01fbdec — no → SessionTree
-- [ ] C3 F2 rename, Delete/Backspace opens confirm on focused row — 648fc0c/01fbdec — partial (menu letters) → SessionTree
+- [x] C1 row label — covered: the row is a <button> whose name holds title, branch and the running/unread meta labels
+- [x] `3344082` C2 ArrowUp/Down row focus, modifier+arrows left to rail shortcuts — 648fc0c/01fbdec — no → SessionTree
+- [x] `3344082` C3 F2 rename, Delete/Backspace opens confirm on focused row — 648fc0c/01fbdec — partial (menu letters) → SessionTree
 - [x] C5 keyboard-safe delete confirm, focus return — covered upstream (SidebarMenu, pendingFocusRef)
 - [x] C6 row actions on focus-visible — covered upstream (sidebar.css :has(:focus-visible))
 - [x] C7 coarse-pointer ⋯ — covered upstream (is-mobile more action)
-- [ ] C8 search Escape: clear, then close + refocus toggle — 5dff310 — partial → SessionSidebar search
+- [x] `efa316d` C8 search Escape: clear, then close + refocus toggle — 5dff310 — partial → SessionSidebar search
 - [x] C9 live phase label, pause confirm — AgentRail (fork-only component), untouched
-- [ ] C10 Ctrl+Alt+N hint on New session (title, aria-keyshortcuts) — 06b473c — no → SessionSidebar
+- [x] `a6c64ee` C10 Ctrl+Alt+N hint on New session (title, aria-keyshortcuts) — 06b473c — no → SessionSidebar
 - [x] C11 robot glyph on child rows — dead code in the fork (depth never passed); skipped
-- [ ] C12 rename/delete HTTP failures surfaced — 648fc0c — no → SessionSidebar (SidebarToast)
-- [ ] C13 rename blur relatedTarget guard — 648fc0c — partial → check SessionTree RenameInput
+- [x] `7ac8087` C12 rename/delete HTTP failures surfaced — 648fc0c — no → SessionSidebar (SidebarToast)
+- [x] C13 — covered: RenameInput selects on mount, doneRef blocks the double commit; the relatedTarget guard served row state upstream replaced by CSS
