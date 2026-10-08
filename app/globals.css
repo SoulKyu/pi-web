@@ -1989,6 +1989,7 @@ span.token.table {
 .agent-event-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; color: var(--text-muted); }
 .agent-event-link { margin-left: auto; font-size: 11px; }
 .agent-event-failed { color: #e5484d; }
+.agent-event-tainted { color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; font-size: 11px; }
 .agent-event-summary { margin-top: 4px; color: var(--text); }
 .agent-event-prompt summary { cursor: pointer; font-size: 11px; color: var(--text-dim); }
 
