@@ -11,6 +11,7 @@ import {
   mergeRestoredSubmissionText,
   rekeyDraft as rekeyStoredDraft,
   setDraft,
+  type ChatDraft,
   type ChatDraftImage,
 } from "@/lib/draft-store";
 import {
@@ -419,6 +420,11 @@ export async function compressImageFile(file: File): Promise<{ data: string; mim
   }
 }
 
+/** A stored draft worth announcing: some non-blank text or at least one image. */
+export function isRestorableDraft(draft: ChatDraft | null): boolean {
+  return Boolean(draft && (draft.value.trim() !== "" || draft.images.length > 0));
+}
+
 function imageToDraftImage(image: AttachedImage): ChatDraftImage {
   return { data: image.data, mimeType: image.mimeType };
 }
@@ -632,6 +638,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>(() => (
     draftKey ? draftImagesToAttachedImages(getDraft(draftKey)?.images) : []
   ));
+  const [draftRestored, setDraftRestored] = useState(() => (draftKey ? isRestorableDraft(getDraft(draftKey)) : false));
   const trimmedValue = value.trimStart();
   const bashMode = attachedImages.length === 0 && trimmedValue.startsWith("!");
   const bashExcluded = bashMode && trimmedValue.startsWith("!!");
@@ -916,6 +923,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setValue("");
     setAtQuery(null);
     setHistoryMenuOpen(false);
+    setDraftRestored(false);
     if (draftKey) clearDraft(draftKey);
     if (draftKeyRef.current && draftKeyRef.current !== draftKey) clearDraft(draftKeyRef.current);
     clearImages();
@@ -952,11 +960,16 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setValue(nextValue);
     setAtQuery(null);
     setHistoryMenuOpen(false);
+    setDraftRestored(isRestorableDraft(draft));
     setAttachedImages((prev) => {
       prev.forEach(revokeImagePreview);
       return nextImages;
     });
   }, [draftKey]);
+
+  useEffect(() => {
+    if (!value && attachedImages.length === 0) setDraftRestored(false);
+  }, [value, attachedImages.length]);
 
   const resizeTextarea = useCallback(() => {
     const ta = textareaRef.current;
@@ -1848,6 +1861,25 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             }}
           >
             {compactError}
+          </div>
+        )}
+        {draftRestored && (
+          <div
+            className="chat-draft-restored"
+            style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content", maxWidth: "100%", marginBottom: 6, padding: "2px 2px 2px 10px", border: "1px solid var(--border)", borderRadius: 999, background: "var(--bg-panel)", color: "var(--text-muted)", fontSize: 12 }}
+          >
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t("chat.draftRestored")}</span>
+            <button
+              type="button"
+              onClick={() => setDraftRestored(false)}
+              aria-label={t("chat.draftDismiss")}
+              title={t("chat.draftDismiss")}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, padding: 0, border: "none", borderRadius: "50%", background: "none", color: "inherit", cursor: "pointer", flexShrink: 0 }}
+            >
+              <svg width="10" height="10" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <line x1="1" y1="1" x2="7" y2="7" /><line x1="7" y1="1" x2="1" y2="7" />
+              </svg>
+            </button>
           </div>
         )}
         {/* Image previews */}

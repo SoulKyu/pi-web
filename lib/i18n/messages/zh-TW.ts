@@ -423,6 +423,8 @@ export const zhTWLocale: LocalePlugin = {
     "chat.extensionWidgetLine": "{count} 行",
     "chat.extensionWidgetLines": "{count} 行",
     "chat.close": "關閉",
+    "chat.draftRestored": "已還原草稿",
+    "chat.draftDismiss": "關閉提示",
     "chat.queued": "已排入佇列 · {count}",
     "chat.recall": "移回輸入框",
     "chat.recallTitle": "將所有佇列中的訊息移回輸入框以便編輯",

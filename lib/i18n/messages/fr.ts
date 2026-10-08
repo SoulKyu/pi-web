@@ -423,6 +423,8 @@ export const frLocale: LocalePlugin = {
     "chat.extensionWidgetLine": "{count} ligne",
     "chat.extensionWidgetLines": "{count} lignes",
     "chat.close": "Fermer",
+    "chat.draftRestored": "Brouillon restauré",
+    "chat.draftDismiss": "Masquer",
     "chat.queued": "En file · {count}",
     "chat.recall": "Rappeler dans la saisie",
     "chat.recallTitle": "Retirer tous les messages en file et les remettre dans la zone de saisie pour les modifier",

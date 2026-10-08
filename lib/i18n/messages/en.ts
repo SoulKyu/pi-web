@@ -423,6 +423,8 @@ export const enLocale: LocalePlugin = {
     "chat.extensionWidgetLine": "{count} line",
     "chat.extensionWidgetLines": "{count} lines",
     "chat.close": "Close",
+    "chat.draftRestored": "Draft restored",
+    "chat.draftDismiss": "Dismiss",
     "chat.queued": "Queued · {count}",
     "chat.recall": "Recall to input",
     "chat.recallTitle": "Remove all queued messages and put them back into the input box for editing",
