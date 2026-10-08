@@ -8,6 +8,7 @@
 ## Keyboard shortcuts (`hooks/useKeyboardShortcuts.ts`, `hooks/useRailShortcuts.ts`)
 - Rail agents use `Ctrl+Alt+1..9`, not `Alt+digit`: Firefox on Linux takes `Alt+digit` to switch tabs before the page sees it. `Alt+ArrowUp/Down` (next/previous unread agent) and these keys are handled even from the composer, but not while a dialog is open.
 - AltGr (ctrl+alt on Windows/some Linux layouts) is ignored via `getModifierState("AltGraph")`, so AZERTY `#`, `{`, `[`, `|` still type. On macOS, Option+↑/↓ in the composer (paragraph start/end) is taken by the shortcut whenever another unread agent exists (accepted trade-off).
+- Visible hints go through `formatShortcut()` / `detectShortcutPlatform()` (`lib/shortcut-label.ts`), read in components with `useShortcutPlatform()` (server snapshot `other`): macOS/iOS/iPadOS get `⌃⌥⇧⌘` glyphs joined without a separator (`⌃⌥N`), elsewhere `Ctrl+Alt+N`. Stop's title ends with `(Esc)`, New session's with the Ctrl+Alt+N chord, the desktop Follow-up button shows a `<kbd>`; phones show none. Each control also sets `aria-keyshortcuts`.
 
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.

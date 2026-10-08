@@ -10,6 +10,8 @@ import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
+import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
+import { formatShortcut } from "@/lib/shortcut-label";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
 import { DirectoryPicker } from "./DirectoryPicker";
@@ -430,6 +432,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [explorerKey, setExplorerKey] = useState(0);
   const [explorerUploadBusy, setExplorerUploadBusy] = useState(false);
   const [fileSearchOpen, setFileSearchOpen] = useState(false);
+  const shortcutPlatform = useShortcutPlatform();
   const [sessionSearchOpen, setSessionSearchOpen] = useState(false);
   const [sessionSearchQuery, setSessionSearchQuery] = useState("");
   const sessionSearchActive = sessionSearchOpen && Boolean(sessionSearchQuery.trim());
@@ -1197,6 +1200,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
             <button
               onClick={handleNewSession}
               disabled={!selectedCwd}
+              aria-keyshortcuts="Control+Alt+N"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 background: "var(--bg-hover)",
@@ -1213,7 +1217,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 flexShrink: 0,
                 transition: "background 0.12s, color 0.12s, border-color 0.12s",
               }}
-             title={selectedCwd ? t("sidebar.newSessionTitle", { path: selectedCwd }) : t("sidebar.selectProject")}
+              title={selectedCwd ? t("sidebar.newSessionTitle", { path: selectedCwd, shortcut: formatShortcut(["Ctrl", "Alt", "N"], shortcutPlatform) }) : t("sidebar.selectProject")}
               onMouseEnter={(e) => {
                 if (!selectedCwd) return;
                 e.currentTarget.style.background = "var(--bg-selected)";

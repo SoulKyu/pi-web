@@ -1901,6 +1901,9 @@ span.token.table {
 .agent-budget-progress::-webkit-progress-value { background: var(--accent); }
 .agent-budget-progress::-moz-progress-bar { background: var(--accent); }
 
+/* Chord hint inside a button (desktop follow-up). */
+.shortcut-kbd { margin-left: 2px; padding: 1px 4px; border: 1px solid var(--border); border-radius: 4px; font: 500 10px/1.2 var(--font-mono); color: inherit; }
+
 /* Mobile sidebar: slide in/out as overlay */
 @media (max-width: 640px) {
   .agent-rail { width: auto; flex-direction: row; padding: 6px 8px; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }

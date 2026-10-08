@@ -28,6 +28,8 @@ import { isBareMcpCommand, isBuiltinMcpCommand } from "@/lib/mcp-command";
 import { FolderIcon, getFileIcon } from "./FileIcons";
 import { ImagePreview } from "./ImagePreview";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
+import { formatShortcut } from "@/lib/shortcut-label";
 import { useEnterSendMode } from "@/hooks/useEnterSendMode";
 import { useI18n } from "@/hooks/useI18n";
 import { useChatAppearance } from "@/hooks/useChatAppearance";
@@ -621,6 +623,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const { t } = useI18n();
   const { fontSize } = useChatAppearance();
   const isMobile = useIsMobile();
+  const shortcutPlatform = useShortcutPlatform();
   const enterSendMode = useEnterSendMode();
   const [value, setValue] = useState(() => (draftKey ? getDraft(draftKey)?.value ?? "" : ""));
   const [toolDropdownOpen, setToolDropdownOpen] = useState(false);
@@ -2341,6 +2344,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                     <line x1="2" y1="9" x2="8" y2="9" />
                   </svg>
                   {t("chat.followUp")}
+                  {!isMobile && <kbd className="shortcut-kbd" aria-hidden="true">{formatShortcut(["Alt", "Enter"], shortcutPlatform)}</kbd>}
                 </button>
               )}
             </div>
@@ -2746,7 +2750,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             {isStreaming && (
               <button
                 onClick={onAbort}
-                 title={t("chat.stopAgent")}
+                title={t("chat.stopAgent", { shortcut: formatShortcut(["Esc"], shortcutPlatform) })}
+                aria-keyshortcuts="Escape"
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   padding: "8px 14px",
