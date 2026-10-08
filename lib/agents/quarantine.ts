@@ -7,6 +7,7 @@ import { listTasks, updateTask, type AgentTask } from "../agent-ops/task-store";
 import { rotateSecret } from "../agent-ops/trigger-api";
 import { listTriggers } from "../agent-ops/trigger-store";
 import type { LongTermAgent } from "./registry";
+import { listSecretNames } from "./secrets";
 import { archiveThreadLocked } from "./thread-archive";
 
 export interface QuarantineDeps {
@@ -14,7 +15,8 @@ export interface QuarantineDeps {
   abortRunningTasks: (filter: (task: AgentTask) => boolean) => number;
   listTasks: () => AgentTask[];
   cancelTask: (id: string, completedAt: string) => void;
-  archiveThread: (agent: LongTermAgent) => Promise<string | null>;
+  archiveThread: (agent: LongTermAgent) => Promise<{ trash: string | null; stillStarting?: boolean }>;
+  vaultSecretNames: (name: string) => string[];
   stagingDir: () => string;
   listWebhookTriggers: (name: string) => string[];
   rotateSecret: (id: string) => { ok: true; trigger: { name: string }; webhookSecret: string } | { ok: false };
@@ -23,6 +25,8 @@ export interface QuarantineDeps {
 export interface QuarantineResult {
   trash: string | null;
   secrets: { triggerId: string; name: string; webhookSecret: string }[];
+  /** Names (never values) of the agent's vault: it is not rotated here, the owner revokes them upstream. */
+  vaultSecrets: string[];
   staged: number;
   tasksAborted: number;
   tasksCancelled: number;
@@ -39,8 +43,9 @@ const defaultDeps = (): QuarantineDeps => ({
   cancelTask: (id, completedAt) => { updateTask(id, { status: "cancelled", completedAt }); },
   archiveThread: async (agent) => {
     const archived = await archiveThreadLocked(agent, { force: true });
-    return "trash" in archived ? archived.trash : null;
+    return "trash" in archived ? archived : { trash: null };
   },
+  vaultSecretNames: listSecretNames,
   stagingDir: mem0StagingDir,
   listWebhookTriggers: (name) => listTriggers().filter((t) => t.profile === name && t.webhookSecretSha256).map((t) => t.id),
   rotateSecret: (id) => rotateSecret(id) as ReturnType<QuarantineDeps["rotateSecret"]>,
@@ -71,7 +76,7 @@ function moveStaged(dir: string, name: string, stamp: string): number {
 export async function quarantineAgent(agent: LongTermAgent, deps: QuarantineDeps = defaultDeps()): Promise<QuarantineResult> {
   const name = agent.name;
   deps.pauseAgent(name);
-  const result: QuarantineResult = { trash: null, secrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] };
+  const result: QuarantineResult = { trash: null, secrets: [], vaultSecrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] };
   const step = async (label: string, run: () => void | Promise<void>) => {
     try { await run(); } catch (error) { result.errors.push(`${label}: ${error instanceof Error ? error.message : String(error)}`); }
   };
@@ -82,7 +87,12 @@ export async function quarantineAgent(agent: LongTermAgent, deps: QuarantineDeps
       try { deps.cancelTask(task.id, completedAt); result.tasksCancelled += 1; } catch { /* started or finished meanwhile */ }
     }
   });
-  await step("thread", async () => { result.trash = await deps.archiveThread(agent); });
+  await step("thread", async () => {
+    const archived = await deps.archiveThread(agent);
+    result.trash = archived.trash;
+    if (archived.stillStarting) result.errors.push("thread: still starting after 5 s");
+  });
+  await step("vault", () => { result.vaultSecrets = deps.vaultSecretNames(name); });
   await step("staging", () => { result.staged = moveStaged(deps.stagingDir(), name, deps.now().toISOString().replace(/[:.]/g, "")); });
   await step("triggers", () => {
     for (const id of deps.listWebhookTriggers(name)) {

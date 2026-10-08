@@ -2566,7 +2566,7 @@ export async function startRpcSession(
             appendSystemPrompt: subagentResources.appendSystemPrompt,
             extensionFactories: agentProfileExtensionFactories({
               cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
-              agentName: snapshotProfile?.name, exactSystemPrompt: usesExactSystemPrompt ? exactSystemPromptExtension : undefined,
+              agentName: snapshotProfile?.name, longTerm: snapshotProfile?.longTerm === true, exactSystemPrompt: usesExactSystemPrompt ? exactSystemPromptExtension : undefined,
               homeOnly: options.agentProfileTools !== undefined ? sessionCwd : undefined,
               commandDeny: snapshotProfile?.commandDeny,
               webAllowHosts: snapshotProfile?.webAllowHosts,
@@ -2716,7 +2716,7 @@ export async function startRpcSession(
     });
     const realSessionId = inner.sessionId as string;
     registerRpcWrapper(wrapper);
-    if (snapshotProfile) inner.subscribe(createAuditObserver(snapshotProfile.name) as Parameters<typeof inner.subscribe>[0]);
+    if (snapshotProfile?.longTerm === true) inner.subscribe(createAuditObserver(snapshotProfile.name) as Parameters<typeof inner.subscribe>[0]);
 
     if (!chatOnly) {
       if (deferredModel) {

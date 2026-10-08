@@ -6,15 +6,15 @@ import { AGENT_NAME_RE } from "./agent-name";
 export const SECRET_NAME_RE = /^[A-Z][A-Z0-9_]{0,63}$/;
 export const SECRET_VALUE_MAX = 4096;
 export const SECRETS_PER_AGENT_MAX = 50;
-const RESERVED_NAMES = new Set(["PATH", "HOME", "SHELL", "ENV", "BASH_ENV", "TMPDIR", "USER", "LOGNAME", "IFS", "PS4", "PWD", "OLDPWD", "PROMPT_COMMAND", "SSH_AUTH_SOCK", "PYTHONPATH", "PYTHONSTARTUP", "LANG"]);
-const RESERVED_PREFIXES = ["PI_", "NODE_", "LD_", "DYLD_", "GIT_", "BASH_FUNC_", "LC_"];
+const RESERVED_NAMES = new Set(["PATH", "HOME", "SHELL", "ENV", "BASH_ENV", "TMPDIR", "USER", "LOGNAME", "IFS", "PS4", "PWD", "OLDPWD", "PROMPT_COMMAND", "SSH_AUTH_SOCK", "PYTHONPATH", "PYTHONSTARTUP", "LANG", "PERL5OPT", "PERL5LIB", "RUBYOPT", "RUBYLIB", "PYTHONHOME", "PYTHONWARNINGS", "PYTHONINSPECT", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "GLIBC_TUNABLES", "GCONV_PATH", "SHELLOPTS", "BASHOPTS", "XDG_CONFIG_HOME", "LESSOPEN", "SSL_CERT_FILE", "CURL_CA_BUNDLE"]);
+const RESERVED_PREFIXES = ["PI_", "NODE_", "LD_", "DYLD_", "GIT_", "BASH_FUNC_", "LC_", "NPM_CONFIG_"];
 
 /** Thrown for a refused write; the message never contains the value. */
 export class SecretError extends Error {
   constructor(message: string, readonly status: 400 | 404 = 400) { super(message); }
 }
 
-const isReserved = (name: string): boolean => RESERVED_NAMES.has(name) || RESERVED_PREFIXES.some((prefix) => name.startsWith(prefix));
+const isReserved = (name: string): boolean => RESERVED_NAMES.has(name) || RESERVED_PREFIXES.some((prefix) => name.startsWith(prefix)) || name.toUpperCase().endsWith("_PROXY"); // HTTP_PROXY, https_proxy…
 
 const secretsDir = (): string => join(getAgentDir(), "agents-secrets");
 
@@ -56,7 +56,7 @@ export function setSecret(agent: string, name: string, value: string): void {
   if (!SECRET_NAME_RE.test(name)) throw new SecretError("name must be 1-64 characters: A-Z, 0-9 and _, starting with a letter");
   if (isReserved(name)) throw new SecretError("this name is reserved");
   if (typeof value !== "string" || value.length < 1 || value.length > SECRET_VALUE_MAX) throw new SecretError(`value must be 1-${SECRET_VALUE_MAX} characters`);
-  if (/[\r\n]/.test(value)) throw new SecretError("value must be a single line");
+  if (/[\r\n\0]/.test(value)) throw new SecretError("value must be a single line without NUL");
   const secrets = readSecrets(agent);
   if (!(name in secrets) && Object.keys(secrets).length >= SECRETS_PER_AGENT_MAX) throw new SecretError(`at most ${SECRETS_PER_AGENT_MAX} secrets per agent`);
   write(agent, { ...secrets, [name]: value });

@@ -19,11 +19,14 @@ const START_WAIT_MS = 5_000;
 
 /** Archives the pinned thread to the trash. Caller holds `withThreadLock(agent.name)`; no fresh thread is created.
  *  Default: `{ busy: true }` while the thread starts or runs. `force`: abort a running thread, wait (≤ 5 s) for a starting one. */
-export async function archiveThreadLocked(agent: LongTermAgent, { force = false }: { force?: boolean } = {}, deps: ArchiveDeps = defaultDeps()): Promise<{ busy: true } | { trash: string | null }> {
+export async function archiveThreadLocked(agent: LongTermAgent, { force = false }: { force?: boolean } = {}, deps: ArchiveDeps = defaultDeps()): Promise<{ busy: true } | { trash: string | null; stillStarting?: true }> {
   const id = agent.threadSessionId;
   const busy = () => Boolean(id && (deps.isStarting(id) || deps.getSession(id)?.isAlive()));
-  if (id && force) for (let waited = 0; deps.isStarting(id) && waited < START_WAIT_MS; waited += 100) await deps.sleep(100);
-  else if (id && deps.isStarting(id)) return { busy: true };
+  let stillStarting = false;
+  if (id && force) {
+    for (let waited = 0; deps.isStarting(id) && waited < START_WAIT_MS; waited += 100) await deps.sleep(100);
+    stillStarting = deps.isStarting(id);
+  } else if (id && deps.isStarting(id)) return { busy: true };
   const live = id ? deps.getSession(id) : undefined;
   if (live?.isAlive()) {
     if (force) await live.send({ type: "abort" }).catch(() => {});
@@ -35,5 +38,5 @@ export async function archiveThreadLocked(agent: LongTermAgent, { force = false 
   if (!force && busy()) return { busy: true }; // started during the await
   const trash = deps.archive(agent.name, threadPath ?? undefined);
   deps.invalidate(id);
-  return { trash };
+  return { trash, ...(stillStarting ? { stillStarting: true as const } : {}) };
 }

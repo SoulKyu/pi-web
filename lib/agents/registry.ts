@@ -11,6 +11,7 @@ import { syncAgentMcpOverrides } from "./mcp-access";
 import { PRESET_DEFAULT, PRESET_FULL, PRESET_READ_ONLY } from "../tool-presets";
 import { HOST_RE } from "./egress-policy";
 import { AGENT_NAME_RE } from "./agent-name";
+import { auditDir } from "./audit";
 import { deleteAllSecrets } from "./secrets";
 
 export { AGENT_NAME_RE };
@@ -276,5 +277,6 @@ export function deleteLongTermAgent(name: string, threadPath?: string): string {
   if (profile.filePath) unlinkSync(profile.filePath);
   try { unlinkSync(spacePath(name)); } catch { /* already gone */ }
   deleteAllSecrets(name); // a future agent with this name must not inherit them
+  rmSync(join(auditDir(), name), { recursive: true, force: true }); // nor its journal
   return trash;
 }

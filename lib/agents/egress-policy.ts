@@ -1,5 +1,5 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
-import { blockLine, type AuditLine } from "./audit";
+import type { AuditPolicy, BlockEvent } from "./audit-types";
 import { isMcpTool } from "../mcp-read-only-policy";
 import { isExternalContentTool } from "./untrusted-content";
 
@@ -87,7 +87,7 @@ export function egressDenyReason(toolName: string, input: unknown, allow: readon
 }
 
 /** Top-level and nested (codemode) calls all pass through tool_call. */
-export function createEgressPolicyExtension(allow: readonly string[], onBlock?: (line: AuditLine) => void): InlineExtension {
+export function createEgressPolicyExtension(allow: readonly string[], onBlock?: (policy: AuditPolicy, event: BlockEvent) => void): InlineExtension {
   const hosts = [...allow];
   return {
     name: EGRESS_POLICY_EXTENSION_NAME,
@@ -97,7 +97,7 @@ export function createEgressPolicyExtension(allow: readonly string[], onBlock?: 
         try {
           const tool = pi.getAllTools().find((candidate) => candidate.name === event.toolName);
           const reason = egressDenyReason(event.toolName, event.input, hosts, tool !== undefined && isMcpTool(tool));
-          if (reason) onBlock?.(blockLine("egress", event));
+          if (reason) onBlock?.("egress", event);
           return reason ? { block: true, reason } : undefined;
         } catch {
           return { block: true, reason: "egress policy error" };

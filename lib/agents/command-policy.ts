@@ -1,5 +1,5 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
-import { blockLine, type AuditLine } from "./audit";
+import type { AuditPolicy, BlockEvent } from "./audit-types";
 
 export const COMMAND_POLICY_EXTENSION_NAME = "pi-web-command-policy";
 
@@ -54,7 +54,7 @@ export function commandDenyReason(toolName: string, input: unknown, patterns: re
 }
 
 /** Top-level and nested (codemode, parentToolCallId set) bash calls all pass through tool_call. */
-export function createCommandPolicyExtension(sources: readonly string[], onBlock?: (line: AuditLine) => void): InlineExtension {
+export function createCommandPolicyExtension(sources: readonly string[], onBlock?: (policy: AuditPolicy, event: BlockEvent) => void): InlineExtension {
   const patterns = compileDenyPatterns(sources);
   return {
     name: COMMAND_POLICY_EXTENSION_NAME,
@@ -63,7 +63,7 @@ export function createCommandPolicyExtension(sources: readonly string[], onBlock
       pi.on("tool_call", (event) => {
         try {
           const reason = commandDenyReason(event.toolName, event.input, patterns);
-          if (reason) onBlock?.(blockLine("deny", event));
+          if (reason) onBlock?.("deny", event);
           return reason ? { block: true, reason } : undefined;
         } catch {
           return { block: true, reason: "command policy error" };
