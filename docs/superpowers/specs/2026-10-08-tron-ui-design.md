@@ -71,6 +71,12 @@ app/dev/ui/page.tsx    dev-only primitives gallery (404 in production)
 ```
 
 **Rules**
+- **Visual-first (decided 2026-10-08, after Lot 0).** Rewrite everything that is visible: structure,
+  surfaces, buttons, icons, typography, states. Use the Tron primitives and Tailwind classes for it.
+  Inline styles that only do invisible layout (`display`/`flex`, `overflow`, `minWidth: 0`,
+  safe-area insets, keyboard-height math) stay until their zone is touched for a visible reason.
+  Why: the same rendered result for 3–5x fewer tokens, fewer broken source-regex tests, and less
+  risk on the iOS keyboard and safe-area paths.
 - No logic, hook, API route or data-flow change. A behavior bug found during the restyle gets its
   own `fix:` commit.
 - Hand-rolled dialogs, popovers and menus move to Radix. Their existing a11y behavior (Escape
