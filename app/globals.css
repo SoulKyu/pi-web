@@ -1929,7 +1929,7 @@ span.token.table {
 .agent-dot-failed { background: #f85149; }
 @keyframes agent-dot-pulse { 50% { opacity: 0.35; } }
 @media (pointer: coarse) {
-  .agent-rail > button { min-width: 44px; min-height: 44px; }
+  .agent-rail button { min-width: 44px; min-height: 44px; }
 }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 

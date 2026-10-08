@@ -144,9 +144,13 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
   }, [healthOpen, healthLinesKey, orientation]);
+  const healthPositioned = healthPosition !== null;
   useEffect(() => {
-    if (healthOpen) healthPopoverRef.current?.focus({ preventScroll: true });
-  }, [healthOpen]);
+    if (healthOpen && healthPositioned) healthPopoverRef.current?.focus({ preventScroll: true });
+  }, [healthOpen, healthPositioned]);
+  useEffect(() => {
+    if (healthOpen && !healthState && !pauseError) closeHealth(false);
+  }, [healthOpen, healthState, pauseError, closeHealth]);
   useEffect(() => {
     if (!healthOpen) return;
     // On document, so it runs before handleGlobalEscape on window and that one sees defaultPrevented.
@@ -249,6 +253,10 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
           role="dialog"
           aria-label={t("agents.health.title")}
           tabIndex={-1}
+          onBlur={(event) => {
+            const next = event.relatedTarget as Node | null;
+            if (next && !healthPopoverRef.current?.contains(next) && !healthButtonRef.current?.contains(next)) closeHealth(false);
+          }}
           style={{
             position: "fixed",
             top: healthPosition?.top ?? 0,

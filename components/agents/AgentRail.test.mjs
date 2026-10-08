@@ -122,11 +122,14 @@ test("the health dot is a button opening a fixed popover outside the scrolling r
   assert.match(rail, /document\.addEventListener\("keydown", onKeyDown\)/);
   assert.match(rail, /if \(event\.key !== "Escape"\) return;\s*event\.preventDefault\(\);\s*closeHealth\(true\);/);
   assert.match(rail, /document\.addEventListener\("pointerdown", onPointerDown\)/);
+  assert.match(rail, /\[healthOpen, healthPositioned\]/);
+  assert.match(rail, /if \(next && !healthPopoverRef\.current\?\.contains\(next\) && !healthButtonRef\.current\?\.contains\(next\)\) closeHealth\(false\)/);
+  assert.match(rail, /if \(healthOpen && !healthState && !pauseError\) closeHealth\(false\)/);
   assert.doesNotMatch(rail, /<span role="alert" title=/); // the pause error lives in the popover now
   assert.match(rail, /<span role="alert" className="visually-hidden">/);
   assert.doesNotMatch(rail, /\(\?<[=!]/);
   const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(pointer: coarse\) \{\s*\.agent-rail > button \{ min-width: 44px; min-height: 44px; \}/);
+  assert.match(css, /@media \(pointer: coarse\) \{\s*\.agent-rail button \{ min-width: 44px; min-height: 44px; \}/);
   assert.match(css, /\.visually-hidden \{/);
   for (const locale of ["en", "fr", "zh-CN", "zh-TW"]) {
     const messages = await readFile(new URL(`../../lib/i18n/messages/${locale}.ts`, import.meta.url), "utf8");
