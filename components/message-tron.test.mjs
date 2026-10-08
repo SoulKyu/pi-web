@@ -59,3 +59,13 @@ test("code mode statuses use Tron colors", async () => {
   const codemode = await readFile(new URL("./CodemodeToolView.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(codemode, /#d97706|#16a34a|#f87171|rgba\(/);
 });
+
+test("a failed tool card keeps an opaque black-based background", () => {
+  const failed = render(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, result(true)]]) });
+  assert.match(failed, /bg-\[color-mix\(in_srgb,var\(--color-tron-red\)_5%,#000\)\]/);
+});
+
+test("diff hunk headers are neutral, distinct from added lines", () => {
+  assert.match(source, /kind === "hunk" \? "var\(--bg-panel\)" :/);
+  assert.match(source, /kind === "hunk" \? "var\(--text-dim\)" :/);
+});

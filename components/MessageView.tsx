@@ -1301,9 +1301,9 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
     <div
       data-card-state={cardTone}
       className={cn(
-        "border bg-black/90",
+        "border",
+        cardTone === "failed" ? "border-tron-red/60 bg-[color-mix(in_srgb,var(--color-tron-red)_5%,#000)]" : "bg-black/90",
         cardTone === "running" && "border-transparent shadow-glow-orange",
-        cardTone === "failed" && "border-tron-red/60 bg-tron-red/5",
         cardTone !== "running" && cardTone !== "failed" && "border-tron-line",
       )}
       style={{
@@ -1625,12 +1625,12 @@ function PatchTextView({ text }: { text: string }) {
         const bg =
           kind === "added" ? "var(--diff-added-bg)" :
           kind === "removed" ? "var(--diff-removed-bg)" :
-          kind === "hunk" ? "rgb(0 216 255 / 0.10)" :
+          kind === "hunk" ? "var(--bg-panel)" :
           "transparent";
         const color =
           kind === "added" ? "var(--diff-added)" :
           kind === "removed" ? "var(--diff-removed)" :
-          kind === "hunk" ? "var(--accent)" :
+          kind === "hunk" ? "var(--text-dim)" :
           "var(--text)";
 
         return (
