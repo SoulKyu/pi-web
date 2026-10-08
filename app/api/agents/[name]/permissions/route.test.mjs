@@ -21,5 +21,5 @@ test("known agent -> permissions, no-store, extension tools unknown without a li
   const { permissions } = await response.json();
   assert.deepEqual(permissions.tools, ["read", "grep", "find", "ls"]);
   assert.equal(permissions.extensionTools, "unknown-until-start");
-  assert.deepEqual(permissions.trifecta, { privateData: true, untrustedContent: false, exfiltration: false });
+  assert.deepEqual(permissions.trifecta, { privateData: true, untrustedContent: false, exfiltration: true });
 });

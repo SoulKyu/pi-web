@@ -133,7 +133,7 @@ export function isApiRequestOriginAllowed(request: Request): boolean {
   const origin = request.headers.get("origin");
   const fetchSite = request.headers.get("sec-fetch-site");
   if (fetchSite === "cross-site") return false;
-  if (!origin) return !isMutatingMethod(request) || fetchSite !== null;
+  if (!origin) return !isMutatingMethod(request);
 
   const requestOrigin = getRequestOrigin(request);
   if (requestOrigin !== null && canonicalOrigin(origin) === requestOrigin) return true;
@@ -141,7 +141,7 @@ export function isApiRequestOriginAllowed(request: Request): boolean {
   return isProxyRewrittenSameOrigin(request, origin);
 }
 
-/** Browsers send Origin on every non-GET request and Sec-Fetch-Site from Safari 16.4; a script (curl from an agent's bash) sends neither. */
+/** Browsers send Origin on every non-GET request, so a mutating request without it (curl from an agent's bash) is refused; Sec-Fetch-Site alone is not enough. */
 const isMutatingMethod = (request: Request): boolean => !["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
 
 export const hasBrowserOriginHeaders = (request: Request): boolean => request.headers.has("origin") || request.headers.has("sec-fetch-site");

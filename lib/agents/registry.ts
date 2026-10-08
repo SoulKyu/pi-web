@@ -5,6 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { isPathWithinRoots } from "../path-security";
 import { listSubagentProfiles, listSubagentProfileSources, saveSubagentProfile, type SubagentProfile } from "../subagents";
+import { NESTED_QUANTIFIER_RE } from "./command-policy";
 import { pickRoadmapSettings, ROADMAP_SETTING_KEYS, type AgentRoadmapSettings } from "./roadmap-settings";
 import { syncAgentMcpOverrides } from "./mcp-access";
 import { PRESET_DEFAULT, PRESET_FULL, PRESET_READ_ONLY } from "../tool-presets";
@@ -103,6 +104,7 @@ function validateFields(body: Record<string, unknown>, require: boolean): { ok: 
   if ("commandDeny" in body) {
     const list = body.commandDeny ?? [];
     if (!Array.isArray(list) || list.length > 50 || !list.every((p) => typeof p === "string" && p.length <= 200 && compiles(p))) return fail("commandDeny must be a list of at most 50 valid regular expressions");
+    if ((list as string[]).some((p) => NESTED_QUANTIFIER_RE.test(p))) return fail("commandDeny patterns must not nest quantifiers (a group ending in + or * that is itself quantified, like (a+)+)");
     input.commandDeny = list.length ? [...new Set(list as string[])] : undefined;
   }
   if ("webAllowHosts" in body) {

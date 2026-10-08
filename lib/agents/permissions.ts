@@ -2,6 +2,7 @@ import type { TriggerConfig } from "../agent-ops/trigger-store";
 import { isExternalContentTool } from "./untrusted-content";
 import { TOOLS_BY_PRESET, type LongTermAgent, type ToolsPreset } from "./registry";
 
+const SEARCH_FETCH_TOOLS = new Set(["web_search", "source_check"]);
 const FILE_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
 export interface AgentPermissions {
@@ -22,8 +23,15 @@ export function explainTrifecta(p: TrifectaInput): AgentPermissions["trifectaRea
   const known = Array.isArray(p.extensionTools) ? p.extensionTools : [];
   const external = [...new Set([...p.tools, ...known].filter(isExternalContentTool))];
   const privateData = unsandboxed ? p.tools.filter((t) => FILE_TOOLS.includes(t)) : [];
-  const untrustedContent = [...external, ...p.mcpAllowed.map((s) => `mcp:${s}`), ...(p.hasWebhookTrigger ? ["webhook trigger"] : [])];
-  const exfiltration = [...(unsandboxed && p.tools.includes("bash") ? ["bash (network)"] : []), ...(p.webAllowHosts === "any" ? external : [])];
+  const mcpServers = p.mcpAllowed.map((s) => `mcp:${s}`);
+  const untrustedContent = [...external, ...mcpServers, ...(p.hasWebhookTrigger ? ["webhook trigger"] : [])];
+  // web_search / source_check fetch result pages from any host, and an MCP server sends anywhere: neither is narrowed by webAllowHosts.
+  const exfiltration = [
+    ...(unsandboxed && p.tools.includes("bash") ? ["bash (network)"] : []),
+    ...external.filter((t) => p.webAllowHosts === "any" || SEARCH_FETCH_TOOLS.has(t)),
+    ...mcpServers,
+    ...(p.extensionTools === "unknown-until-start" && p.webAllowHosts === "any" ? ["extension tools unknown"] : []),
+  ];
   return { privateData, untrustedContent, exfiltration };
 }
 
