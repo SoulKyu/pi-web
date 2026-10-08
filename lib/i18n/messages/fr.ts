@@ -464,6 +464,7 @@ export const frLocale: LocalePlugin = {
     "chat.quoteForkFailed": "Impossible de créer une branche à partir de ce message.",
     "chat.attachImage": "Joindre une image",
     "chat.previewImage": "Aperçu de l'image",
+    "chat.blockedImage": "image",
     "chat.filterModels": "Filtrer les modèles…",
     "chat.noMatchingModels": "Aucun modèle correspondant",
     "chat.saveDefaultModel": "Utiliser et enregistrer comme défaut pour les nouveaux chats",

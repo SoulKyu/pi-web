@@ -464,6 +464,7 @@ export const zhCNLocale: LocalePlugin = {
     "chat.quoteForkFailed": "无法从这条消息创建分支。",
     "chat.attachImage": "附加图片",
     "chat.previewImage": "预览图片",
+    "chat.blockedImage": "图片",
     "chat.filterModels": "筛选模型…",
     "chat.noMatchingModels": "没有匹配的模型",
     "chat.saveDefaultModel": "使用并设为新会话默认模型",

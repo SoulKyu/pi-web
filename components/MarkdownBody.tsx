@@ -5,6 +5,7 @@ import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown"
 import { parsePdfPageFragment, resolveLocalFileHref, shouldOpenLocalFileInApp } from "@/lib/file-links";
 import { encodeFilePathForApi } from "@/lib/file-paths";
 import { markdownRehypePlugins, markdownRemarkPlugins, markdownUrlTransform, markdownUserRemarkPlugins, normalizeDisplayMath } from "@/lib/markdown";
+import { useI18n } from "@/hooks/useI18n";
 import { ImagePreview } from "./ImagePreview";
 import { MermaidBlock, CodeBlock } from "./MermaidBlock";
 
@@ -24,7 +25,8 @@ interface MarkdownBodyProps {
 
 function BlockedMarkdownImage({ src, alt }: ComponentProps<"img">) {
   const insideLink = useContext(MarkdownLinkContext);
-  const label = `🖼 ${alt || "image"}`;
+  const { t } = useI18n();
+  const label = `🖼 ${alt || t("chat.blockedImage")}`;
   if (insideLink || typeof src !== "string" || !/^https?:\/\//i.test(src)) return <>{label}</>;
   return <a href={src} target="_blank" rel="noopener noreferrer">{label}</a>;
 }
