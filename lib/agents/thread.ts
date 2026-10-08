@@ -124,20 +124,26 @@ export function threadRunning(agent: Pick<LongTermAgent, "threadSessionId">): bo
 }
 
 /** ponytail: reads the whole thread file on every rail poll; switch to a bounded tail read if files grow past a few MB. */
-export async function threadStatus(
-  agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">,
+export async function threadEntries(
+  agent: Pick<LongTermAgent, "threadSessionId">,
   deps: { resolvePath: typeof resolveSessionPath; readEntries: typeof getSessionEntries } = { resolvePath: resolveSessionPath, readEntries: getSessionEntries },
-): Promise<ThreadSummary> {
-  if (!agent.threadSessionId) return { unread: 0, failedUnread: false };
+): Promise<SessionEntry[]> {
+  if (!agent.threadSessionId) return [];
   try {
     const live = getRpcSession(agent.threadSessionId);
-    const entries = live?.isAlive()
+    return live?.isAlive()
       ? (live.inner.sessionManager.getEntries() as unknown as SessionEntry[])
       : await deps.resolvePath(agent.threadSessionId).then((path) => (path && existsSync(path) ? deps.readEntries(path) : []));
-    return threadSummary(agent, entries);
   } catch {
-    return { unread: 0, failedUnread: false }; // one unreadable thread must not blank the rail
+    return []; // one unreadable thread must not blank the rail
   }
+}
+
+export async function threadStatus(
+  agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">,
+  deps?: Parameters<typeof threadEntries>[1],
+): Promise<ThreadSummary> {
+  return threadSummary(agent, await threadEntries(agent, deps));
 }
 
 export async function unreadCount(agent: Pick<LongTermAgent, "threadSessionId" | "lastReadEntryId">, deps?: Parameters<typeof threadStatus>[1]): Promise<number> {

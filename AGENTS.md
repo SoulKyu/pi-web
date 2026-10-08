@@ -59,6 +59,7 @@ app/api/
   agents/[name]/thread/reset/route.ts POST archive the thread to the trash and start a fresh one (409 agent_running)
   agents/[name]/quarantine/route.ts POST pause + cancel tasks + archive the thread (no new one) + move staged memories + rotate webhook secrets (returned once)
   agents/mcp-servers/route.ts      GET names of the global pi-mcp-adapter servers (never their config)
+  agents/inbox/route.ts            GET per agent: cards, replies, finished tasks, pending approval since the last visit; one thread read per agent, no-store
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories
@@ -147,6 +148,7 @@ lib/
   agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
   agents/visit-digest.ts    digestSince / digestLine: deterministic counts of what happened after the unread marker (client-safe)
   agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)
+  agents/inbox.ts           inboxItems(): cards / replies / finished tasks since the unread marker, newest first, 50 max (client-safe)
   agents/rail-shortcuts.ts  nextUnreadAgent / nthAgent / railShortcutTarget: Alt+Up/Down unread agents, Ctrl+Alt+1..9 n-th agent (client-safe)
   agents/mention.ts         parseAgentMention / agentMentionMatches: `@Name task` at the start of a composer message queues a task (client-safe)
   agents/events.ts          pi-web:agent-event entries: builders, guard, UI mapping, folded-prompt indexes (client-safe)
@@ -257,6 +259,7 @@ components/
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
   agents/AgentRail.tsx     long-term agent rail: avatars, running dot, unread badge, Tasks and Sessions buttons
+  agents/InboxPanel.tsx    inbox dialog: per-agent lines that open the agent at the entry, 10 s refresh only while open
   agents/TasksBoard.tsx    global tasks board dialog: every agent's tasks grouped by agent, 5 s refresh only while open
   agents/AgentAvatar.tsx   agent avatar (color + glyph)
   agents/NewAgentDialog.tsx create a long-term agent

@@ -13,6 +13,7 @@ import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { AgentRail, useAgentsPoll, useHealthPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
+import { InboxPanel } from "./agents/InboxPanel";
 import { TasksBoard } from "./agents/TasksBoard";
 import { AgentAvatar } from "./agents/AgentAvatar";
 import { DRAWER_TAB_KEY, readDrawerTab, type DrawerTab } from "@/lib/agents/drawer-tab";
@@ -186,6 +187,7 @@ export function AppShell() {
   const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [tasksBoardOpen, setTasksBoardOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
@@ -2121,6 +2123,7 @@ export function AppShell() {
         onNewAgent={() => setNewAgentOpen(true)}
         onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
         onShowTasks={() => setTasksBoardOpen(true)}
+        onShowInbox={() => setInboxOpen(true)}
         orientation={isMobile ? "horizontal" : "vertical"}
         paused={allPaused}
         error={agentsError}
@@ -2169,6 +2172,7 @@ export function AppShell() {
           onNewAgent={() => setNewAgentOpen(true)}
           onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
         onShowTasks={() => setTasksBoardOpen(true)}
+        onShowInbox={() => setInboxOpen(true)}
           orientation={isMobile ? "horizontal" : "vertical"}
           paused={allPaused}
           error={agentsError}
@@ -2815,6 +2819,12 @@ export function AppShell() {
         onClose={() => setTasksBoardOpen(false)}
         onSelectAgent={(name) => { setTasksBoardOpen(false); void openAgent(name); }}
         onOpenSession={(sessionId) => { setTasksBoardOpen(false); void handleOpenSession(sessionId); }}
+      />
+    )}
+    {inboxOpen && (
+      <InboxPanel
+        onClose={() => setInboxOpen(false)}
+        onOpen={(name, entryId) => { setInboxOpen(false); void openAgent(name, entryId); }}
       />
     )}
     {/* After Settings, so it opens above it (z-index 1100 over 1000) when Settings › MCP asks for it. */}

@@ -68,3 +68,22 @@ test("rail tooltips carry Ctrl+Alt+<n> up to 9 and the nav label mentions Alt+ar
   assert.match(rail, /index < 9 \? ` · Ctrl\+Alt\+\$\{index \+ 1\}` : ""/);
   assert.match(rail, /<nav aria-label=\{t\("agents\.rail\.shortcutsHint"\)\}/);
 });
+
+test("the inbox: rail button with the summed unread, panel polling only while open, deep link through openAgent(name, entryId), four locales", async () => {
+  const panel = await readFile(new URL("./InboxPanel.tsx", import.meta.url), "utf8");
+  assert.match(rail, /aria-label=\{t\("agents\.rail\.inbox"\)\}/);
+  assert.match(rail, /onClick=\{onShowInbox\}/);
+  assert.match(rail, /agents\.reduce\(\(sum, agent\) => sum \+ agent\.unread, 0\)/);
+  assert.match(shell, /<InboxPanel/);
+  assert.match(shell, /onShowInbox=\{\(\) => setInboxOpen\(true\)\}/);
+  assert.match(shell, /onOpen=\{\(name, entryId\) => \{ setInboxOpen\(false\); void openAgent\(name, entryId\); \}\}/);
+  assert.match(panel, /fetch\("\/api\/agents\/inbox"/);
+  assert.match(panel, /setInterval\(\(\) => void load\(\), REFRESH_MS\)/);
+  assert.match(panel, /clearInterval\(timer\)/);
+  assert.match(panel, /onOpen\(group\.name, item\.entryId\)/);
+  assert.doesNotMatch(panel, /\(\?<[=!]/);
+  for (const locale of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const messages = await readFile(new URL(`../../lib/i18n/messages/${locale}.ts`, import.meta.url), "utf8");
+    for (const key of ["agents.rail.inbox", "agents.inbox.title", "agents.inbox.empty", "agents.inbox.approval"]) assert.match(messages, new RegExp(`"${key.replaceAll(".", "\\.")}"`), `${locale} ${key}`);
+  }
+});

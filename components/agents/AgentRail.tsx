@@ -97,7 +97,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
 
 const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
 
-export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, orientation, paused, error, lastOkAt, onPauseChanged, healthState }: {
+export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, onShowInbox, orientation, paused, error, lastOkAt, onPauseChanged, healthState }: {
   healthState: HealthState | null;
   agents: readonly AgentListItem[];
   activeAgent: string | null;
@@ -105,6 +105,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   onNewAgent: () => void;
   onShowSessions: () => void;
   onShowTasks: () => void;
+  onShowInbox: () => void;
   orientation: "vertical" | "horizontal";
   paused: boolean;
   error: string | null;
@@ -123,6 +124,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
     }),
     healthState.health.extensionErrors[0]?.text,
   ].filter(Boolean).join("\n");
+  const inboxUnread = agents.reduce((sum, agent) => sum + agent.unread, 0);
   const [pauseError, setPauseError] = useState<string | null>(null);
   const togglePause = async () => {
     if (!paused && !window.confirm(t("agentOps.pause.confirm"))) return;
@@ -155,7 +157,8 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
       <button type="button" onClick={() => void togglePause()} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
       {pauseError && <span role="alert" title={t("agents.error", { error: pauseError })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span>}
       {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}
-      <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto", width: "auto" }) }}>⧉{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.tasks")}</span>}</button>
+      <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto", width: "auto" }) }}>📥{inboxUnread > 0 && <span style={{ fontSize: 12, marginLeft: 2 }}>{inboxUnread}</span>}{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.inbox")}</span>}</button>
+      <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} style={vertical ? railButtonStyle : { ...railButtonStyle, width: "auto" }}>⧉{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.tasks")}</span>}</button>
       <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} style={{ ...railButtonStyle, color: activeAgent === null ? "var(--accent)" : "var(--text-muted)" }}>☰</button>
     </nav>
   );
