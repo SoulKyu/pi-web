@@ -33,11 +33,11 @@ export async function startAgentProfileRun(
   const tempKey = `__agentops__${randomUUID()}`; // unique: same-key callers coalesce onto one session
   const { session, realSessionId } = await deps.startRpcSession(tempKey, "", cwd, {
     agentProfile: profile, // trust stays absent: the run is untrusted and narrowed to the allowlist
-    ...(pin !== undefined ? { agentProfileTools: (task.tools ?? [...TRIGGER_TOOL_ALLOWLIST]).filter((t) => TRIGGER_TOOL_ALLOWLIST.has(t)) } : {}),
+    ...(pin !== undefined || task.tools !== undefined ? { agentProfileTools: (task.tools ?? [...TRIGGER_TOOL_ALLOWLIST]).filter((t) => TRIGGER_TOOL_ALLOWLIST.has(t)) } : {}),
     ...(initialModel ? { initialModel } : {}),
   });
   invalidateSessionListCache(); // the route's call at queue time ran before this session existed
-  if (pin !== undefined) await enforceTriggerTools(session, task.tools);
+  if (pin !== undefined || task.tools !== undefined) await enforceTriggerTools(session, task.tools);
   try { beforePrompt?.(); } catch (error) { await session.shutdown().catch(() => {}); throw error; }
   const run = watchPromptRun(session, prompt);
   return { sessionId: realSessionId, done: run.done, abort: run.abort, usage: run.usage };

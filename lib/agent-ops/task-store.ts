@@ -17,7 +17,7 @@ export interface AgentTask {
   /** Long-term agent the task belongs to; `target` says where it runs. Absent on legacy tasks. */
   agent?: string;
   target?: "thread" | "isolated";
-  kind?: "schedule" | "task" | "webhook";
+  kind?: "schedule" | "task" | "webhook" | "review";
   /** Why a trigger fired this task (journal line of the same fire). */
   fireReason?: FireReason;
   /** Per-trigger run settings copied at creation: `provider/modelId`, tool subset of the trigger allowlist, duration cap in ms. */

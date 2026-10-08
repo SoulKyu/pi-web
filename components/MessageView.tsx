@@ -221,6 +221,7 @@ interface Props {
   compactError?: string | null;
   /** Agent view only: opens the "Hand to…" dialog with this assistant text. */
   onHandTo?: (text: string) => void;
+  onAskReview?: (text: string) => void;
   /** Agent view only: puts a delegation card's fenced summary in the composer. */
   onInject?: (from: string, summary: string) => void;
 }
@@ -290,12 +291,12 @@ function haveSameRelevantToolResults(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onInject }: Props) {
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onAskReview, onInject }: Props) {
   if (message.role === "user") {
     return <UserMessageView message={message as UserMessage} asEventPrompt={asEventPrompt} cwd={cwd} onOpenFile={onOpenFile} entryId={entryId} onFork={onFork} forking={forking} onEditContent={onEditContent} onCancelEdit={onCancelEdit} isEditing={isEditing} />;
   }
   if (message.role === "assistant") {
-    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} />;
+    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} onAskReview={onAskReview} />;
   }
   if (message.role === "toolResult") {
     // Rendered inline under its toolCall — skip standalone rendering if paired
@@ -343,6 +344,7 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     && prev.isCompacting === next.isCompacting
     && prev.compactError === next.compactError
     && prev.onHandTo === next.onHandTo
+    && prev.onAskReview === next.onAskReview
     && prev.onInject === next.onInject;
 });
 
@@ -685,6 +687,7 @@ function AssistantMessageView({
   isCompacting,
   compactError,
   onHandTo,
+  onAskReview,
 }: {
   message: AssistantMessage;
   isStreaming?: boolean;
@@ -704,6 +707,7 @@ function AssistantMessageView({
   isCompacting?: boolean;
   compactError?: string | null;
   onHandTo?: (text: string) => void;
+  onAskReview?: (text: string) => void;
 }) {
   const { t } = useI18n();
   const time = showTimestamp ? formatTime(message.timestamp) : null;
@@ -1016,6 +1020,25 @@ function AssistantMessageView({
             onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-dim)"; }}
           >
             {t("agents.handTo.action")}
+          </button>
+        )}
+        {textContent && !isStreaming && onAskReview && (
+          <button
+            onClick={() => onAskReview(textContent)}
+            title={t("agents.askReview.title")}
+            style={{
+              padding: "3px 8px", height: 22,
+              background: "none", border: "none", borderRadius: 5,
+              color: "var(--text-dim)", cursor: "pointer",
+              fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
+              opacity: hovered ? 1 : 0,
+              pointerEvents: hovered ? "auto" : "none",
+              transition: "opacity 0.12s, color 0.12s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-dim)"; }}
+          >
+            {t("agents.askReview.action")}
           </button>
         )}
         {time && !isStreaming && (

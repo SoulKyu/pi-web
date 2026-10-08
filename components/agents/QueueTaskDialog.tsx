@@ -5,10 +5,13 @@ import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 
-/** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread. */
-export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, onClose, onQueued }: { agentName: string; targetAgents?: string[]; quote?: string; deliverTo?: string; onClose: () => void; onQueued: () => void }) {
+const REVIEW_TOOLS = ["read", "grep", "find", "ls", "memory_search"];
+
+/** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread.
+ *  `purpose="review"` queues an isolated read-only review run instead of a thread task. */
+export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, purpose = "handoff", onClose, onQueued }: { agentName: string; targetAgents?: string[]; quote?: string; deliverTo?: string; purpose?: "handoff" | "review"; onClose: () => void; onQueued: () => void }) {
   const { t } = useI18n();
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(purpose === "review" ? t("agents.askReview.prompt") : "");
   const [target, setTarget] = useState(agentName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +27,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, onC
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/agents/${encodeURIComponent(target)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(deliverTo ? { prompt, requestedBy: "user", deliverTo, ...(quote ? { quote } : {}) } : { prompt }) });
+      const response = await fetch(`/api/agents/${encodeURIComponent(target)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(deliverTo ? { prompt, requestedBy: "user", deliverTo, ...(quote ? { quote } : {}), ...(purpose === "review" ? { target: "isolated", kind: "review", tools: REVIEW_TOOLS, purpose } : {}) } : { prompt }) });
       const data = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) { setError(data.error ?? `HTTP ${response.status}`); return; }
       onQueued();
@@ -36,7 +39,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, onC
     }
   };
 
-  const title = t(deliverTo ? "agents.handTo.dialogTitle" : "agents.tasks.queueTitle", { name: target });
+  const title = t(purpose === "review" ? "agents.askReview.dialogTitle" : deliverTo ? "agents.handTo.dialogTitle" : "agents.tasks.queueTitle", { name: target });
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
@@ -51,7 +54,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, onC
         )}
         {quote && (
           <details style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            <summary style={{ cursor: "pointer" }}>{t("agents.handTo.quote")}</summary>
+            <summary style={{ cursor: "pointer" }}>{t(purpose === "review" ? "agents.askReview.quote" : "agents.handTo.quote")}</summary>
             <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 160, overflow: "auto", margin: "4px 0 0" }}>{quote}</pre>
           </details>
         )}

@@ -446,8 +446,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
 
   const trustedAgentName = session?.agentProfile && session.agentProfile.trust !== "untrusted" ? session.agentProfile.name : undefined;
   const handTargets = useMemo(() => (trustedAgentName ? (handToAgents ?? []).filter((name) => name !== trustedAgentName) : []), [trustedAgentName, handToAgents]);
-  const [handQuote, setHandQuote] = useState<string | null>(null);
-  const handTo = useCallback((text: string) => setHandQuote(text), []);
+  const [handQuote, setHandQuote] = useState<{ text: string; purpose: "handoff" | "review" } | null>(null);
+  const handTo = useCallback((text: string) => setHandQuote({ text, purpose: "handoff" }), []);
+  const askReview = useCallback((text: string) => setHandQuote({ text, purpose: "review" }), []);
   // Composer only, fenced, never sent: the user decides whether another agent's result reaches the model.
   const injectResult = useCallback((fencedFrom: string, summary: string) => chatInputRef?.current?.insertText(fenceExternal(summary, `agent:${fencedFrom}`)), [chatInputRef]);
 
@@ -1164,6 +1165,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     isCompacting={options.recoverTruncation ? isCompacting : undefined}
                     compactError={options.recoverTruncation ? compactError : undefined}
                     onHandTo={handTargets.length > 0 ? handTo : undefined}
+                    onAskReview={handTargets.length > 0 ? askReview : undefined}
                     onInject={trustedAgentName ? injectResult : undefined}
                   />
                 );
@@ -1513,7 +1515,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
         {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} /> : null}
         {chatInputElement}
         {handQuote !== null && trustedAgentName && handTargets.length > 0 ? (
-          <QueueTaskDialog agentName={handTargets[0]} targetAgents={handTargets} quote={handQuote} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={() => setHandQuote(null)} />
+          <QueueTaskDialog agentName={handTargets[0]} targetAgents={handTargets} quote={handQuote.text} purpose={handQuote.purpose} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={() => setHandQuote(null)} />
         ) : null}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>
