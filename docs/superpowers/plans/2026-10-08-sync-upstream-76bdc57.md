@@ -16,8 +16,9 @@ Rollback: `git reset --hard a507131` on `local` while nothing is pushed there.
 - [x] Tron pass: `554bd60` (sidebar, menus, toast, pickers), `956b230` (Bot glyph), `a96cd24` (font placeholders)
 - [x] gate after each Tron commit (3575 pass / 0 fail / 1 skipped at `554bd60`)
 - [x] 4.4 final checks: 482 files differ (344 A, 133 M, 5 D = theme plumbing); no fork file back to upstream; only session-sidebar-tron.test gone (replaced)
-- [ ] Opus review, fixes
-- [ ] push `sync/upstream-76bdc57` to origin, ask human visual check
+- [x] Opus review: 0 critical; 2 important fixed test-first (`9725e7b` arrow onto delete-confirm row, `3991cbd` agent profile carried); minors `2596e5c`, `e0387ed`; gate 3577 pass / 0 fail / 1 skipped
+  - open minors (report): SidebarMenu capture keydown swallows modified arrows while a menu is open (upstream code); `npm start` (fork, 0.0.0.0) skips bin/rotate-preview-secrets.js — start through bin/pi-web.js
+- [x] push `sync/upstream-76bdc57` to origin, ask human visual check
 - [ ] 4.5 ff-only into `local`, push, delete sync branch
 - [x] `AGENT.md` §7 + §8 (on the sync branch) · [ ] report §9
 
