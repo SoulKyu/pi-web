@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { tronSyntaxTheme } from "@/lib/tron-syntax-theme";
 import { useI18n } from "@/hooks/useI18n";
 import { copyText } from "@/lib/clipboard";
 
@@ -53,7 +53,24 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
         startOnLoad: false,
         securityLevel: "strict",
         suppressErrorRendering: true,
-        theme: "dark",
+        theme: "base",
+        themeVariables: {
+          darkMode: true,
+          background: "#000000",
+          primaryColor: "#03080b",
+          primaryTextColor: "#dff6ff",
+          primaryBorderColor: "#00d8ff",
+          lineColor: "#00d8ff",
+          secondaryColor: "#140c00",
+          secondaryBorderColor: "#ff9a00",
+          tertiaryColor: "#0a1a22",
+          tertiaryBorderColor: "#0e3a4a",
+          textColor: "#dff6ff",
+          noteBkgColor: "#0a1a22",
+          noteTextColor: "#dff6ff",
+          noteBorderColor: "#ff9a00",
+          fontFamily: "var(--font-geist), ui-sans-serif, sans-serif",
+        },
       });
 
       const parsed = await mermaid.parse(code, { suppressErrors: true });
@@ -257,9 +274,9 @@ interface CodeBlockProps {
 // background shorthand. Keep the pre background solely in customStyle so a
 // theme switch cannot remove/update one and reset the other in React's diff.
 const codeBlockDarkTheme = {
-  ...vscDarkPlus,
+  ...tronSyntaxTheme,
   'pre[class*="language-"]': {
-    ...vscDarkPlus['pre[class*="language-"]'],
+    ...tronSyntaxTheme['pre[class*="language-"]'],
   },
 };
 delete codeBlockDarkTheme['pre[class*="language-"]'].background;

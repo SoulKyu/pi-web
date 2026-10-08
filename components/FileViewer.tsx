@@ -6,7 +6,7 @@ import {
   createElement as renderSyntaxNode,
   type SyntaxHighlighterProps,
 } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { tronSyntaxTheme } from "@/lib/tron-syntax-theme";
 import ReactMarkdown from "react-markdown";
 import {
   DOCX_PREVIEW_MAX_BYTES,
@@ -1380,7 +1380,7 @@ function TextFileViewer({
       <SyntaxHighlighter
         className={wrapLines ? "file-source-view is-wrapped" : "file-source-view"}
         language={language === "text" ? "plaintext" : language}
-        style={vscDarkPlus}
+        style={tronSyntaxTheme}
         showLineNumbers
         lineNumberStyle={{
           ...FILE_LINE_NUMBER_STYLE,
