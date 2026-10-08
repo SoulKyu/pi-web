@@ -146,8 +146,8 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
 
   return (
     <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0, opacity: trigger.enabled ? 1 : 0.7 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 12em", minWidth: 0 }}>
           <input type="checkbox" role="switch" checked={trigger.enabled} onChange={toggle} aria-label={t("agentOps.trigger.toggle", { name: trigger.name })} />
           <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trigger.name}</strong>
         </label>

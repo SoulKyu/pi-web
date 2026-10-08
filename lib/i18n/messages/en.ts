@@ -1567,6 +1567,8 @@ export const enLocale: LocalePlugin = {
     "agents.usage.runs": "{runs} runs",
     "agents.usage.budgetReached": "Daily budget reached: scheduled fires and webhooks are refused until tomorrow",
     "agents.usage.turns": "{turns} turns",
+    "agents.usage.budgetTokens": "Daily tokens",
+    "agents.usage.budgetCost": "Daily provider cost",
     "agents.space.idle": "idle",
     "agents.space.running": "running",
     "agents.space.context": "ctx {percent}%",

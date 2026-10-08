@@ -74,3 +74,23 @@ test("the reset flow has one POST in AppShell, reached from the dialog and from 
   assert.match(dialog, /agents\.profile\.reset"/);
   assert.doesNotMatch(dialog, /thread\/reset/);
 });
+
+test("task and trigger card headers wrap instead of squeezing the title", async () => {
+  const tasks = await readFile(new URL("./AgentTasks.tsx", import.meta.url), "utf8");
+  const triggers = await readFile(new URL("./AgentTriggers.tsx", import.meta.url), "utf8");
+  const header = /<div style=\{\{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 \}\}>/;
+  assert.match(tasks, new RegExp(`${header.source}\\s*<strong style=\\{\\{ flex: "1 1 12em", minWidth: 0, color: "var\\(--text\\)"`));
+  assert.match(triggers, new RegExp(`${header.source}\\s*<label style=\\{\\{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 12em", minWidth: 0 \\}\\}>`));
+});
+
+test("AgentSpaceRight shows one labelled progress bar per daily budget", async () => {
+  const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
+  assert.match(right, /const budgets = usage \? budgetBars\(usage\.today, \{ tokens: agent\.budgetTokensPerDay, usd: agent\.budgetUsdPerDay \}\) : \[\];/);
+  assert.match(right, /<label key=\{bar\.kind\} className="agent-budget-row">/);
+  assert.match(right, /t\(bar\.kind === "tokens" \? "agents\.usage\.budgetTokens" : "agents\.usage\.budgetCost"\)/);
+  assert.match(right, /<progress className="agent-budget-progress" max=\{bar\.max\} value=\{bar\.value\} \/>/);
+  assert.doesNotMatch(right, /budgetSuffix/);
+  assert.match(css, /\.agent-budget-progress \{[^}]*appearance: none;/);
+  assert.match(css, /\.agent-budget-progress::-webkit-progress-value \{ background: var\(--accent\); \}/);
+  assert.match(css, /\.agent-budget-progress::-moz-progress-bar \{ background: var\(--accent\); \}/);
+});

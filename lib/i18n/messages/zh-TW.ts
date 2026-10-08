@@ -1567,6 +1567,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.usage.runs": "{runs} 次執行",
     "agents.usage.budgetReached": "已達每日預算：排程觸發與 webhook 在明天前將被拒絕",
     "agents.usage.turns": "{turns} 輪",
+    "agents.usage.budgetTokens": "今日 Token",
+    "agents.usage.budgetCost": "今日供應商費用",
     "agents.space.idle": "閒置",
     "agents.space.running": "執行中",
     "agents.space.context": "上下文 {percent}%",

@@ -1567,6 +1567,8 @@ export const frLocale: LocalePlugin = {
     "agents.usage.runs": "{runs} exéc.",
     "agents.usage.budgetReached": "Budget du jour atteint : tirs planifiés et webhooks refusés jusqu'à demain",
     "agents.usage.turns": "{turns} tours",
+    "agents.usage.budgetTokens": "Tokens du jour",
+    "agents.usage.budgetCost": "Coût fournisseur du jour",
     "agents.space.idle": "inactif",
     "agents.space.running": "en cours",
     "agents.space.context": "ctx {percent} %",

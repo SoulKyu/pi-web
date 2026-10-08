@@ -35,8 +35,8 @@ function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
 
   return (
     <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-        <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 }}>
+        <strong style={{ flex: "1 1 12em", minWidth: 0, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
         {task.requestedBy && task.requestedBy !== "user" && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agents.tasks.requestedBy", { name: task.requestedBy })}</span>}
         {task.requestedBy && task.requestedBy !== "user" && onSelectAgent && <button type="button" onClick={() => onSelectAgent(task.requestedBy!)} style={{ ...smallButton, flexShrink: 0 }}>{t("agents.board.openAgent", { name: task.requestedBy })}</button>}

@@ -11,7 +11,7 @@ import { AgentTasks } from "./AgentTasks";
 import { QueueTaskDialog } from "./QueueTaskDialog";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
-import { formatCompact } from "@/lib/agents/format-usage";
+import { budgetBars, formatCompact } from "@/lib/agents/format-usage";
 import type { AuditLine } from "@/lib/agents/audit";
 
 interface MemoryState { recent: AgentMemoryItem[]; events: JournalEvent[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
@@ -101,10 +101,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
     if (bucket.costEquivalent > 0) parts.push(`≈ $${bucket.costEquivalent.toFixed(2)} ${t("agents.usage.equivalent")}`);
     return parts.join(" · ");
   };
-  const budgetParts: string[] = [];
-  if (usage && agent.budgetTokensPerDay !== undefined) budgetParts.push(`${formatCompact(usage.today.tokens)} / ${formatCompact(agent.budgetTokensPerDay)} tok`);
-  if (usage && agent.budgetUsdPerDay !== undefined) budgetParts.push(`$${usage.today.cost.toFixed(2)} / $${agent.budgetUsdPerDay.toFixed(2)}`);
-  const budgetSuffix = budgetParts.length > 0 ? ` (${budgetParts.join(" · ")})` : "";
+  const budgets = usage ? budgetBars(usage.today, { tokens: agent.budgetTokensPerDay, usd: agent.budgetUsdPerDay }) : [];
   const budgetReached = usage !== null && ((agent.budgetTokensPerDay !== undefined && usage.today.tokens >= agent.budgetTokensPerDay) || (agent.budgetUsdPerDay !== undefined && usage.today.cost >= agent.budgetUsdPerDay));
   const usageHasRuns = usage !== null && usage.days30.runs > 0;
 
@@ -128,7 +125,14 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       {usage && usageHasRuns && (
         <div style={{ marginTop: 4, color: "var(--text-muted)" }}>
           {([["today", usage.today], ["days7", usage.days7], ["days30", usage.days30]] as const).map(([key, bucket]) => (
-            <div key={key}>{t(`agents.usage.${key}`)}: {bucketLine(bucket)}{key === "today" ? budgetSuffix : ""}</div>
+            <div key={key}>{t(`agents.usage.${key}`)}: {bucketLine(bucket)}</div>
+          ))}
+          {budgets.map((bar) => (
+            <label key={bar.kind} className="agent-budget-row">
+              <span>{t(bar.kind === "tokens" ? "agents.usage.budgetTokens" : "agents.usage.budgetCost")}</span>
+              <progress className="agent-budget-progress" max={bar.max} value={bar.value} />
+              <span>{bar.figures}</span>
+            </label>
           ))}
           {budgetReached && <div role="status" style={{ color: "var(--text)" }}>{t("agents.usage.budgetReached")}</div>}
           <details>
