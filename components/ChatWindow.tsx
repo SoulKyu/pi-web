@@ -22,6 +22,7 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ExtensionStatusBar } from "./ExtensionStatusBar";
 import { AnsiText } from "./AnsiText";
+import { stableIdSet } from "./tool-call-status";
 import { useI18n } from "@/hooks/useI18n";
 import { isNewDay } from "@/lib/day-separators";
 import { phaseAnnouncement, phaseLabel } from "@/lib/chat-phase-label";
@@ -309,6 +310,10 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     deferInitialScroll: Boolean(pendingScrollRestore),
   });
   const sessionBusy = agentRunning || bashRunning;
+  // Same Set while the running tools are the same ones: progress ticks must not defeat MessageView's memo.
+  const runningToolIdsRef = useRef<ReadonlySet<string>>(new Set());
+  runningToolIdsRef.current = stableIdSet(runningToolIdsRef.current, agentPhase?.kind === "running_tools" ? agentPhase.tools.map((tool) => tool.id) : []);
+  const runningToolIds = runningToolIdsRef.current;
   const eventPrompts = useMemo(() => eventPromptIndexes(messages), [messages]);
   const unreadAt = useMemo(() => firstUnreadIndex(entryIds, unreadMarkerEntryId ?? null), [entryIds, unreadMarkerEntryId]);
   const digestText = useMemo(
@@ -1162,6 +1167,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                     key={`${keyPrefix}-view-${messageKey}`}
                     message={msg}
                     toolResults={toolResultsMap}
+                    runningToolIds={runningToolIds}
+                    runActive={agentRunning}
                     modelNames={modelNames}
                     cwd={messageCwd}
                     onOpenFile={onOpenFile}
@@ -1357,7 +1364,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
               );
             })()}
             {streamState.isStreaming && hasStreamingContent && streamState.streamingMessage && (
-              <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} />
+              <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} runningToolIds={runningToolIds} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} />
             )}
 
             <div

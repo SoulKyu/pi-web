@@ -630,3 +630,46 @@ test("keeps the registered name where no result names the server and tool", (t) 
   });
   assert.match(textOf(html), /mcp__docs_v2__search_pages\{\}/);
 });
+
+const statusBlock = { type: "toolCall", toolCallId: "call-status-1", toolName: "read", input: { path: "/tmp/a" } };
+const statusMessage = { role: "assistant", provider: "anthropic", model: "claude-test", content: [statusBlock] };
+const statusResult = (isError, text) => ({ role: "toolResult", toolCallId: statusBlock.toolCallId, toolName: "read", content: [{ type: "text", text }], isError });
+
+test("tool cards say their status in words: running, failed, no result; done for screen readers only", () => {
+  const running = renderMessage(statusMessage, { toolResults: new Map(), runningToolIds: new Set([statusBlock.toolCallId]), runActive: true });
+  assert.match(running, /class="tool-status-spinner"/);
+  assert.match(running, /<span class="tool-status-word">Running…<\/span>/);
+  assert.match(running, /border:1px solid var\(--border\)/);
+  assert.match(running, /aria-expanded="false"/);
+
+  const failed = renderMessage(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, statusResult(true, "ENOENT")]]) });
+  assert.match(failed, /<span aria-hidden="true">✕<\/span><span class="tool-status-word">Failed<\/span>/);
+
+  const none = renderMessage(statusMessage, { toolResults: new Map() });
+  assert.match(none, /<span aria-hidden="true">–<\/span><span class="tool-status-word">No result<\/span>/);
+
+  const done = renderMessage(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, statusResult(false, "ok")]]) });
+  assert.match(done, /<span aria-hidden="true">✓<\/span><span class="visually-hidden">Done<\/span>/);
+  assert.match(done, /border:1px solid rgba\(34,197,94,0\.25\)/);
+});
+
+test("a tool call still waiting in a live run shows no status instead of 'No result'", () => {
+  const waiting = renderMessage(statusMessage, { toolResults: new Map(), runningToolIds: new Set(), runActive: true });
+  assert.doesNotMatch(waiting, /No result/);
+  assert.doesNotMatch(waiting, /tool-status/);
+  const streamed = renderMessage({ ...statusMessage, content: [{ ...statusBlock, rawInput: '{"path":' }] }, { isStreaming: true });
+  assert.doesNotMatch(streamed, /tool-status/);
+});
+
+test("a user ! command still running reads as running, not as no result", () => {
+  const html = renderMessage({ role: "bashExecution", command: "sleep 5", output: "" });
+  assert.match(html, /Running…/);
+  assert.doesNotMatch(html, /No result/);
+});
+
+test("the memo re-renders a message only when one of its own tool calls starts or stops, or the run flips", () => {
+  const props = { message: statusMessage, runningToolIds: new Set() };
+  assert.equal(MessageView.compare(props, { ...props, runningToolIds: new Set(["unrelated"]) }), true);
+  assert.equal(MessageView.compare(props, { ...props, runningToolIds: new Set([statusBlock.toolCallId]) }), false);
+  assert.equal(MessageView.compare(props, { ...props, runActive: true }), false);
+});

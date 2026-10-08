@@ -27,6 +27,7 @@ import { RecallCard } from "@/components/agents/RecallCard";
 import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
 import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
+import { TOOL_STATUS_GLYPH, TOOL_STATUS_LABEL_KEY, toolCallStatus } from "./tool-call-status";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
   AgentMessage,
@@ -228,6 +229,10 @@ interface Props {
   onAskReview?: (text: string) => void;
   /** Agent view only: puts a delegation card's fenced summary in the composer. */
   onInject?: (from: string, summary: string) => void;
+  /** Ids of the tool calls executing now; ChatWindow keeps the identity until the membership changes. */
+  runningToolIds?: ReadonlySet<string>;
+  /** The session's run is active: a tool call without a result may still get one. */
+  runActive?: boolean;
 }
 
 export function getModelDisplayName(
@@ -295,12 +300,26 @@ function haveSameRelevantToolResults(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, plannotator, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onAskReview, onInject }: Props) {
+function haveSameRelevantRunningTools(
+  message: AgentMessage,
+  previous: ReadonlySet<string> | undefined,
+  next: ReadonlySet<string> | undefined,
+): boolean {
+  if (previous === next || message.role !== "assistant") return true;
+  for (const block of (message as AssistantMessage).content ?? []) {
+    if (block.type === "toolCall" && (previous?.has(block.toolCallId) ?? false) !== (next?.has(block.toolCallId) ?? false)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, plannotator, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onAskReview, onInject, runningToolIds, runActive }: Props) {
   if (message.role === "user") {
     return <UserMessageView message={message as UserMessage} asEventPrompt={asEventPrompt} cwd={cwd} onOpenFile={onOpenFile} entryId={entryId} onFork={onFork} forking={forking} onEditContent={onEditContent} onCancelEdit={onCancelEdit} isEditing={isEditing} />;
   }
   if (message.role === "assistant") {
-    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} onAskReview={onAskReview} />;
+    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} onAskReview={onAskReview} runningToolIds={runningToolIds} runActive={runActive} />;
   }
   if (message.role === "toolResult") {
     // Rendered inline under its toolCall — skip standalone rendering if paired
@@ -326,6 +345,8 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
   return prev.message === next.message
     && prev.isStreaming === next.isStreaming
     && haveSameRelevantToolResults(prev.message, prev.toolResults, next.toolResults)
+    && haveSameRelevantRunningTools(prev.message, prev.runningToolIds, next.runningToolIds)
+    && prev.runActive === next.runActive
     && prev.modelNames === next.modelNames
     && prev.cwd === next.cwd
     && prev.onOpenFile === next.onOpenFile
@@ -694,6 +715,8 @@ function AssistantMessageView({
   compactError,
   onHandTo,
   onAskReview,
+  runningToolIds,
+  runActive,
 }: {
   message: AssistantMessage;
   isStreaming?: boolean;
@@ -715,6 +738,8 @@ function AssistantMessageView({
   compactError?: string | null;
   onHandTo?: (text: string) => void;
   onAskReview?: (text: string) => void;
+  runningToolIds?: ReadonlySet<string>;
+  runActive?: boolean;
 }) {
   const { t } = useI18n();
   const time = showTimestamp ? formatTime(message.timestamp) : null;
@@ -896,7 +921,7 @@ function AssistantMessageView({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {blockItems.map(({ block, originalIndex }) => (
-          <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} />
+          <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} runningToolIds={runningToolIds} runActive={runActive} />
         ))}
       </div>
 
@@ -1056,7 +1081,7 @@ function AssistantMessageView({
   );
 }
 
-function BlockView({ block, searchTarget, toolResults, isStreaming, streamingDuration, toolCallDurations, cwd, onOpenFile, onOpenSession, plannotator, sessionId, entryId, blockIndex }: { block: AssistantContentBlock; searchTarget?: boolean; toolResults?: Map<string, ToolResultMessage>; isStreaming?: boolean; streamingDuration?: number; toolCallDurations?: Map<string, number>; cwd?: string; onOpenFile?: (filePath: string, page?: number) => void; onOpenSession?: (sessionId: string) => void; plannotator?: PlannotatorConfig | null; sessionId?: string; entryId?: string; blockIndex: number }) {
+function BlockView({ block, searchTarget, toolResults, isStreaming, streamingDuration, toolCallDurations, cwd, onOpenFile, onOpenSession, plannotator, sessionId, entryId, blockIndex, runningToolIds, runActive }: { block: AssistantContentBlock; searchTarget?: boolean; toolResults?: Map<string, ToolResultMessage>; isStreaming?: boolean; streamingDuration?: number; toolCallDurations?: Map<string, number>; cwd?: string; onOpenFile?: (filePath: string, page?: number) => void; onOpenSession?: (sessionId: string) => void; plannotator?: PlannotatorConfig | null; sessionId?: string; entryId?: string; blockIndex: number; runningToolIds?: ReadonlySet<string>; runActive?: boolean }) {
   if (block.type === "text") {
     return <div data-message-text data-search-target={searchTarget || undefined}><TextBlock block={block as TextContent} isStreaming={isStreaming} cwd={cwd} onOpenFile={onOpenFile} /></div>;
   }
@@ -1067,7 +1092,7 @@ function BlockView({ block, searchTarget, toolResults, isStreaming, streamingDur
     const tc = block as ToolCallContent;
     const result = toolResults?.get(tc.toolCallId);
     const duration = toolCallDurations?.get(tc.toolCallId);
-    return <ToolCallBlock block={tc} result={result} duration={duration} onOpenSession={onOpenSession} plannotator={plannotator} />;
+    return <ToolCallBlock block={tc} result={result} duration={duration} onOpenSession={onOpenSession} plannotator={plannotator} running={runningToolIds?.has(tc.toolCallId) ?? false} awaitingResult={Boolean(isStreaming || runActive)} />;
   }
   return null;
 }
@@ -1197,7 +1222,7 @@ function isSubagentToolDetails(value: unknown): value is SubagentToolDetails {
   return details.kind === "pi-web-subagent" && typeof details.sessionId === "string";
 }
 
-function ToolCallBlock({ block, result, duration, onOpenSession, plannotator }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number; onOpenSession?: (sessionId: string) => void; plannotator?: PlannotatorConfig | null }) {
+function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, running = false, awaitingResult = false }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number; onOpenSession?: (sessionId: string) => void; plannotator?: PlannotatorConfig | null; running?: boolean; awaitingResult?: boolean }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(() => isToolCallExpanded(block.toolCallId));
   if (block.toolName === AGENT_NOTIFY_TOOL) {
@@ -1263,6 +1288,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator }: 
   const resultIsEmpty = resultText === null ? false : (resultText.trim() === "(no output)" || resultText.trim() === "");
   const isError = (result?.isError ?? false)
     || (isApplyPatchToolName(block.toolName) && applyPatchResultHasFailures(result?.details));
+  const status = toolCallStatus({ hasResult: result !== undefined, isError, running, awaitingResult });
   const planLinks = isExternalContentTool(block.toolName) ? [] : plannotatorLinks(joinedResultText ?? "", plannotator ?? null);
   const subagent = isSubagentToolDetails(result?.details) ? result.details : null;
   const codemodeCallCount = codemode ? codemode.calls.length + codemode.omitted : 0;
@@ -1273,14 +1299,16 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator }: 
         borderRadius: 7,
         overflow: "hidden",
         fontSize: 12,
-        border: isError ? "1px solid rgba(248,113,113,0.45)" : "1px solid rgba(34,197,94,0.25)",
+        border: status === "running" ? "1px solid var(--border)" : isError ? "1px solid rgba(248,113,113,0.45)" : "1px solid rgba(34,197,94,0.25)",
         background: isError ? "rgba(248,113,113,0.05)" : "rgba(34,197,94,0.04)",
       }}
     >
       {/* ── Tool call header ── */}
       <div style={{ display: "flex", alignItems: "stretch", minWidth: 0 }}>
         <button
+          type="button"
           onClick={toggleExpanded}
+          aria-expanded={expanded}
           style={{
             display: "flex",
             alignItems: "center",
@@ -1319,6 +1347,14 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator }: 
           )}
           {duration !== undefined && (
             <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
+          )}
+          {status && (
+            <span className="tool-status" style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontSize: 11, color: status === "failed" ? "#f87171" : "var(--text-dim)" }}>
+              {status === "running"
+                ? <span className="tool-status-spinner" aria-hidden="true" />
+                : <span aria-hidden="true">{TOOL_STATUS_GLYPH[status]}</span>}
+              <span className={status === "done" ? "visually-hidden" : "tool-status-word"}>{t(TOOL_STATUS_LABEL_KEY[status])}</span>
+            </span>
           )}
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text-dim)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
             <polyline points="2 3.5 5 6.5 8 3.5" />
@@ -2132,7 +2168,7 @@ function BashExecutionView({ message, sessionId }: { message: BashExecutionMessa
 
   return (
     <div style={{ margin: "6px 0" }}>
-      <ToolCallBlock block={block} result={result} />
+      <ToolCallBlock block={block} result={result} running={isPending} />
       {message.truncated && fullOutputUrl && (
         <div style={{ padding: "4px 10px", fontSize: 11, marginTop: -1 }}>
           {showFullButton && (
