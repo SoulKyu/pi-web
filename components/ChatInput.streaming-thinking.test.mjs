@@ -11,7 +11,7 @@ const thinkingControl = source.slice(source.indexOf("{onThinkingLevelChange && (
 test("keeps one thinking control and lets it change the level while the session is busy", () => {
   assert.doesNotMatch(source, /isStreaming && onThinkingLevelChange/);
   assert.doesNotMatch(thinkingControl, /<span\s+title=\{t\("chat\.currentReasoning"/);
-  const button = thinkingControl.slice(0, thinkingControl.indexOf("</button>"));
+  const button = thinkingControl.slice(0, thinkingControl.indexOf("</ComposerChip>"));
   assert.doesNotMatch(button, /disabled=/);
   assert.match(button, /onClick=\{\(\) => setThinkingDropdownOpen\(\(v\) => !v\)\}/);
   assert.doesNotMatch(source, /if \(!isStreaming\) return;\s*setThinkingDropdownOpen\(false\)/);
