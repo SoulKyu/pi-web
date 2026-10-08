@@ -587,3 +587,22 @@ test("drag styles stay flat and themed; headers never select text or open the iO
   assert.match(cssRule(".session-tree.is-group-dragging *"), /cursor: grabbing;/);
   assert.match(cssRule(".sidebar-icon-up"), /transform: rotate\(-90deg\);/);
 });
+
+// Fork (648fc0c, 01fbdec): keyboard rows. Plain ArrowUp/Down move between rows (modified arrows stay
+// with the agent rail's shortcuts); F2 renames; Delete or Backspace only opens the inline confirmation.
+test("arrow keys move focus between rows, mounting the next row before focusing it", () => {
+  assert.match(source, /onKeyDown=\{handleRowArrowKey\}/);
+  const handler = source.slice(source.indexOf("const handleRowArrowKey = useCallback("), source.indexOf("}, [rows, offsets]);", source.indexOf("const handleRowArrowKey = useCallback(")));
+  assert.match(handler, /if \(\(event\.key !== "ArrowDown" && event\.key !== "ArrowUp"\) \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.shiftKey \|\| isImeKey\(event\)\) return;/);
+  assert.match(handler, /if \(!\(event\.target instanceof HTMLElement\) \|\| !event\.target\.matches\(ROW_MAIN_SELECTOR\)\) return;/);
+  assert.match(handler, /neighborFocusableRow\(rows, index, event\.key === "ArrowDown" \? 1 : -1\)/);
+  assert.match(handler, /pendingFocusRef\.current = \{ rowKey: rows\[next\]\.key, fallbackKey: rows\[next\]\.key, tries: 0, takeFocusFrom: \(\) => true \};/);
+});
+
+test("F2 renames a focused session row; Delete or Backspace opens its confirmation, Shift included", () => {
+  const row = source.slice(source.indexOf("const SessionRowView = memo("), source.indexOf("function RenameInput("));
+  assert.match(row, /className="session-tree-main"[^>]*onKeyDown=\{\(event\) => \{/);
+  assert.match(row, /if \(status\.transient \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| isImeKey\(event\)\) return;/);
+  assert.match(row, /if \(event\.key === "F2"\) \{\s*event\.preventDefault\(\);\s*handlers\.current\.onRenameStart\(family\);/);
+  assert.match(row, /else if \(event\.key === "Delete" \|\| event\.key === "Backspace"\) \{\s*event\.preventDefault\(\);\s*handlers\.current\.onDeleteRequest\(family\);/);
+});

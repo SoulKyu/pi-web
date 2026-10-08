@@ -28,6 +28,7 @@ import {
   type SidebarLayout,
   type SidebarProject,
   type SidebarRow,
+  neighborFocusableRow,
 } from "@/lib/session-tree";
 import type { SessionInfo } from "@/lib/types";
 import { formatRelativeTime, formatShortRelativeTime } from "@/lib/i18n/format";
@@ -117,6 +118,10 @@ export interface SessionTreeProps {
   onRenameCancel(): void;
   onDeleteConfirm(family: SessionFamily, event: ReactMouseEvent): void;
   onDeleteCancel(): void;
+  /** F2 on a focused session row. */
+  onRenameStart(family: SessionFamily): void;
+  /** Delete or Backspace on a focused session row: opens the inline confirmation, never deletes at once. */
+  onDeleteRequest(family: SessionFamily): void;
   /** A group's "+": a new session in that project at once. */
   onGroupNew(project: SidebarProject): void;
   onGroupMenu(project: SidebarProject, opener: HTMLElement): void;
@@ -129,6 +134,9 @@ export interface SessionTreeProps {
   /** A group dropped next to another of its band. Without it no group can be dragged. */
   onMoveGroup?(projectKey: string, anchorKey: string, position: ProjectMovePosition): void;
 }
+
+/** The button that stands for its row: arrow keys move between these. */
+const ROW_MAIN_SELECTOR = ".session-tree-main, .session-tree-group-toggle, .session-tree-pinned-toggle, .session-tree-more-toggle, .session-tree-footer-button";
 
 /** Rows rendered beyond each edge of the viewport. */
 const OVERSCAN_PX = 240;
@@ -371,6 +379,32 @@ export function SessionTree(props: SessionTreeProps): ReactNode {
     }
   }, [visibleIndices]);
 
+  // Plain ArrowUp/ArrowDown on a row's button move to the next row that has
+  // one, scrolling it into view and mounting it first when it is outside the
+  // window. Modified arrows are left to the agent rail's shortcuts.
+  const handleRowArrowKey = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if ((event.key !== "ArrowDown" && event.key !== "ArrowUp") || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isImeKey(event)) return;
+    if (!(event.target instanceof HTMLElement) || !event.target.matches(ROW_MAIN_SELECTOR)) return;
+    const key = event.target.closest("[data-row-key]")?.getAttribute("data-row-key");
+    const index = rows.findIndex((row) => row.key === key);
+    if (index < 0) return;
+    event.preventDefault();
+    const next = neighborFocusableRow(rows, index, event.key === "ArrowDown" ? 1 : -1);
+    if (next < 0) return;
+    const element = scrollRef.current;
+    const mounted = element?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(rows[next].key)}"]`)?.querySelector<HTMLElement>(ROW_MAIN_SELECTOR);
+    if (element) {
+      const top = revealScrollTop(offsets, next, element.scrollTop, element.clientHeight);
+      if (top !== null) element.scrollTop = top;
+    }
+    if (mounted) {
+      mounted.focus({ preventScroll: true });
+      return;
+    }
+    pendingFocusRef.current = { rowKey: rows[next].key, fallbackKey: rows[next].key, tries: 0, takeFocusFrom: () => true };
+    if (element) setScrollTop(element.scrollTop);
+  }, [rows, offsets]);
+
   const hasTreeRows = rows.some((row) => row.kind === "session" || row.kind === "group");
   const showEmpty = !loading && !error && emptyLabel !== null && !hasTreeRows;
   // While dragging: the group's block is dimmed in place (groups never fold
@@ -395,6 +429,7 @@ export function SessionTree(props: SessionTreeProps): ReactNode {
         onScroll={handleScroll}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={handleRowArrowKey}
         onPointerDownCapture={groupDrag.onPointerDownCapture}
         onClickCapture={groupDrag.onClickCapture}
       >
@@ -586,7 +621,22 @@ const SessionRowView = memo(function SessionRowView({
       onClick={() => handlers.current.onSelectFamily(family)}
       onContextMenu={(event) => handlers.current.onRowContextMenu(row, event)}
     >
-      <button type="button" className="session-tree-main" title={tooltip} aria-current={status.selected ? "true" : undefined}>
+      <button
+        type="button"
+        className="session-tree-main"
+        title={tooltip}
+        aria-current={status.selected ? "true" : undefined}
+        onKeyDown={(event) => {
+          if (status.transient || event.altKey || event.ctrlKey || event.metaKey || isImeKey(event)) return;
+          if (event.key === "F2") {
+            event.preventDefault();
+            handlers.current.onRenameStart(family);
+          } else if (event.key === "Delete" || event.key === "Backspace") {
+            event.preventDefault();
+            handlers.current.onDeleteRequest(family);
+          }
+        }}
+      >
         {forkTitle ? (
           <span className="session-tree-title has-fork-suffix">
             <span className="session-tree-title-base">{forkTitle.base}</span>

@@ -1955,6 +1955,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     onRenameCommit: (family: SessionFamily, value: string) => { void commitRename(family, value); },
     onRenameCancel: () => setRenamingRootId(null),
     onDeleteConfirm: (family: SessionFamily) => { void performDelete(family); },
+    onRenameStart: startRename,
+    onDeleteRequest: (family: SessionFamily) => requestDelete(family, false),
     onDeleteCancel: () => {
       const rootId = confirmDeleteRootId;
       setConfirmDeleteRootId(null);

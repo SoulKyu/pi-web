@@ -742,6 +742,19 @@ export function getVisibleRowIndices(
  * now scrolled to `scrollTop`: centred when it is partly or wholly out of
  * view, null when it is already in view (or there is no such row).
  */
+/**
+ * The next row up (step -1) or down (step 1) that keyboard focus can land on,
+ * or -1 at either end: spacers, empty-group notes and archive project labels
+ * hold no button.
+ */
+export function neighborFocusableRow(rows: readonly Pick<SidebarRow, "kind">[], index: number, step: 1 | -1): number {
+  for (let next = index + step; next >= 0 && next < rows.length; next += step) {
+    const kind = rows[next].kind;
+    if (kind !== "spacer" && kind !== "group-empty" && kind !== "archive-group") return next;
+  }
+  return -1;
+}
+
 export function revealScrollTop(
   offsets: readonly number[],
   index: number,

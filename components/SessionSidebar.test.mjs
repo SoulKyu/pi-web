@@ -314,10 +314,13 @@ test("arrow keys move between the tabs and the search toggle opens the sessions 
   assert.match(source, /if \(sidebarTab !== "sessions"\) \{\s*switchTab\("sessions"\);\s*setSessionSearchOpen\(true\);\s*return;\s*\}/);
 });
 
-test("does not register row-level session deletion shortcuts", () => {
-  for (const text of [source, treeSource]) {
-    assert.doesNotMatch(text, /"Delete"|"Backspace"/);
-  }
+// Fork (648fc0c): rows have a deletion key, but it only opens the inline confirmation
+// (see SessionTree.test "F2 renames a focused session row…"); the sidebar itself registers none.
+test("the sidebar registers no deletion key of its own; the tree's only opens the confirmation", () => {
+  assert.doesNotMatch(source, /"Delete"|"Backspace"/);
+  assert.equal((treeSource.match(/"Delete"|"Backspace"/g) ?? []).length, 2);
+  assert.match(treeSource, /handlers\.current\.onDeleteRequest\(family\)/);
+  assert.doesNotMatch(treeSource, /onDeleteConfirm\(family, event\);\s*\}\s*else if \(event\.key/);
 });
 
 test("polls running sessions only while the tab is visible", () => {
@@ -776,4 +779,9 @@ test("rename and delete check the response and report a failure in the sidebar t
   const remove = between("const performDelete = useCallback(", "const requestDelete = useCallback(");
   assert.match(remove, /const res = await fetch\(`\/api\/sessions\/\$\{encodeURIComponent\(session\.id\)\}`, \{ method: "DELETE" \}\);\s*if \(!res\.ok\) throw new Error\(`delete failed: \$\{res\.status\}`\);\s*onSessionDeleted\?\.\(session\.id\);/);
   assert.match(remove, /\} catch \{\s*showToast\(t\("sidebar\.deleteFailed"\)\);/);
+});
+
+test("the tree's keyboard rename and delete reuse the menu's paths; the keyboard never skips the confirmation", () => {
+  assert.match(source, /onRenameStart: startRename,/);
+  assert.match(source, /onDeleteRequest: \(family: SessionFamily\) => requestDelete\(family, false\),/);
 });
