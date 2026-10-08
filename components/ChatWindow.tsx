@@ -26,6 +26,7 @@ import { stableIdSet } from "./tool-call-status";
 import { useI18n } from "@/hooks/useI18n";
 import { isNewDay } from "@/lib/day-separators";
 import { phaseAnnouncement, phaseLabel } from "@/lib/chat-phase-label";
+import { findInMessages, stepFindIndex } from "@/lib/chat-find";
 import { useAgentSession, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -48,6 +49,8 @@ interface Props {
   session: SessionInfo | null;
   searchTarget?: { sessionId: string; entryId: string; blockIndex?: number } | null;
   onSearchTargetHandled?: (target: { sessionId: string; entryId: string }) => void;
+  /** Find in this session asks the shell to jump: it sets the same search target the sidebar search does. */
+  onRequestSearchTarget?: (target: { sessionId: string; entryId: string; blockIndex?: number }) => void;
   initialScrollPosition?: ChatScrollPosition | null;
   onScrollPositionChange?: (sessionId: string, position: ChatScrollPosition) => void;
   sessionRunning?: boolean;
@@ -251,7 +254,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
 /** Upper bound of `before=` pages one click on the unread pill may load. */
 const JUMP_UNREAD_MAX_PAGES = 20;
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onRequestSearchTarget, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -547,6 +550,39 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     : undefined;
   const searchHistoryRef = useRef({ entryIds, historyCursor, hasEarlierMessages });
   searchHistoryRef.current = { entryIds, historyCursor, hasEarlierMessages };
+  // Find in this session, over loaded messages only. While a run streams the scan source stays as it
+  // was, so hits do not reshuffle on every finished message; it catches up when the run ends.
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findIndex, setFindIndex] = useState(-1);
+  const findToggleRef = useRef<HTMLButtonElement>(null);
+  const findSourceRef = useRef({ messages, entryIds });
+  if (!(sessionBusy || streamState.isStreaming) && (findSourceRef.current.messages !== messages || findSourceRef.current.entryIds !== entryIds)) {
+    findSourceRef.current = { messages, entryIds };
+  }
+  const findSource = findSourceRef.current;
+  const findHits = useMemo(
+    () => (findOpen ? findInMessages(findSource.messages, findSource.entryIds, findQuery) : []),
+    [findOpen, findSource, findQuery],
+  );
+  const activeFindIndex = findIndex < findHits.length ? findIndex : -1;
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    setFindQuery("");
+    setFindIndex(-1);
+    findToggleRef.current?.focus({ preventScroll: true });
+  }, []);
+  const stepFind = (direction: 1 | -1) => {
+    const next = stepFindIndex(activeFindIndex, findHits.length, direction);
+    setFindIndex(next);
+    const hit = findHits[next];
+    if (hit && session) onRequestSearchTarget?.({ sessionId: session.id, ...hit });
+  };
+  useEffect(() => {
+    setFindOpen(false);
+    setFindQuery("");
+    setFindIndex(-1);
+  }, [session?.id]);
 
   useEffect(() => () => jumpAbortRef.current?.abort(), [session?.id]);
 
@@ -1517,6 +1553,23 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                 {unreadPillCount ? t("agents.thread.jumpUnread", { count: unreadPillCount }) : t("agents.thread.jumpUnreadNoCount")}
               </button>
             )}
+            {session && (
+              <button
+                ref={findToggleRef}
+                type="button"
+                className="chat-find-toggle"
+                title={t("chat.find.open")}
+                aria-label={t("chat.find.open")}
+                aria-expanded={findOpen}
+                aria-controls="chat-find-bar"
+                onClick={() => (findOpen ? closeFind() : setFindOpen(true))}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </button>
+            )}
             <button
               type="button"
               className={`chat-scroll-to-bottom${showScrollToBottom && !pendingScrollRestore ? " is-visible" : ""}`}
@@ -1547,6 +1600,34 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
                 </span>
               </div>
             </div>
+          </div>
+        )}
+        {findOpen && (
+          <div id="chat-find-bar" role="search" aria-label={t("chat.find.open")} className="chat-find-bar" style={{ paddingLeft: 16, paddingRight: isMobile ? 16 : 52 }}>
+            <div className="chat-find-row">
+              <input
+                type="text"
+                autoFocus
+                value={findQuery}
+                onChange={(event) => { setFindQuery(event.target.value); setFindIndex(-1); }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") { event.preventDefault(); closeFind(); return; }
+                  if (event.key !== "Enter" || event.nativeEvent.isComposing || event.keyCode === 229) return;
+                  event.preventDefault();
+                  stepFind(event.shiftKey ? -1 : 1);
+                }}
+                placeholder={t("chat.find.placeholder")}
+                aria-label={t("chat.find.placeholder")}
+                enterKeyHint="search"
+                autoComplete="off"
+                className="chat-find-input"
+              />
+              <span role="status" className="chat-find-count">{findQuery.trim() ? t("chat.find.count", { current: activeFindIndex + 1, total: findHits.length }) : ""}</span>
+              <button type="button" className="chat-find-button" disabled={findHits.length === 0} onClick={() => stepFind(-1)} title={t("chat.find.previous")} aria-label={t("chat.find.previous")}><span aria-hidden="true">‹</span></button>
+              <button type="button" className="chat-find-button" disabled={findHits.length === 0} onClick={() => stepFind(1)} title={t("chat.find.next")} aria-label={t("chat.find.next")}><span aria-hidden="true">›</span></button>
+              <button type="button" className="chat-find-button" onClick={closeFind} title={t("chat.find.close")} aria-label={t("chat.find.close")}><span aria-hidden="true">✕</span></button>
+            </div>
+            <span className="chat-find-note">{t("chat.find.loadedOnly")}</span>
           </div>
         )}
         {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} /> : null}

@@ -1705,5 +1705,12 @@ export const zhTWLocale: LocalePlugin = {
     "shortcuts.send": "傳送訊息",
     "shortcuts.followUp": "在 Agent 執行時作為後續訊息排入佇列",
     "shortcuts.switchTab": "在檔案分頁之間切換（分頁取得焦點時）",
+    "chat.find.open": "在此工作階段中尋找",
+    "chat.find.placeholder": "在已載入的訊息中尋找",
+    "chat.find.previous": "上一個符合項目",
+    "chat.find.next": "下一個符合項目",
+    "chat.find.close": "關閉尋找",
+    "chat.find.count": "{current}/{total}",
+    "chat.find.loadedOnly": "僅限已載入的訊息",
   },
 };

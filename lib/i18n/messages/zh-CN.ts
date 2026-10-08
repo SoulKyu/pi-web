@@ -1705,5 +1705,12 @@ export const zhCNLocale: LocalePlugin = {
     "shortcuts.send": "发送消息",
     "shortcuts.followUp": "在 Agent 运行时作为后续消息排队",
     "shortcuts.switchTab": "在文件标签页之间切换（标签页获得焦点时）",
+    "chat.find.open": "在此会话中查找",
+    "chat.find.placeholder": "在已加载的消息中查找",
+    "chat.find.previous": "上一个匹配项",
+    "chat.find.next": "下一个匹配项",
+    "chat.find.close": "关闭查找",
+    "chat.find.count": "{current}/{total}",
+    "chat.find.loadedOnly": "仅限已加载的消息",
   },
 };

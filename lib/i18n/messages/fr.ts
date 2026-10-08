@@ -1705,5 +1705,12 @@ export const frLocale: LocalePlugin = {
     "shortcuts.send": "Envoyer le message",
     "shortcuts.followUp": "Mettre en file comme suivi pendant que l'agent travaille",
     "shortcuts.switchTab": "Passer d'un onglet de fichier à l'autre (quand un onglet a le focus)",
+    "chat.find.open": "Rechercher dans cette session",
+    "chat.find.placeholder": "Rechercher dans les messages chargés",
+    "chat.find.previous": "Résultat précédent",
+    "chat.find.next": "Résultat suivant",
+    "chat.find.close": "Fermer la recherche",
+    "chat.find.count": "{current}/{total}",
+    "chat.find.loadedOnly": "Messages chargés uniquement",
   },
 };
