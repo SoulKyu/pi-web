@@ -2084,6 +2084,10 @@ span.token.table {
 .agent-event-failed { color: #e5484d; }
 .agent-event-tainted { color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; font-size: 11px; }
 .agent-event-summary { margin-top: 4px; color: var(--text); }
+.agent-event-summary .markdown-body { font-size: inherit; }
+.agent-event-summary.is-collapsed { max-height: 16em; overflow: hidden; }
+.agent-event-toggle { margin-top: 4px; padding: 2px 0; border: none; background: none; color: var(--accent); font-size: 11px; cursor: pointer; }
+.agent-event-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .agent-event-prompt summary { cursor: pointer; font-size: 11px; color: var(--text-dim); }
 
 .recall-card { border-left: 3px solid var(--border); background: var(--bg-panel); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }

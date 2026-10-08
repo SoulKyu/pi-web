@@ -324,3 +324,14 @@ test("keeps a block that opens a raw-text tag as it renders without line breaks"
   const list = renderMarkdown("- item <textarea>\n  more\n- two\n  lines", { keepLineBreaks: true });
   assert.match(list, /<li>two<br\/>lines<\/li>/);
 });
+
+test("blockImages renders images as links, never as <img>", () => {
+  const md = "![chart](https://example.com/c.png) ![](data:image/png;base64,AAAA) [![logo](https://example.com/l.png)](https://example.com)";
+  assert.match(renderMarkdown(md, { cwd: undefined, onOpenFile: undefined }), /<img/);
+  const html = renderMarkdown(md, { cwd: undefined, onOpenFile: undefined, blockImages: true });
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /<a (?=[^>]*href="https:\/\/example\.com\/c\.png")(?=[^>]*target="_blank")(?=[^>]*rel="noopener noreferrer")[^>]*>🖼 chart<\/a>/);
+  assert.doesNotMatch(html, /href="data:/);
+  assert.match(html, /🖼 image/);
+  assert.match(html, /<a [^>]*href="https:\/\/example\.com"[^>]*>🖼 logo<\/a>/);
+});

@@ -18,6 +18,15 @@ interface MarkdownBodyProps {
   onOpenFile?: (filePath: string, page?: number) => void;
   /** Render every line ending as a line break, for text the user typed. */
   keepLineBreaks?: boolean;
+  /** Show images as links instead of loading them, for untrusted text (no tracking pixel, no exfiltration by URL). */
+  blockImages?: boolean;
+}
+
+function BlockedMarkdownImage({ src, alt }: ComponentProps<"img">) {
+  const insideLink = useContext(MarkdownLinkContext);
+  const label = `🖼 ${alt || "image"}`;
+  if (insideLink || typeof src !== "string" || !/^https?:\/\//i.test(src)) return <>{label}</>;
+  return <a href={src} target="_blank" rel="noopener noreferrer">{label}</a>;
 }
 
 function MarkdownImage({
@@ -44,7 +53,7 @@ function MarkdownImage({
   );
 }
 
-export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile, keepLineBreaks }: MarkdownBodyProps) {
+export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile, keepLineBreaks, blockImages }: MarkdownBodyProps) {
   const normalizedMarkdown = useMemo(() => normalizeDisplayMath(children), [children]);
   // Stable renderer identities keep stateful blocks mounted across message hover updates.
   const components = useMemo<Components>(() => ({
@@ -108,6 +117,7 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
       );
     },
     img(props) {
+      if (blockImages) return <BlockedMarkdownImage src={props.src} alt={props.alt} />;
       return <MarkdownImage cwd={cwd} {...props} />;
     },
     table({ children }) {
@@ -117,7 +127,7 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
         </div>
       );
     },
-  }), [cwd, isStreaming, onOpenFile]);
+  }), [blockImages, cwd, isStreaming, onOpenFile]);
 
   return (
     <div className={["markdown-body", className].filter(Boolean).join(" ")}>

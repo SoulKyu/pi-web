@@ -16,8 +16,11 @@ test("MessageView routes agent events to the card; ChatWindow marks event prompt
   assert.match(read("../components/ChatWindow.tsx"), /eventPromptIndexes\(messages\)/);
 });
 
-test("the card renders the summary as plain pre-wrapped text, never markdown", () => {
+test("a webhook summary stays plain pre-wrapped text; a delegation summary is display-only markdown that folds when long", () => {
   const source = read("../components/agents/AgentEventCard.tsx");
   assert.match(source, /whiteSpace: "pre-wrap"/);
-  assert.doesNotMatch(source, /MarkdownBody|ReactMarkdown/);
+  assert.match(source, /<MarkdownBody blockImages>\{data\.summary\}<\/MarkdownBody>/);
+  assert.doesNotMatch(source, /onOpenFile=|ReactMarkdown|cwd=/);
+  assert.match(source, /aria-expanded=\{expanded\}/);
+  assert.match(source, /aria-controls=\{summaryId\}/);
 });
