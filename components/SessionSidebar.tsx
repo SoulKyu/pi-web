@@ -1912,7 +1912,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 <div
                   key={family.root.id}
                   onFocus={() => setFocusedSessionId(family.root.id)}
-                  onBlur={() => setFocusedSessionId(null)}
+                  onBlur={(e) => { if (!listScrollRef.current?.contains(e.relatedTarget as Node | null)) setFocusedSessionId(null); }}
                   style={{ position: "absolute", top: index * SESSION_LIST_ITEM_HEIGHT, left: 0, right: 0 }}
                 >
                   <SessionItem
@@ -2339,7 +2339,7 @@ function SessionItem({
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (e.shiftKey) {
+    if (e.shiftKey && e.detail > 0) {
       void performDelete();
     } else {
       setConfirmDelete(true);
@@ -2354,6 +2354,7 @@ function SessionItem({
   const handleDeleteCancel = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setConfirmDelete(false);
+    if (e.detail === 0) requestAnimationFrame(() => rowRef.current?.focus());
   }, []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -2384,7 +2385,7 @@ function SessionItem({
       return;
     }
     if (e.target !== e.currentTarget || confirmDelete || renaming) return;
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); return; }
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActionsOpen(false); onClick(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); onMoveFocus?.(e.key === "ArrowDown" ? 1 : -1); return; }
     if (session.transient) return;
     if (e.key === "F2") { e.preventDefault(); startRename(e); return; }
@@ -2408,7 +2409,7 @@ function SessionItem({
         setFocusWithin(false);
         setActionsOpen(false);
       }}
-      onClick={confirmDelete || renaming ? undefined : onClick}
+      onClick={confirmDelete || renaming ? undefined : () => { setActionsOpen(false); onClick(); }}
       onContextMenu={confirmDelete || renaming ? undefined : handleContextMenu}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); }}

@@ -36,7 +36,7 @@ test("session windows stay valid after a project shrinks and before the viewport
 test("only Shift+click bypasses session deletion confirmation", () => {
   assert.match(
     sessionItemSource,
-    /const handleDeleteClick[\s\S]*?if \(e\.shiftKey\) \{\s*void performDelete\(\);\s*\} else \{\s*setConfirmDelete\(true\);/,
+    /const handleDeleteClick[\s\S]*?if \(e\.shiftKey && e\.detail > 0\) {\s*void performDelete\(\);\s*\} else \{\s*setConfirmDelete\(true\);/,
   );
 });
 
