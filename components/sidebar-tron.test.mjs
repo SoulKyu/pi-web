@@ -69,3 +69,9 @@ test("menus, the phone sheet and the toast are glowing Tron panels", () => {
   assert.match(rule(tron, ".sidebar-menu,\n.sidebar-toast"), /background: var\(--color-tron-panel\);\s*box-shadow: var\(--shadow-glow-cyan\);/);
   assert.match(rule(tron, ".sidebar-sheet"), /background: var\(--color-tron-panel\)/);
 });
+
+test("fields glow only while focused, in the sidebar and in Settings › Fonts", async () => {
+  assert.match(tron, /\/\* Fields: hairline, cyan glow while typing\. \*\/\n\.session-tree-rename:focus,\n\.sidebar-worktree-input:focus,\n\.sidebar-search-input:focus,\n\.sidebar-menu-filter-input:focus \{/);
+  const settings = await read("../app/settings.css");
+  assert.match(rule(settings, ".settings-font-input:focus-visible"), /outline: 1px solid var\(--color-tron-cyan\);\s*outline-offset: -1px;\s*box-shadow: var\(--shadow-glow-cyan\);/);
+});

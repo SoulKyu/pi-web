@@ -94,8 +94,8 @@
 }
 
 /* Fields: hairline, cyan glow while typing. */
-.session-tree-rename,
-.sidebar-worktree-input,
+.session-tree-rename:focus,
+.sidebar-worktree-input:focus,
 .sidebar-search-input:focus,
 .sidebar-menu-filter-input:focus {
   border-color: var(--color-tron-cyan);
