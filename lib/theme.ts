@@ -4,7 +4,6 @@ export const THEME_OPTIONS = [
   { id: "mist", label: "settings.themeMist" },
   { id: "rose", label: "settings.themeRose" },
   { id: "pine", label: "settings.themePine" },
-  { id: "cyberpunk", label: "settings.themeCyberpunk" },
   { id: "auto", label: "settings.themeSystem" },
 ] as const;
 
@@ -16,8 +15,8 @@ export function isThemePreference(value: unknown): value is ThemePreference {
 }
 
 export function isDarkTheme(theme: ResolvedTheme): boolean {
-  return theme === "dark" || theme === "pine" || theme === "cyberpunk";
+  return theme === "dark" || theme === "pine";
 }
 
 // Apply the saved palette before first paint, including when storage is blocked.
-export const THEME_INIT_SCRIPT = `(function(){var t="auto";try{var s=localStorage.getItem("pi-theme");if(${JSON.stringify(THEME_OPTIONS.map((option) => option.id))}.includes(s))t=s}catch(e){}if(t==="auto")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var r=document.documentElement;r.dataset.theme=t;r.classList.toggle("dark",t==="dark"||t==="pine"||t==="cyberpunk")})();`;
+export const THEME_INIT_SCRIPT = `(function(){var t="auto";try{var s=localStorage.getItem("pi-theme");if(${JSON.stringify(THEME_OPTIONS.map((option) => option.id))}.includes(s))t=s}catch(e){}if(t==="auto")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var r=document.documentElement;r.dataset.theme=t;r.classList.toggle("dark",t==="dark"||t==="pine")})();`;
