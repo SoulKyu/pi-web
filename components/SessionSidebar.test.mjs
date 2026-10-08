@@ -62,8 +62,11 @@ test("session rows are keyboard reachable; Delete only opens the inline confirma
   assert.match(sessionItemSource, /onKeyDown=\{handleRowKeyDown\}/);
   const keyHandler = sessionItemSource.slice(sessionItemSource.indexOf("const handleRowKeyDown"), sessionItemSource.indexOf("// Fixed-height outer wrapper"));
   assert.match(keyHandler, /if \(e\.target !== e\.currentTarget \|\| confirmDelete \|\| renaming\) return;/);
-  assert.match(keyHandler, /if \(e\.key === "Delete"\) \{ e\.preventDefault\(\); setConfirmDelete\(true\); \}/);
   assert.match(keyHandler, /if \(confirmDelete && e\.key === "Escape"\) \{\s*e\.preventDefault\(\);/);
+  assert.match(keyHandler, /if \(e\.key === "Delete" \|\| e\.key === "Backspace"\) \{ e\.preventDefault\(\); setConfirmDelete\(true\); \}/);
+  assert.match(keyHandler, /if \(e\.altKey \|\| e\.ctrlKey \|\| e\.metaKey\) return;/);
+  assert.ok(keyHandler.indexOf("e.altKey") > keyHandler.indexOf('e.key === "Escape"') && keyHandler.indexOf("e.altKey") < keyHandler.indexOf("ArrowDown"), "modifier arrows stay with the rail shortcuts");
+  assert.match(sessionItemSource, /onFocus=\{\(e\) => \{[\s\S]*?matches\(":focus-visible"\)/);
   assert.doesNotMatch(keyHandler, /performDelete/);
   assert.doesNotMatch(keyHandler, /shiftKey/);
 });

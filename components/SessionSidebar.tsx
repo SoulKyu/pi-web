@@ -2384,12 +2384,13 @@ function SessionItem({
       rowRef.current?.focus();
       return;
     }
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target !== e.currentTarget || confirmDelete || renaming) return;
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActionsOpen(false); onClick(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); onMoveFocus?.(e.key === "ArrowDown" ? 1 : -1); return; }
     if (session.transient) return;
     if (e.key === "F2") { e.preventDefault(); startRename(e); return; }
-    if (e.key === "Delete") { e.preventDefault(); setConfirmDelete(true); }
+    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); setConfirmDelete(true); }
   };
 
   // Fixed-height outer wrapper — content swaps in place so the list never reflows
@@ -2403,7 +2404,11 @@ function SessionItem({
       aria-current={isSelected ? "true" : undefined}
       aria-label={rowLabel}
       onKeyDown={handleRowKeyDown}
-      onFocus={() => setFocusWithin(true)}
+      onFocus={(e) => {
+        let keyboardFocus = true;
+        try { keyboardFocus = (e.target as HTMLElement).matches(":focus-visible"); } catch { /* engine without :focus-visible */ }
+        setFocusWithin(keyboardFocus);
+      }}
       onBlur={(e) => {
         if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
         setFocusWithin(false);
