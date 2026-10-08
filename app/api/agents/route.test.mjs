@@ -17,6 +17,7 @@ test("PATCH and DELETE refuse while the thread runs, and profile edits reach the
   assert.match(one, /type: "set_model"/);
   assert.match(one, /type: "set_thinking_level"/);
   assert.match(one, /shutdownWhenIdle\(\)/);
+  assert.match(one, /\["role".*"commandDeny", "webAllowHosts", "sandbox", "sandboxNetwork"\]\.some\(\(key\) => key in checked\.input\)\) getRpcSession\(agent\.threadSessionId\)\?\.shutdownWhenIdle/);
   assert.match(one, /deleteLongTermAgent\(/);
   assert.match(one, /withThreadLock\(name/);
   assert.match(one, /isRpcSessionStarting\(id\)/);

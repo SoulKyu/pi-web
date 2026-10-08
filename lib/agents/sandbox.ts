@@ -12,18 +12,19 @@ export function bwrapAvailable(env: NodeJS.ProcessEnv = process.env): string | n
   return null;
 }
 
-/** Whole filesystem read-only, the agent home and /tmp writable, ~/.ssh and the pi agent dir hidden (its bin dir stays readable), no network unless allowed. */
+/** Whole filesystem read-only, /tmp and the agent home writable, ~/.ssh and the pi agent dir hidden (its bin dir stays readable), no network unless allowed. */
 export function sandboxArgs(
   home: string,
   { network, agentDir = getAgentDir(), homeDir = homedir(), tmpDir = "/tmp" }: { network: boolean; agentDir?: string; homeDir?: string; tmpDir?: string },
 ): string[] {
   return [
     "--ro-bind", "/", "/",
-    "--bind", home, home,
     "--bind", tmpDir, tmpDir,
     "--tmpfs", join(homeDir, ".ssh"),
     "--tmpfs", agentDir,
     "--ro-bind", join(agentDir, "bin"), join(agentDir, "bin"),
+    // After the agentDir tmpfs: the home lives under it and would be hidden otherwise.
+    "--bind", home, home,
     ...(network ? [] : ["--unshare-net"]),
     "--die-with-parent",
   ];
