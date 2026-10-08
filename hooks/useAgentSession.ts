@@ -213,6 +213,7 @@ type ConcreteThinkingLevel = Exclude<ThinkingLevelOption, "auto">;
 export interface NewSessionChoices {
   model: { provider: string; modelId: string } | null;
   thinkingLevel: ConcreteThinkingLevel | null;
+  agentProfile: string | null;
 }
 
 function asConcreteThinkingLevel(value?: string | null): ConcreteThinkingLevel | null {
@@ -369,7 +370,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const [newSessionModel, setNewSessionModel] = useState<SelectedModel | null>(() => initialChoices?.model ?? null);
   const [newSessionDefaultModel, setNewSessionDefaultModel] = useState<SelectedModel | null>(null);
   const [toolPreset, setToolPreset] = useState<ToolPreset>(CONFIGURED_TOOL_PRESET);
-  const [agentProfile, setAgentProfile] = useState<string | null>(null);
+  const initialAgentProfileRef = useRef<string | null>(initialChoices?.agentProfile ?? null);
+  const [agentProfile, setAgentProfile] = useState<string | null>(() => initialAgentProfileRef.current);
   const [newSessionThinkingLevel, setNewSessionThinkingLevel] = useState<ConcreteThinkingLevel | null>(() => initialChoices?.thinkingLevel ?? null);
   const [newSessionDefaultThinkingLevel, setNewSessionDefaultThinkingLevel] = useState<ConcreteThinkingLevel | null>(null);
   const [savedDefaultThinkingLevel, setSavedDefaultThinkingLevel] = useState<ConcreteThinkingLevel | null>(null);
@@ -495,14 +497,15 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   useLayoutEffect(() => {
     if (!existingSessionId && (!isNew || sessionIdRef.current)) return;
     setToolPresetState(getPreferredToolPreset());
-    // A fresh composer starts as the default agent; an opened session reads its own profile.
-    if (isNew && !sessionIdRef.current) setAgentProfile(null);
+    // A fresh composer starts as the default agent, or the one carried from another
+    // project/worktree; an opened session reads its own profile.
+    if (isNew && !sessionIdRef.current) setAgentProfile(initialAgentProfileRef.current);
   }, [existingSessionId, isNew, setToolPresetState]);
 
   const onNewSessionChoicesChange = opts.onNewSessionChoicesChange;
   useEffect(() => {
-    if (isNew) onNewSessionChoicesChange?.({ model: newSessionModel, thinkingLevel: newSessionThinkingLevel });
-  }, [isNew, newSessionModel, newSessionThinkingLevel, onNewSessionChoicesChange]);
+    if (isNew) onNewSessionChoicesChange?.({ model: newSessionModel, thinkingLevel: newSessionThinkingLevel, agentProfile });
+  }, [isNew, newSessionModel, newSessionThinkingLevel, agentProfile, onNewSessionChoicesChange]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = scrollContainerRef.current;

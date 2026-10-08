@@ -154,7 +154,12 @@ test("a fresh composer starts from carried model picks and reports its own", () 
   // What ensureNewSession sends is the same carried pick, not just what the selector shows.
   assert.match(source, /const newSessionModelOverrideRef = useRef<SelectedModel \| null>\(initialChoices\?\.model \?\? null\);/);
   assert.match(source, /const thinkingLevelOverrideRef = useRef<ConcreteThinkingLevel \| null>\(initialChoices\?\.thinkingLevel \?\? null\);/);
-  assert.match(source, /useEffect\(\(\) => \{\s*if \(isNew\) onNewSessionChoicesChange\?\.\(\{ model: newSessionModel, thinkingLevel: newSessionThinkingLevel \}\);\s*\}, \[isNew, newSessionModel, newSessionThinkingLevel, onNewSessionChoicesChange\]\);/);
+  // Fork: the agent profile picked on a fresh composer travels with model and reasoning.
+  assert.match(source, /export interface NewSessionChoices \{\s*model: [^\n]+\n\s*thinkingLevel: ConcreteThinkingLevel \| null;\s*agentProfile: string \| null;\s*\}/);
+  assert.match(source, /const initialAgentProfileRef = useRef<string \| null>\(initialChoices\?\.agentProfile \?\? null\);/);
+  assert.match(source, /useState<string \| null>\(\(\) => initialAgentProfileRef\.current\)/);
+  assert.match(source, /if \(isNew && !sessionIdRef\.current\) setAgentProfile\(initialAgentProfileRef\.current\);/);
+  assert.match(source, /useEffect\(\(\) => \{\s*if \(isNew\) onNewSessionChoicesChange\?\.\(\{ model: newSessionModel, thinkingLevel: newSessionThinkingLevel, agentProfile \}\);\s*\}, \[isNew, newSessionModel, newSessionThinkingLevel, agentProfile, onNewSessionChoicesChange\]\);/);
   assert.match(chatWindowSource, /newSessionDraftKey, initialNewSessionChoices, onNewSessionChoicesChange, onAgentEnd: wrappedOnAgentEnd,/);
   // The tool preset needs no carrying: every fresh composer starts from the stored pick.
   assert.match(source, /setToolPresetState\(getPreferredToolPreset\(\)\)/);
