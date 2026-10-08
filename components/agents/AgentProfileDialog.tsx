@@ -7,6 +7,7 @@ import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
 import { curationPrompt } from "@/lib/agents/curation-prompt";
+import { AgentPermissions } from "./AgentPermissions";
 import { TriggerDialog } from "./TriggerDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
@@ -209,6 +210,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
             </label>
           ))}
         </div>
+        <AgentPermissions agentName={agent.name} />
         {agent.memorySnapshotPath && (
           <button type="button" disabled={busy} onClick={() => setCuration(true)} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text)" }}>{t("agents.profile.scheduleCuration")}</button>
         )}

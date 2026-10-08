@@ -59,6 +59,7 @@ app/api/
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories
+  agents/[name]/permissions/route.ts GET { permissions } read-only sheet + lethal-trifecta check (files and live thread tool names; no MCP connection, no session start)
   agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
   agents/[name]/memory/forget/route.ts POST request a forget
   memory/route.ts                  GET ?scope=user|project:<id>|agent:<name> pi-mem0 scope snapshot + { scopes, health } (400 on a bad scope)
@@ -146,6 +147,7 @@ lib/
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/agent-delegate.ts  agent_delegate: delegationRefusal() + queue a thread task for an opted-in agent (D14), trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
+  agents/permissions.ts     buildAgentPermissions / assessTrifecta / explainTrifecta: what an agent can do, privateData + untrustedContent + exfiltration legs
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
@@ -241,6 +243,7 @@ components/
   agents/QueueTaskDialog.tsx queue a task for an agent's thread
   agents/PromptChips.tsx   prompt chips above the agent composer, from <home>/prompts
   agents/AgentMemoryRecent.tsx recent memories with forget
+  agents/AgentPermissions.tsx read-only Permissions section of the profile dialog
   agents/AgentSpaceLeft.tsx / AgentSpaceRight.tsx  agent view panels (home files; profile and status)
   agents/dialog-styles.ts  shared styles of the agent dialogs
   PluginsConfig.tsx        Settings › Plugins: installed package plugins

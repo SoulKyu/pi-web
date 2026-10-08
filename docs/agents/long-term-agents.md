@@ -70,6 +70,11 @@
 - pi-mem0 ignores a malformed block whole (fail closed) and trust still wins: an untrusted thread never captures or saves directly. The hint is owner text appended to pi-mem0's extraction instructions, never to the model's system prompt.
 - UI: "Memory" section in `NewAgentDialog` / `AgentProfileDialog` (capture, save, hint, recall limit, recall threshold); PATCH `null` clears a key, create omits defaults.
 
+## Permissions sheet (`lib/agents/permissions.ts`, `app/api/agents/[name]/permissions/route.ts`, `components/agents/AgentPermissions.tsx`)
+- Read-only section of the profile dialog, fetched on open. It reads the profile, `listGlobalMcpServers()` (names from the mcp.json files, no connection), the triggers of the agent and, only when the pinned thread's wrapper is alive, its `get_tools` (active names). It never starts a session or connects to an MCP server; otherwise `extensionTools` is `"unknown-until-start"`.
+- Cannot know: MCP servers from host imports or plugins, extension tools before the thread started, a sandbox (always `"none"` until bubblewrap exists).
+- Lethal trifecta (`assessTrifecta`, reasons in `explainTrifecta`): **privateData** = a file tool (`read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`) with `sandbox === "none"`; **untrustedContent** = an `isExternalContentTool` tool (preset or live extension tools), an allowed MCP server, or a webhook trigger; **exfiltration** = `bash` with `sandbox === "none"` (network), or an external tool while `webAllowHosts` is `"any"`. 3/3 shows a warning; it is advice, nothing is blocked.
+
 ## Unread
 - Unread = assistant replies after `lastReadEntryId` in file order; an unknown or absent marker counts everything. No divider is drawn for an absent or unknown marker although the badge counts everything. The divider count includes non-message entries; the badge counts assistant replies only. Event cards count on both sides (`isUnreadEntry`).
 - `ChatWindow` fixes the marker for the visit (`unreadMarkerEntryId`) so the divider does not move as reads post. `onLatestEntryViewed` posts the read 1 s after the newest entry is visible. When the first unread entry is inside a collapsed process group, the divider is rendered before the group.
