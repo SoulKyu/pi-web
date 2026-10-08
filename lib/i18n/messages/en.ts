@@ -1546,6 +1546,7 @@ export const enLocale: LocalePlugin = {
     "agents.event.seeRun": "see the run",
     "agents.event.delegationResult": "Result from {name}",
     "agents.event.tainted": "contains web content",
+    "agents.event.taintedHint": "this run called non-local tools (web, MCP, bash…); no badge means no non-local call, not clean",
     "agents.event.inject": "Inject into the conversation",
     "agents.handTo.action": "Hand to…",
     "agents.handTo.title": "Hand this message to another agent",

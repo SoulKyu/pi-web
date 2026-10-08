@@ -20,8 +20,8 @@ const EMOJI_MAX_CHARS = 8;
 const ROLE_MAX_CHARS = 20_000;
 const MCP_SERVERS_MAX = 100;
 const MCP_SERVER_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
-/** A route segment under /api/agents (the global MCP server list), so no agent may take it. */
-const RESERVED_AGENT_NAMES = new Set(["mcp-servers"]);
+/** A route segment under /api/agents (the global MCP server list) or the `requestedBy` value of the user, so no agent may take it. */
+const RESERVED_AGENT_NAMES = new Set(["mcp-servers", "user"]);
 export const AGENT_NAME_MAX = 64;
 const HOST_RE = /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 const compiles = (source: string) => { try { new RegExp(source); return true; } catch { return false; } };

@@ -1546,6 +1546,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.event.seeRun": "查看运行",
     "agents.event.delegationResult": "来自 {name} 的结果",
     "agents.event.tainted": "包含网页内容",
+    "agents.event.taintedHint": "此运行调用了非本地工具（网页、MCP、bash…）；无标记仅表示没有非本地调用，并不代表安全",
     "agents.event.inject": "注入对话",
     "agents.handTo.action": "交给…",
     "agents.handTo.title": "把此消息交给另一个智能体",

@@ -1546,6 +1546,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.event.seeRun": "查看執行",
     "agents.event.delegationResult": "來自 {name} 的結果",
     "agents.event.tainted": "包含網頁內容",
+    "agents.event.taintedHint": "此執行呼叫了非本機工具（網頁、MCP、bash…）；無標記僅表示沒有非本機呼叫，並不代表安全",
     "agents.event.inject": "注入對話",
     "agents.handTo.action": "交給…",
     "agents.handTo.title": "把此訊息交給另一個代理",

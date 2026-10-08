@@ -17,7 +17,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
         <div className="agent-event-head">
           <span aria-hidden>↩</span> <strong>{t("agents.event.delegationResult", { name: data.from })}</strong> · <span>{data.title}</span>
           {data.status === "failed" && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
-          {data.tainted && <span className="agent-event-tainted">{t("agents.event.tainted")}</span>}
+          {data.tainted && <span className="agent-event-tainted" title={t("agents.event.taintedHint")}>{t("agents.event.tainted")}</span>}
           {data.runSessionId && onOpenSession && <button type="button" onClick={() => onOpenSession(data.runSessionId!)} className="agent-event-link">{t("agents.event.seeRun")}</button>}
           {onInject && data.summary && <button type="button" onClick={() => onInject(data.from, data.summary)} className="agent-event-link">{t("agents.event.inject")}</button>}
         </div>
