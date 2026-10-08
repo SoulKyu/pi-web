@@ -52,6 +52,8 @@ import {
   sameResourceSnapshot,
   memoryPolicyOf,
   readSessionMemoryPolicy,
+  scopeSubagentExtensions,
+  subagentExtensionLoaderOptions,
   SUBAGENT_CONTROL_TOOL_NAMES,
   type AgentProfileSessionMetadata,
   type AgentProfileTrust,
@@ -68,6 +70,7 @@ import { createPiWebBuiltinExtensions } from "./builtin-extensions";
 import type { McpHost } from "./mcp-host";
 import { mcpPromptPreparation, type McpCommandCandidate } from "./mcp-command";
 import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
+import { createSubagentSkillsBinding } from "./subagent-skills";
 import { isNestedToolExecutionEvent } from "./agent-event-wire";
 import {
   appendClearedSessionToolSelection,
@@ -2094,7 +2097,7 @@ const SUBAGENT_CONTROLLER = createSubagentController({
   registerSession: (inner, options) => {
     const wrapper = new AgentSessionWrapper(inner, {
       ...(options?.exactSystemPrompt !== undefined
-        ? { exactSystemPrompt: () => options.exactSystemPrompt! }
+        ? { exactSystemPrompt: options.exactSystemPrompt }
         : {}),
       chatOnly: options?.chatOnly,
       suppressCompletionNotifications: true,
@@ -2540,20 +2543,25 @@ export async function startRpcSession(
     // after the session is created, so the getter is filled in below.
     const exactSystemPromptRef: { current?: () => string } = {};
     const exactSystemPromptExtension = createExactSystemPromptExtension(() => exactSystemPromptRef.current?.());
-    const usesExactSystemPrompt = chatOnly || subagentResources?.exactSystemPrompt !== undefined;
     // codemode, tool-search, and mcp, as the pi CLI loads them, and the host that decides
     // which MCP servers the session connects (ADR 0006).
     const builtins = subagentResources || chatOnly
       ? undefined
       : await createPiWebBuiltinExtensions({ agentDir });
+    const skillsBinding = subagentResources ? createSubagentSkillsBinding({
+      loadSkills: subagentResources.loadSkills,
+      skills: subagentResources.skills,
+      exactSystemPrompt: subagentResources.exactSystemPrompt
+        ?? (chatOnly ? subagentResources.appendSystemPrompt[0] ?? "" : undefined),
+    }) : undefined;
     const services = await createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
       settingsManager,
       resourceLoaderOptions: subagentResources
         ? {
-            noExtensions: !subagentResources.loadExtensions,
-            noSkills: !subagentResources.loadSkills,
+            ...subagentExtensionLoaderOptions(subagentResources),
+            ...skillsBinding!.loaderOptions,
             noPromptTemplates: true,
             noThemes: true,
             noContextFiles: true,
@@ -2564,16 +2572,23 @@ export async function startRpcSession(
                 }
               : {}),
             appendSystemPrompt: subagentResources.appendSystemPrompt,
-            extensionFactories: agentProfileExtensionFactories({
-              cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
-              agentName: snapshotProfile?.name, longTerm: snapshotProfile?.longTerm === true, exactSystemPrompt: usesExactSystemPrompt ? exactSystemPromptExtension : undefined,
-              homeOnly: options.agentProfileTools !== undefined ? sessionCwd : undefined,
-              commandDeny: snapshotProfile?.commandDeny,
-              webAllowHosts: snapshotProfile?.webAllowHosts,
-              wrapCommand: threadSandboxWrapper(Boolean(trustedThread && snapshotProfile), snapshotProfile, snapshotProfile ? agentHome(snapshotProfile.name) : sessionCwd),
-            }),
+            // The skills binding composes the exact prompt and named skills: keep its factory first.
+            extensionFactories: [
+              ...(skillsBinding!.loaderOptions.extensionFactories ?? []),
+              ...agentProfileExtensionFactories({
+                cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
+                agentName: snapshotProfile?.name, longTerm: snapshotProfile?.longTerm === true,
+                homeOnly: options.agentProfileTools !== undefined ? sessionCwd : undefined,
+                commandDeny: snapshotProfile?.commandDeny,
+                webAllowHosts: snapshotProfile?.webAllowHosts,
+                wrapCommand: threadSandboxWrapper(Boolean(trustedThread && snapshotProfile), snapshotProfile, snapshotProfile ? agentHome(snapshotProfile.name) : sessionCwd),
+              }),
+            ],
             // The profile loads user extensions: a user bash extension wins over the host one, like a normal session.
-            extensionsOverride: (base) => preferUserBashExtension(base),
+            // Applied after the profile's `extensions:` scope, so a user bash extension the scope drops leaves the host one.
+            extensionsOverride: (base) => preferUserBashExtension(
+              subagentResources.extensions === undefined ? base : scopeSubagentExtensions(subagentResources.extensions)(base),
+            ),
           }
         : chatOnly
           ? { ...CHAT_ONLY_RESOURCE_LOADER_OPTIONS, extensionFactories: [exactSystemPromptExtension] }
@@ -2694,12 +2709,11 @@ export async function startRpcSession(
       );
     }
 
-    const exactSystemPrompt = subagentResources?.exactSystemPrompt !== undefined
-      ? () => subagentResources.exactSystemPrompt!
+    skillsBinding?.setActiveToolsGetter(() => inner.getActiveToolNames());
+    const exactSystemPrompt = subagentResources
+      ? skillsBinding!.getExactSystemPrompt
       : chatOnly
-        ? subagentResources
-          ? () => subagentResources.appendSystemPrompt[0] ?? ""
-          : () => contextFilesSystemPrompt(inner.resourceLoader.getAgentsFiles().agentsFiles)
+        ? () => contextFilesSystemPrompt(inner.resourceLoader.getAgentsFiles().agentsFiles)
         : undefined;
     exactSystemPromptRef.current = exactSystemPrompt;
     const wrapper = new AgentSessionWrapper(inner, {
@@ -2727,6 +2741,21 @@ export async function startRpcSession(
           // setModel resets the thinking level to the global default.
           const level = initial?.thinkingLevel ?? levelBeforeSwitch;
           if (level) await wrapper.send({ type: "set_thinking_level", level });
+        } catch (error) {
+          console.error(`[pi-web] could not switch to ${deferredModel.provider}/${deferredModel.id}:`, error instanceof Error ? error.message : error);
+        }
+      }
+      // Bound extensions may have registered providers a later model listing will not see.
+      void wrapper.waitUntilReady()
+        .then(() => rememberProviderModels(inner.modelRuntime as ModelRuntime))
+        .catch(() => undefined);
+    }
+
+    if (!chatOnly) {
+      if (deferredModel) {
+        try {
+          await wrapper.waitUntilReady();
+          await wrapper.send({ type: "set_model", provider: deferredModel.provider, modelId: deferredModel.id });
         } catch (error) {
           console.error(`[pi-web] could not switch to ${deferredModel.provider}/${deferredModel.id}:`, error instanceof Error ? error.message : error);
         }

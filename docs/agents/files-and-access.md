@@ -21,6 +21,10 @@
 - Exempt from the session (not from the host check): exactly `GET /api/metrics` (`isMetricsRequest`, `lib/agent-ops/hook-path.ts`). The route answers 404 while `PI_WEB_METRICS_TOKEN` is unset and otherwise requires `Authorization: Bearer <token>`, so no other method or path (`/api/metrics/`, `/api/metrics/x`) is exempt.
 - Tests that call a mutating route handler directly must send `origin` matching their `host`.
 
+## Uploads and chat drops
+- The explorer's Upload button and a non-image file dropped onto the chat share one client, `uploadFiles()` (`lib/file-upload-client.ts`), and the one endpoint, `POST /api/files/<cwd>?type=upload`; never add a second write path for drops. The explorer asks `upload-check` first and lets the user replace or skip; a chat drop goes straight to `conflict=skip`, so it never replaces a file. It then inserts `@name` for every file the response lists as uploaded *or* skipped (a skipped name is a file already there, often the very file dragged out of the project) and says in a notice that the mention points to the existing file.
+- Dropped images still attach to the prompt. Folders are left out with a notice: the endpoint writes flat file names only (`validateUploadFileNames()`), and the browser cannot tell where a dropped file lives on disk, so the copy always lands in the cwd root.
+
 ## Web password throttling
 - `lib/auth-throttle.ts` is deliberately global, not per-IP (its header says why). Failures double the delay (1 s → 60 s cap) for everyone; a success or 5 idle minutes resets it. The reset window must stay longer than the max delay, or waiting out one block restarts the burst.
 - State lives on `globalThis` under `Symbol.for("pi-web:auth-throttle")`, so it survives hot reload and `proxy.ts` and the route handlers share it under both `next dev` and `next start`. Tests reset it with `recordAuthSuccess()`.

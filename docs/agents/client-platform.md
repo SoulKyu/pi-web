@@ -11,6 +11,9 @@
 - Visible hints go through `formatShortcut()` / `detectShortcutPlatform()` (`lib/shortcut-label.ts`), read in components with `useShortcutPlatform()` (server snapshot `other`): macOS/iOS/iPadOS get `⌃⌥⇧⌘` glyphs joined without a separator (`⌃⌥N`), elsewhere `Ctrl+Alt+N`. Stop's title ends with `(Esc)`, New session's with the Ctrl+Alt+N chord, the desktop Follow-up button shows a `<kbd>`; phones show none. Each control also sets `aria-keyshortcuts`.
 - `?` opens `components/ShortcutsDialog.tsx` (also Settings › General and the mobile toolbar's keyboard button) unless typed into an input, textarea, select or contenteditable, during IME composition, or while a `[role="dialog"]` is open (`isShortcutsHelpKey`). The table is static (`components/shortcuts-table.ts`): the composer rows follow `useEnterSendMode()` and `useIsMobile()` exactly as `ChatInput`'s `sendShortcut` does (Cmd on macOS). A new shortcut needs a row there. The dialog sits at z-index 1100 above Settings and takes Escape through `openStackedDialog`.
 
+## Sidebar breakpoint (`components/AppShell.tsx`)
+- The mobile drawer starts closed on entering the mobile breakpoint. Desktop open state is remembered separately, seeded from the URL's initial `sidebarCollapsed` value and updated only by explicit desktop toggles. Returning to desktop restores that preference; mobile drawer toggles, backdrop clicks and toolbar actions must not replace it.
+
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.
 - Autoplay policy requires unlocking sound from a user gesture: `ChatInput` calls the unlock hook from interactive controls, and `ChatWindow` plays the tone from `onAgentEnd`.

@@ -14,7 +14,7 @@
   - `command_deny` (≤ 50 regex sources): Task 42 command deny list.
   - `web_allow_hosts` (≤ 100 hosts, `example.com` or `*.example.com`): Task 43 web allowlist.
 - A project profile under a home is never offered: homes are not project cwds.
-- The agent view's home tree accepts dropped files and has a Browse button, both through FileExplorer's existing upload flow (`POST /api/files/<home>?type=upload`, server unchanged). Dropped folders are refused client-side (`useDragDrop` skips directory entries).
+- The agent view's home tree accepts dropped files and has a Browse button, both through FileExplorer's existing upload flow (`POST /api/files/<home>?type=upload`, server unchanged). Dropped folders are refused client-side (`useDragDrop` marks directory entries, `FileExplorer` leaves them out).
 
 ## Thread
 - The thread is one pinned session, started `trusted` (`agentProfileTrust: "trusted"`) with the agent's home as cwd. `ensureThread` is serialized per agent (`serializeByKey`) and re-reads the agent inside the lock, so concurrent opens share one start.
