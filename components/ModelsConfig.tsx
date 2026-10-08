@@ -1667,7 +1667,7 @@ function ApiKeyDetail({ provider, onRefresh, enabledModels }: {
             padding: "6px 12px",
             background: savedOk ? "var(--color-tron-cyan)" : apiKey.trim() ? "var(--accent)" : "var(--bg-panel)",
             border: "none", borderRadius: 0,
-            color: savedOk ? "#fff" : apiKey.trim() ? "var(--accent-contrast)" : "var(--text-dim)",
+            color: savedOk ? "var(--accent-contrast)" : apiKey.trim() ? "var(--accent-contrast)" : "var(--text-dim)",
             cursor: (saving || !apiKey.trim() || savedOk) ? "not-allowed" : "pointer",
             fontSize: 12, fontWeight: 600, flexShrink: 0,
             display: "flex", alignItems: "center", gap: 5,

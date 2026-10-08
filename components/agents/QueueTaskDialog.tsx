@@ -86,7 +86,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
         {deliverTo && !review && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agents.handTo.mentionHint", { name: target })}</span>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !prompt.trim() || overCap} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", cursor: "pointer" }}>{t(review ? "agents.askReview.submit" : "agents.tasks.queue")}</button>
+          <button type="submit" disabled={busy || !prompt.trim() || overCap} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "var(--accent-contrast)", cursor: "pointer" }}>{t(review ? "agents.askReview.submit" : "agents.tasks.queue")}</button>
         </div>
       </form>
     </div>

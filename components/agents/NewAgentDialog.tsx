@@ -9,7 +9,7 @@ import type { ToolsPreset } from "@/lib/agents/registry";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 
 export const EMOJIS = ["🛠", "🤖", "📚", "🔍", "🧭", "🛰", "🧪", "📈"];
-export const COLORS = ["#e07a5f", "#3d9970", "#8e7cc3", "#6c8cff", "#f5a524", "var(--color-tron-red)", "#30a46c", "#555555"];
+export const COLORS = ["#e07a5f", "#3d9970", "#8e7cc3", "#6c8cff", "#f5a524", "#e5484d", "#30a46c", "#555555"];
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 export const TOOLS_PRESETS: ToolsPreset[] = ["read-only", "standard", "full"];
 
