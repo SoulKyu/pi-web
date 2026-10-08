@@ -51,6 +51,8 @@ import {
 } from "@/lib/session-ui-state-shared";
 import { focusIfLost } from "@/lib/stacked-dialog";
 import { useI18n } from "@/hooks/useI18n";
+import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
+import { formatShortcut } from "@/lib/shortcut-label";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
 import { useSessionUiState } from "@/hooks/useSessionUiState";
@@ -385,6 +387,7 @@ function buttonAnchor(element: HTMLElement, align: "start" | "end"): SidebarMenu
 
 export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSession, controlRef, onNewSessionContextChange, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onOpenFile, onOpenTerminal, explorerRefreshKey, onExplorerRefresh, onAtMention, onAtMentions, onBackgroundTaskDone, onRunningSessionIdsChange, onSessionsChange }: Props) {
   const { t } = useI18n();
+  const shortcutPlatform = useShortcutPlatform();
   const isMobile = useIsMobile();
   const [allSessions, setAllSessions] = useState<SessionInfo[]>([]);
   // Tracked in a ref only: the version is compared against the polled value to
@@ -2035,7 +2038,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
           className="sidebar-new-button"
           onClick={handleNewSession}
           disabled={!selectedCwd}
-          title={selectedCwd ? t("sidebar.newSessionTitle", { path: selectedCwd }) : t("sidebar.selectProject")}
+          aria-keyshortcuts="Control+Alt+N"
+          title={selectedCwd ? t("sidebar.newSessionTitle", { path: selectedCwd, shortcut: formatShortcut(["Ctrl", "Alt", "N"], shortcutPlatform) }) : t("sidebar.selectProject")}
         >
           <PlusIcon size={12} />
           <span className="sidebar-new-label">{t("sidebar.new")}</span>
