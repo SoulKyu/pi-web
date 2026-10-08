@@ -824,7 +824,8 @@ test("keeps the compaction control reachable while a turn is auto-compacting", (
   // The "streaming but not compacting" state is now unreachable, so its disabled styling
   // must be gone rather than left as dead branches.
   assert.doesNotMatch(controlBlock, /isStreaming && !isCompacting/);
-  assert.match(controlBlock, /cursor: "pointer"/);
+  // Always clickable: never disabled (the pointer cursor comes from the base button rule in globals.css).
+  assert.doesNotMatch(controlBlock, /disabled=/);
 });
 
 test("built-in /new and /clear reset an agent's own thread, else ask for a new session, without creating one first", async () => {
