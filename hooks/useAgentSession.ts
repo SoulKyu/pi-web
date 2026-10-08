@@ -57,6 +57,8 @@ export interface SessionData {
   sessionId: string;
   filePath: string;
   totalActiveMs: number;
+  /** Top tools by time, agent-profile sessions only. */
+  toolDurations?: Array<{ name: string; totalMs: number; calls: number }>;
   tree: SessionTreeNode[];
   leafId: string | null;
   toolNames?: string[];
@@ -570,6 +572,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       return {
         ...sessionStatsOverride,
         totalActiveMs: data?.totalActiveMs,
+        toolDurations: data?.toolDurations,
         ...(contextUsage ? { contextUsage } : {}),
       };
     }
@@ -582,9 +585,10 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       sessionName: session?.name,
       ...stats,
       totalActiveMs: data?.totalActiveMs,
+      toolDurations: data?.toolDurations,
       ...(contextUsage ? { contextUsage } : {}),
     } satisfies SessionStatsInfo;
-  }, [messages, sessionStatsOverride, contextUsage, data?.context.messages, data?.filePath, data?.totalActiveMs, data?.stats, session?.id, session?.name]);
+  }, [messages, sessionStatsOverride, contextUsage, data?.context.messages, data?.filePath, data?.totalActiveMs, data?.toolDurations, data?.stats, session?.id, session?.name]);
 
   const loadSession = useCallback(async (sid: string, showLoading = false, includeState = false, options?: { force?: boolean }) => {
     // Single-flight: concurrent reads for the same session (mount + SSE settle +

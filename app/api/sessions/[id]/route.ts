@@ -17,7 +17,7 @@ import {
 import { sessionPathKey } from "@/lib/session-path";
 import { abortSubagent, getRpcSession, getRpcSessionInfos } from "@/lib/rpc-manager";
 import { projectTreeForResponse, toSummaryTree } from "@/lib/project-tree";
-import { computeSessionTotalActiveMs } from "@/lib/session-timing";
+import { computeSessionTotalActiveMs, toolDurations, topTools } from "@/lib/session-timing";
 import { createEquivalentCostResolver } from "@/lib/cost-equivalent";
 import { computeSessionStats } from "@/lib/session-stats";
 import { startServerPerf } from "@/lib/perf";
@@ -149,7 +149,7 @@ export async function GET(
         stats,
         totalActiveMs,
         ...(toolNames !== undefined ? { toolNames } : {}),
-        ...(agentProfile ? { agentProfile } : {}),
+        ...(agentProfile ? { agentProfile, toolDurations: topTools(toolDurations(entries)) } : {}),
         ...(wrapperRebuilt ? { wrapperRebuilt: true } : {}),
       },
     )) ?? jsonResponse(
@@ -166,7 +166,7 @@ export async function GET(
         stats,
         totalActiveMs,
         ...(toolNames !== undefined ? { toolNames } : {}),
-        ...(agentProfile ? { agentProfile } : {}),
+        ...(agentProfile ? { agentProfile, toolDurations: topTools(toolDurations(entries)) } : {}),
         ...(wrapperRebuilt ? { wrapperRebuilt: true } : {}),
       },
     );

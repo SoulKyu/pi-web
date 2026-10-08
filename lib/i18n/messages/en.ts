@@ -222,6 +222,7 @@ export const enLocale: LocalePlugin = {
     "session.messages": "Messages",
     "session.tokens": "Tokens",
     "session.totalActive": "Active Time",
+    "session.toolTime": "Tools (time)",
     "session.copyFile": "Copy file path",
     "session.copyId": "Copy session ID",
     "session.projectDir": "Project Dir",

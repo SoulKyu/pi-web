@@ -222,6 +222,7 @@ export const zhCNLocale: LocalePlugin = {
     "session.messages": "消息",
     "session.tokens": "Token",
     "session.totalActive": "活跃时长",
+    "session.toolTime": "工具（耗时）",
     "session.copyFile": "复制文件路径",
     "session.copyId": "复制会话 ID",
     "session.projectDir": "项目目录",

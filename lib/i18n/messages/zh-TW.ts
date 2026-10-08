@@ -222,6 +222,7 @@ export const zhTWLocale: LocalePlugin = {
     "session.messages": "訊息",
     "session.tokens": "Token",
     "session.totalActive": "活躍時間",
+    "session.toolTime": "工具（耗時）",
     "session.copyFile": "複製檔案路徑",
     "session.copyId": "複製工作階段 ID",
     "session.projectDir": "專案目錄",

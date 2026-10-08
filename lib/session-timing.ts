@@ -1,8 +1,10 @@
 interface TimingEntry {
   type: string;
   timestamp: string;
-  message?: { role?: string };
+  message?: { role?: string; toolCallId?: string; content?: unknown };
 }
+
+export interface ToolDuration { name: string; totalMs: number; calls: number }
 
 /**
  * Estimate active wall-clock time from the append-only session log.
@@ -42,4 +44,36 @@ function isTimingEntry(type: string): boolean {
     || type === "compaction"
     || type === "branch_summary"
     || type === "custom_message";
+}
+
+/**
+ * Time per tool: each toolResult's timestamp minus the timestamp of the assistant message holding its
+ * toolCall. Parallel calls of one message all start at that message's timestamp (approximation).
+ */
+export function toolDurations(entries: readonly TimingEntry[]): ToolDuration[] {
+  const started = new Map<string, { name: string; at: number }>();
+  const byName = new Map<string, ToolDuration>();
+  for (const entry of entries) {
+    if (entry.type !== "message" || !entry.message) continue;
+    const at = Date.parse(entry.timestamp);
+    if (!Number.isFinite(at)) continue;
+    const { role, content, toolCallId } = entry.message;
+    if (role === "assistant" && Array.isArray(content)) {
+      for (const block of content as Array<{ type?: string; id?: string; name?: string }>) {
+        if (block?.type === "toolCall" && block.id && block.name) started.set(block.id, { name: block.name, at });
+      }
+    } else if (role === "toolResult" && toolCallId) {
+      const call = started.get(toolCallId);
+      if (!call || at < call.at) continue;
+      const total = byName.get(call.name) ?? { name: call.name, totalMs: 0, calls: 0 };
+      total.totalMs += at - call.at;
+      total.calls += 1;
+      byName.set(call.name, total);
+    }
+  }
+  return [...byName.values()].sort((a, b) => b.totalMs - a.totalMs);
+}
+
+export function topTools(durations: readonly ToolDuration[], n = 5): ToolDuration[] {
+  return durations.slice(0, n);
 }

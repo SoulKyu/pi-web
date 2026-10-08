@@ -2372,6 +2372,10 @@ export function AppShell() {
                        { label: translate("session.id"), value: sessionStats.sessionId, copyField: "id" as const },
                        ...(totalActiveMs > 0 ? [{ label: translate("session.totalActive"), value: formatDuration(totalActiveMs), copyField: null }] : []),
                     ];
+                    const toolTimeRows = (sessionStats.toolDurations ?? []).map((tool) => [
+                      tool.name,
+                      `${(tool.totalMs / 1000).toFixed(1)} s (${tool.calls})`,
+                    ]);
                     const projectRows = [
                       ...(ws ? [{ label: translate("session.projectDir"), value: ws.projectRoot ?? ws.cwd, copyField: "projectDir" as const }] : []),
                       ...(ws?.branch ? [{ label: translate("session.gitBranch"), value: ws.branch, copyField: "gitBranch" as const }] : []),
@@ -2541,6 +2545,7 @@ export function AppShell() {
                         <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 20 }}>
                           {sessionInfoSection}
                           {projectInfoSection}
+                          {toolTimeRows.length > 0 ? section(translate("session.toolTime"), toolTimeRows) : null}
                         </div>
                          {section(translate("session.messages"), messageRows)}
                          {section(translate("session.tokens"), [...tokenRows, ...extraTokenRows], "right", true)}

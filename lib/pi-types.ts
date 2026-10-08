@@ -57,6 +57,8 @@ export interface SessionStatsInfo {
   contextUsage?: ContextUsage;
   /** Estimated active time across all entries in the session file. */
   totalActiveMs?: number;
+  /** Top tools by time (agent-profile sessions only). */
+  toolDurations?: Array<{ name: string; totalMs: number; calls: number }>;
 }
 
 interface PromptTemplateLike {
