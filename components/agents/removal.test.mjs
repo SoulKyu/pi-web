@@ -15,16 +15,17 @@ function sources(dir) {
   return out;
 }
 
-test("the Agent Ops overlay and its overview/list routes are gone", () => {
+test("the Agent Ops overlay and its overview route are gone", () => {
   for (const path of [
     "components/agents/AgentsPanel.tsx",
     "components/agents/AssignTaskDialog.tsx",
     "app/api/agent-ops/overview/route.ts",
-    "app/api/agent-ops/tasks/route.ts",
     "lib/agent-ops/overview.ts",
     "lib/agent-ops/overview.test.mjs",
   ]) assert.equal(existsSync(join(root, path)), false, path);
+  // the global tasks board (Task 49) brought the GET-only list route back
   assert.equal(existsSync(join(root, "app/api/agent-ops/tasks/[id]/route.ts")), true);
+  assert.equal(existsSync(join(root, "app/api/agent-ops/tasks/route.ts")), true);
 });
 
 test("no source references the removed overlay", () => {

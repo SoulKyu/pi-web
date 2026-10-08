@@ -8,11 +8,12 @@ import { formatTaskDuration, requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
-function TaskRow({ task, onOpenSession, onChanged, compact }: {
+function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
   task: AgentTaskListItem;
   compact: boolean;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
+  onSelectAgent?: (name: string) => void;
 }) {
   const { t } = useI18n();
   const [message, setMessage] = useState("");
@@ -38,6 +39,7 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
         <strong style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
         {task.requestedBy && task.requestedBy !== "user" && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agents.tasks.requestedBy", { name: task.requestedBy })}</span>}
+        {task.requestedBy && task.requestedBy !== "user" && onSelectAgent && <button type="button" onClick={() => onSelectAgent(task.requestedBy!)} style={{ ...smallButton, flexShrink: 0 }}>{t("agents.board.openAgent", { name: task.requestedBy })}</button>}
         {task.status === "queued" && task.notBefore && (
           <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agentOps.task.waitsUntil", { time: new Date(task.notBefore).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</span>
         )}
@@ -76,7 +78,7 @@ function TaskRow({ task, onOpenSession, onChanged, compact }: {
   );
 }
 
-export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false, compact = false }: {
+export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false, compact = false, onSelectAgent }: {
   tasks: readonly AgentTaskListItem[];
   /** Inside a trigger's history: no heading, no full-row grid span. */
   nested?: boolean;
@@ -84,6 +86,8 @@ export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false, co
   compact?: boolean;
   onOpenSession: (sessionId: string) => void;
   onChanged: () => void;
+  /** The global board: "requested by" links to the requesting agent. */
+  onSelectAgent?: (name: string) => void;
 }) {
   const { t } = useI18n();
   return (
@@ -91,7 +95,7 @@ export function AgentTasks({ tasks, onOpenSession, onChanged, nested = false, co
       {!nested && !compact && <strong style={{ fontSize: 13, color: "var(--text)" }}>{t("agentOps.tasks")}</strong>}
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 12 }}>{t("agentOps.noTasks")}</div>}
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-        {tasks.map((task) => <TaskRow key={task.id} task={task} onOpenSession={onOpenSession} onChanged={onChanged} compact={compact} />)}
+        {tasks.map((task) => <TaskRow key={task.id} task={task} onOpenSession={onOpenSession} onChanged={onChanged} onSelectAgent={onSelectAgent} compact={compact} />)}
       </ul>
     </section>
   );

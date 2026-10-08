@@ -39,7 +39,8 @@ app/api/
   sessions/[id]/state/route.ts     GET live wrapper state while running
   sessions/[id]/auto-name/route.ts POST generate a session title
   sessions/search/route.ts         GET session search
-  agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel
+  agent-ops/tasks/route.ts         GET every agent's tasks { tasks, truncated? } (global board, no prompts, no-store)
+  agent-ops/tasks/[id]/route.ts    POST steer a running task | DELETE cancel (+ its queued children: cancelledChildren)
   agent-ops/triggers/route.ts      GET [?agent=] list triggers (hasWebhookSecret, never the secret) | POST create; webhook: true returns the generated secret once
   agent-ops/triggers/[id]/route.ts PATCH enabled/edit (re-pins on profile or cwd change) | DELETE
   agent-ops/triggers/[id]/secret/route.ts POST rotate the webhook secret, returned once
@@ -245,7 +246,8 @@ components/
   OAuthPastePanel.tsx      paste box for a sign-in's redirected address or code (Models, MCP)
   ProjectTrustDialog.tsx   trust confirmation listing the project's MCP servers
   AgentsConfig.tsx         built-in subagent toggle + agent profile editor
-  agents/AgentRail.tsx     long-term agent rail: avatars, running dot, unread badge
+  agents/AgentRail.tsx     long-term agent rail: avatars, running dot, unread badge, Tasks and Sessions buttons
+  agents/TasksBoard.tsx    global tasks board dialog: every agent's tasks grouped by agent, 5 s refresh only while open
   agents/AgentAvatar.tsx   agent avatar (color + glyph)
   agents/NewAgentDialog.tsx create a long-term agent
   agents/AgentProfileDialog.tsx edit a long-term agent's profile

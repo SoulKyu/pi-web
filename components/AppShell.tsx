@@ -12,6 +12,7 @@ import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
 import { AgentRail, useAgentsPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
+import { TasksBoard } from "./agents/TasksBoard";
 import { AgentAvatar } from "./agents/AgentAvatar";
 import { DRAWER_TAB_KEY, readDrawerTab, type DrawerTab } from "@/lib/agents/drawer-tab";
 import { AgentSpaceLeft } from "./agents/AgentSpaceLeft";
@@ -183,6 +184,7 @@ export function AppShell() {
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null);
   const [agentUnreadMarker, setAgentUnreadMarker] = useState<string | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
+  const [tasksBoardOpen, setTasksBoardOpen] = useState(false);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
@@ -2113,6 +2115,7 @@ export function AppShell() {
         onSelectAgent={(name) => void openAgent(name)}
         onNewAgent={() => setNewAgentOpen(true)}
         onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
+        onShowTasks={() => setTasksBoardOpen(true)}
         orientation={isMobile ? "horizontal" : "vertical"}
         paused={allPaused}
         error={agentsError}
@@ -2159,6 +2162,7 @@ export function AppShell() {
           onSelectAgent={(name) => void openAgent(name)}
           onNewAgent={() => setNewAgentOpen(true)}
           onShowSessions={() => { setActiveAgent(null); setSidebarOpen(true); }}
+        onShowTasks={() => setTasksBoardOpen(true)}
           orientation={isMobile ? "horizontal" : "vertical"}
           paused={allPaused}
           error={agentsError}
@@ -2790,6 +2794,14 @@ export function AppShell() {
         onClose={() => setNewAgentOpen(false)}
         agentsHomeDir={agentsHomeDir}
         onCreated={(agent) => { reloadAgents(); void openAgent(agent.name); }}
+      />
+    )}
+    {tasksBoardOpen && (
+      <TasksBoard
+        agents={agents}
+        onClose={() => setTasksBoardOpen(false)}
+        onSelectAgent={(name) => { setTasksBoardOpen(false); void openAgent(name); }}
+        onOpenSession={(sessionId) => { setTasksBoardOpen(false); void handleOpenSession(sessionId); }}
       />
     )}
     {/* After Settings, so it opens above it (z-index 1100 over 1000) when Settings › MCP asks for it. */}

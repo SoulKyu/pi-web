@@ -46,3 +46,21 @@ test("the rail keeps its last snapshot on a failed poll and shows a stale line o
   assert.match(rail, /t\("agents\.rail\.stale", \{ time: new Date\(lastOkAt\)\.toLocaleTimeString\(locale, \{ timeStyle: "short" \}\) \}\)/);
   assert.match(shell, /lastOkAt=\{agentsLastOkAt\}/);
 });
+
+test("the global tasks board: rail button, 5 s refresh cleared on close, grouped by agent, four locales", async () => {
+  const board = await readFile(new URL("./TasksBoard.tsx", import.meta.url), "utf8");
+  assert.match(rail, /aria-label=\{t\("agents\.rail\.tasks"\)\}/);
+  assert.match(rail, /onClick=\{onShowTasks\}/);
+  assert.match(shell, /<TasksBoard/);
+  assert.match(shell, /onShowTasks=\{\(\) => setTasksBoardOpen\(true\)\}/);
+  assert.match(board, /fetch\("\/api\/agent-ops\/tasks"/);
+  assert.match(board, /setInterval\(\(\) => void load\(\), REFRESH_MS\)/);
+  assert.match(board, /clearInterval\(timer\)/);
+  assert.match(board, /task\.agent \?\? OTHER/);
+  assert.match(board, /onSelectAgent=\{onSelectAgent\}/);
+  assert.doesNotMatch(board, /\(\?<[=!]/);
+  for (const locale of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const messages = await readFile(new URL(`../../lib/i18n/messages/${locale}.ts`, import.meta.url), "utf8");
+    for (const key of ["agents.rail.tasks", "agents.board.title", "agents.board.openAgent", "agents.board.other", "agents.board.truncated"]) assert.ok(messages.includes(`"${key}"`), `${locale} ${key}`);
+  }
+});

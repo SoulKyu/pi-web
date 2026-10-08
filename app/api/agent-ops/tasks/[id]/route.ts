@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRpcSession } from "@/lib/rpc-manager";
 import { kickRunner, recoverOnce } from "@/lib/agent-ops/kick";
-import { cancelTask, createTask, getTask, TERMINAL, updateTask, type AgentTask } from "@/lib/agent-ops/task-store";
+import { cancelQueuedChildren, cancelTask, createTask, getTask, TERMINAL, updateTask, type AgentTask } from "@/lib/agent-ops/task-store";
 import { getTrigger, triggerPinStatus } from "@/lib/agent-ops/trigger-store";
 import { appendTriggerLog } from "@/lib/agent-ops/trigger-log";
 
@@ -55,7 +55,7 @@ export async function POST(req: Request, { params }: Context) {
   return NextResponse.json({ success: true });
 }
 
-// DELETE /api/agent-ops/tasks/[id] - Cancel a queued or running task.
+// DELETE /api/agent-ops/tasks/[id] - Cancel a queued or running task, then its queued children (running children keep going).
 export async function DELETE(_req: Request, { params }: Context) {
   recoverOnce();
   const { id } = await params;
@@ -74,5 +74,5 @@ export async function DELETE(_req: Request, { params }: Context) {
     } catch { /* already terminal: answer with the current status */ }
     if (current.sessionId) await getRpcSession(current.sessionId)?.send({ type: "abort" }).catch(() => {});
   }
-  return NextResponse.json({ task: getTask(id) });
+  return NextResponse.json({ task: getTask(id), cancelledChildren: cancelQueuedChildren(id) });
 }

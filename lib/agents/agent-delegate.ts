@@ -67,9 +67,10 @@ export function createAgentDelegateExtension(options: {
           const tasks = deps.listTasks();
           const refusal = delegationRefusal({ from, to, target, runningTasks: tasks.filter((t) => t.status === "running"), recent: tasks });
           if (refusal || !target) return text(`Refused: ${refusal}`);
+          const parent = tasks.find((t) => t.agent === from && t.target === "thread" && t.status === "running");
           const created = deps.createTask({
             agent: to, target: "thread", kind: "task", profile: to, cwd: target.home, prompt: task,
-            title: task.replace(/\s+/g, " ").slice(0, TITLE_MAX), origin: "agent", requestedBy: from, deliverTo: from,
+            title: task.replace(/\s+/g, " ").slice(0, TITLE_MAX), origin: "agent", requestedBy: from, deliverTo: from, ...(parent && { parentTaskId: parent.id }),
           });
           deps.kick();
           return text(`Queued as task ${created.id} for ${to}; the result will appear as a card in this thread.`);
