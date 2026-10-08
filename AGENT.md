@@ -217,7 +217,7 @@ Champs `package.json` propres au fork :
 | Date | Commit upstream intégré | Conflits | Remarques |
 | ---- | ----------------------- | -------- | --------- |
 | 2026-10-08 | — (base : `6fcd7d4` Release v0.10.0) | — | État initial : `local` a 231 commits d'avance, upstream 22 de retard à intégrer (jusqu'à `a096af3`) |
-| 2026-10-08 | `a096af3` (22 commits, `6fcd7d4..a096af3`) | 10 : `AGENTS.md`, 4 × `docs/agents/*.md`, `ChatWindow.tsx`, `useDragDrop.ts`, `rpc-manager.ts`, `rpc-manager.test.mjs`, `subagents.test.mjs` (+ doublon `addNotice` dans `useAgentSession.ts`, fusion auto) | Branche `sync/upstream-2026-10-08` (merge `af99d15` + `fix(fork)` `d3def27`), non intégrée dans `local` en attente de relecture. 3196/3197 tests OK (1 ignoré), tsc et lint OK |
+| 2026-10-08 | `a096af3` (22 commits, `6fcd7d4..a096af3`) | 10 : `AGENTS.md`, 4 × `docs/agents/*.md`, `ChatWindow.tsx`, `useDragDrop.ts`, `rpc-manager.ts`, `rpc-manager.test.mjs`, `subagents.test.mjs` (+ doublon `addNotice` dans `useAgentSession.ts`, fusion auto) | Branche `sync/upstream-2026-10-08` (merge `af99d15` + `fix(fork)` `d3def27`), relue par l'humain puis intégrée en fast-forward dans `local` ; `main` = `a096af3`. 3196/3197 tests OK (1 ignoré), tsc et lint OK |
 
 ---
 
