@@ -24,7 +24,8 @@ export function explainTrifecta(p: TrifectaInput): AgentPermissions["trifectaRea
   const unsandboxed = p.sandbox === "none";
   const known = Array.isArray(p.extensionTools) ? p.extensionTools : [];
   const external = [...new Set([...p.tools, ...known].filter(isExternalContentTool))];
-  const privateData = unsandboxed ? p.tools.filter((t) => FILE_TOOLS.includes(t)) : [];
+  // The sandbox wraps bash only: read, grep, find, ls, edit and write still reach ~/.ssh.
+  const privateData = p.tools.filter((t) => FILE_TOOLS.includes(t) && (unsandboxed || t !== "bash"));
   const mcpServers = p.mcpAllowed.map((s) => `mcp:${s}`);
   const untrustedContent = [...external, ...mcpServers, ...(p.hasWebhookTrigger ? ["webhook trigger"] : [])];
   // web_search / source_check fetch result pages from any host, and an MCP server sends anywhere: neither is narrowed by webAllowHosts.
