@@ -301,7 +301,7 @@ html.dark .web-login-error {
   height: 7px;
   flex: 0 0 7px;
   border-radius: 50%;
-  background: #facc15;
+  background: var(--color-tron-orange);
 }
 
 .terminal-status-dot.is-ready { background: var(--color-tron-cyan); }
