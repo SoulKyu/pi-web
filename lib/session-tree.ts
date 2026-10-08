@@ -738,11 +738,6 @@ export function getVisibleRowIndices(
 }
 
 /**
- * The scrollTop that brings row `index` into a viewport of `viewportHeight`
- * now scrolled to `scrollTop`: centred when it is partly or wholly out of
- * view, null when it is already in view (or there is no such row).
- */
-/**
  * The next row up (step -1) or down (step 1) that keyboard focus can land on,
  * or -1 at either end: spacers, empty-group notes and archive project labels
  * hold no button.
@@ -755,6 +750,11 @@ export function neighborFocusableRow(rows: readonly Pick<SidebarRow, "kind">[], 
   return -1;
 }
 
+/**
+ * The scrollTop that brings row `index` into a viewport of `viewportHeight`
+ * now scrolled to `scrollTop`: centred when it is partly or wholly out of
+ * view, null when it is already in view (or there is no such row).
+ */
 export function revealScrollTop(
   offsets: readonly number[],
   index: number,
