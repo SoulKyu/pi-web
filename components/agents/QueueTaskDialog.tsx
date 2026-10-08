@@ -64,7 +64,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
           <label style={labelStyle}>
             {t("agents.handTo.target")}
             <select value={target} onChange={(event) => setTarget(event.target.value)} aria-describedby={deliverTo ? selfHintId : undefined} style={fieldStyle}>
-              {targetAgents.map((agent) => <option key={agent.name} value={agent.name}>{agent.paused ? `${agent.name} ${t("agents.handTo.paused")}` : agent.running ? `${agent.name} ${t("agents.handTo.busy")}` : agent.name}</option>)}
+              {targetAgents.map((agent) => <option key={agent.name} value={agent.name}>{agent.paused ? `${agent.name} ${t("agents.handTo.paused")}` : !review && agent.running ? `${agent.name} ${t("agents.handTo.busy")}` : agent.name}</option>)}
             </select>
           </label>
         )}
