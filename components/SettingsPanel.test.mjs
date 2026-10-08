@@ -7,8 +7,6 @@ const cssSource = await readFile(new URL("../app/settings.css", import.meta.url)
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
 const sidebarSource = await readFile(new URL("./SessionSidebar.tsx", import.meta.url), "utf8");
-const themeSource = await readFile(new URL("../hooks/useTheme.ts", import.meta.url), "utf8");
-const themeOptionsSource = await readFile(new URL("../lib/theme.ts", import.meta.url), "utf8");
 const enSource = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zhSource = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
 const loginSource = await readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8");
@@ -47,7 +45,7 @@ test("Settings › MCP works without a project, and only project sections fall b
   assert.match(shellSource, /const disabled = settingsSectionRequiresProject\(section\) && !projectTrustCwd;/);
   assert.doesNotMatch(shellSource, /section !== "models"/);
   // Its own glyph, not the Plugins fallback.
-  assert.match(panelSource, /if \(section === "mcp"\) return <svg \{\.\.\.common\}>/);
+  assert.match(panelSource, /if \(section === "mcp"\) return <Server \{\.\.\.common\} \/>/);
   for (const source of [enSource, zhSource]) assert.match(source, /"settings\.mcp": "MCP"/);
 });
 
@@ -134,14 +132,8 @@ test("trusting from Settings › MCP reloads, in place, the other mounted sectio
   assert.match(panelSource, /sectionHost\("models", <ModelsConfig embedded cwd=\{cwd\} onClose=\{onClose\} \/>\)/);
 });
 
-test("offers five palettes and system theme selection with native radios", () => {
-  for (const preference of ["light", "dark", "mist", "rose", "pine", "auto"]) {
-    assert.match(themeOptionsSource, new RegExp(`id: "${preference}"`));
-  }
-  assert.match(panelSource, /THEME_OPTIONS\.map/);
-  assert.match(panelSource, /type="radio"/);
-  assert.match(panelSource, /setThemePreference\(option\.id\)/);
-  assert.match(themeSource, /const setThemePreference = useCallback/);
+test("General settings offer no theme selector: Tron is the only UI", () => {
+  assert.doesNotMatch(panelSource, /THEME_OPTIONS|setThemePreference|settings\.appearance/);
 });
 
 test("keeps language selection in General settings", () => {
@@ -151,16 +143,11 @@ test("keeps language selection in General settings", () => {
 });
 
 test("groups chat display controls together without row backgrounds", () => {
-  const appearanceSection = panelSource.slice(
-    panelSource.indexOf('{t("settings.appearance")}'),
-    panelSource.indexOf('{t("settings.chat")}'),
-  );
   const chatSection = panelSource.slice(
     panelSource.indexOf('{t("settings.chat")}'),
     panelSource.indexOf("{shellSettings?.isWindows"),
   );
 
-  assert.doesNotMatch(appearanceSection, /settings-chat-content/);
   assert.match(chatSection, /className="settings-chat-options"/);
   assert.equal((chatSection.match(/className="settings-chat-option(?: |")/g) ?? []).length, 5);
   assert.equal((chatSection.match(/<ConfigSwitch/g) ?? []).length, 2);
@@ -207,15 +194,14 @@ test("labels agent profiles as sub-agents", () => {
 });
 
 test("uses the child-session robot glyph for the sub-agents tab", () => {
-  const robotGlyph = /<rect x="5" y="7" width="14" height="11" rx="2" \/>\s*<path d="M9 11h\.01M15 11h\.01M9 15h6M12 7V4M10 4h4" \/>/;
-  assert.match(panelSource, robotGlyph);
-  assert.match(sidebarSource, robotGlyph);
-  assert.match(panelSource, /section === "agents"[\s\S]*?className="settings-section-icon is-agent"/);
+  // One shared glyph: lucide Bot in the sub-agents tab and for sidebar child sessions.
+  assert.match(panelSource, /section === "agents"\) return <Bot \{\.\.\.common\} className="settings-section-icon is-agent"/);
+  assert.match(sidebarSource, /<Bot aria-hidden="true" className="size-\[11px\] shrink-0 text-tron-cyan" \/>/);
   assert.match(cssSource, /\.settings-section-icon\.is-agent \{[\s\S]*?transform: scale\(1\.25\)/);
 });
 
 test("uses the compact controls glyph for General", () => {
-  assert.match(panelSource, /section === "general"[\s\S]*?<path d="M20 7h-9M14 17H5" \/>[\s\S]*?<circle cx="7" cy="7" r="3" \/>[\s\S]*?<circle cx="17" cy="17" r="3" \/>/);
+  assert.match(panelSource, /section === "general"\) return <SlidersHorizontal \{\.\.\.common\} \/>/);
 });
 
 test("keeps password authentication to one login field and one settings action", () => {
@@ -226,5 +212,5 @@ test("keeps password authentication to one login field and one settings action",
   assert.match(panelSource, /fetch\("\/api\/web-auth", \{ method: "DELETE" \}\)/);
   assert.match(panelSource, /t\("auth\.logOut"\)/);
   assert.match(loginSource, /className="web-login-composer"[\s\S]*?type="password"[\s\S]*?<button type="submit"/);
-  assert.match(globalCssSource, /\.web-login-composer \{[\s\S]*?display: flex;[\s\S]*?border-radius: 14px/);
+  assert.match(globalCssSource, /\.web-login-composer \{[\s\S]*?display: flex;[\s\S]*?border-radius: 0/);
 });

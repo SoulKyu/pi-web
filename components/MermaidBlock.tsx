@@ -2,9 +2,8 @@
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vs } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { useTheme } from "@/hooks/useTheme";
+import { tronSyntaxTheme } from "@/lib/tron-syntax-theme";
+import { TRON_MERMAID_THEME_VARIABLES } from "@/lib/mermaid-theme";
 import { useI18n } from "@/hooks/useI18n";
 import { copyText } from "@/lib/clipboard";
 
@@ -35,13 +34,12 @@ type RenderState =
   | { key: string; status: "ready"; svg: string };
 
 export function MermaidBlock({ code, isStreaming, defaultPreview = false }: MermaidBlockProps) {
-  const { isDark } = useTheme();
   const { t } = useI18n();
   const [showPreview, setShowPreview] = useState(defaultPreview);
   const [renderState, setRenderState] = useState<RenderState | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
   const previewRef = useRef<HTMLButtonElement>(null);
-  const currentKey = `${isDark ? "dark" : "light"}\n${code}`;
+  const currentKey = `dark\n${code}`;
   const previewVisible = showPreview && !isStreaming;
 
   useEffect(() => {
@@ -56,7 +54,8 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
         startOnLoad: false,
         securityLevel: "strict",
         suppressErrorRendering: true,
-        theme: isDark ? "dark" : "default",
+        theme: "base",
+        themeVariables: TRON_MERMAID_THEME_VARIABLES,
       });
 
       const parsed = await mermaid.parse(code, { suppressErrors: true });
@@ -79,7 +78,7 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
     return () => {
       cancelled = true;
     };
-  }, [code, currentKey, isDark, previewVisible]);
+  }, [code, currentKey, previewVisible]);
 
   const previewButton = useMemo(() => (
     <button
@@ -260,9 +259,9 @@ interface CodeBlockProps {
 // background shorthand. Keep the pre background solely in customStyle so a
 // theme switch cannot remove/update one and reset the other in React's diff.
 const codeBlockDarkTheme = {
-  ...vscDarkPlus,
+  ...tronSyntaxTheme,
   'pre[class*="language-"]': {
-    ...vscDarkPlus['pre[class*="language-"]'],
+    ...tronSyntaxTheme['pre[class*="language-"]'],
   },
 };
 delete codeBlockDarkTheme['pre[class*="language-"]'].background;
@@ -278,7 +277,6 @@ delete codeBlockDarkTheme['pre[class*="language-"]'].background;
  * every chunk, which is the single most expensive part of streamed rendering.
  */
 export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isStreaming }: CodeBlockProps) {
-  const { isDark } = useTheme();
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
@@ -319,7 +317,7 @@ export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isS
       ) : (
         <SyntaxHighlighter
           language={lang || "text"}
-          style={isDark ? codeBlockDarkTheme : vs}
+          style={codeBlockDarkTheme}
           showLineNumbers
           lineNumberStyle={{ color: "var(--text-dim)", fontStyle: "normal" }}
           customStyle={{
@@ -327,8 +325,7 @@ export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isS
             padding: "11px 13px",
             fontSize: "calc(12.5px + var(--chat-font-size-offset, 0px))",
             lineHeight: 1.62,
-            // The light `vs` theme puts its own 1px #ddd border on <pre>; the
-            // block's wrapper already draws the frame.
+            // The block's wrapper already draws the frame.
             border: "none",
             borderRadius: 0,
             backgroundColor: "color-mix(in srgb, var(--bg) 92%, var(--bg-panel))",

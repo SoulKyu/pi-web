@@ -10,6 +10,10 @@ import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
+import { Bot, Trash2 } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { fieldClass } from "./ui/input";
+import { Led } from "./ui/led";
 import { useIsCoarsePointer } from "@/hooks/useIsMobile";
 import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
 import { formatShortcut } from "@/lib/shortcut-label";
@@ -77,16 +81,6 @@ function ToolbarIconButton({
   ariaPressed?: boolean;
   children: ReactNode;
 }) {
-  const enter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled || skipHover) return;
-    e.currentTarget.style.color = "var(--text-muted)";
-    e.currentTarget.style.background = "var(--bg-hover)";
-  };
-  const leave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled || skipHover) return;
-    e.currentTarget.style.color = color;
-    e.currentTarget.style.background = background;
-  };
   return (
     <button
       onClick={onClick}
@@ -94,21 +88,11 @@ function ToolbarIconButton({
       title={title}
       aria-label={title}
       aria-pressed={ariaPressed}
-      style={{
-        position: "relative",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: 26, height: 26, padding: 0, marginRight,
-        background,
-        border: "none",
-        color,
-        cursor: disabled ? "default" : "pointer",
-        borderRadius: 5,
-        flexShrink: 0,
-        opacity: disabled ? 0.6 : 1,
-        transition: "color 0.3s, background 0.3s",
-      }}
-      onMouseEnter={enter}
-      onMouseLeave={leave}
+      className={cn(
+        "relative flex shrink-0 items-center justify-center p-0 outline-none transition-colors focus-visible:shadow-glow-cyan disabled:cursor-default disabled:opacity-60",
+        !skipHover && "enabled:hover:bg-bg-hover enabled:hover:text-text-muted!",
+      )}
+      style={{ width: 26, height: 26, marginRight, color, ...(background !== "none" ? { background } : {}) }}
     >
       {children}
     </button>
@@ -385,13 +369,8 @@ function PiWebTitle() {
   return (
     <button
       onClick={handleClick}
-      style={{
-        background: "none", border: "none", padding: 0, cursor: "default",
-        fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em",
-        color: showVersion ? "var(--accent)" : "var(--text)",
-        fontFamily: "var(--font-mono)",
-        minWidth: "6ch",
-      }}
+      className={cn("cursor-default bg-transparent p-0 font-hud text-[13px] font-bold uppercase tracking-[0.2em]", showVersion ? "normal-case text-tron-cyan" : "text-white [text-shadow:0_0_10px_rgb(0_216_255/0.45)]")}
+      style={{ minWidth: "6ch" }}
     >
       {display}
     </button>
@@ -1236,7 +1215,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 if (!selectedCwd) return;
                 e.currentTarget.style.background = "var(--bg-selected)";
                 e.currentTarget.style.color = "var(--accent)";
-                e.currentTarget.style.borderColor = "rgba(37,99,235,0.35)";
+                e.currentTarget.style.borderColor = "rgb(0 216 255 / 0.35)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "var(--bg-hover)";
@@ -1280,8 +1259,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
               display: "flex",
               alignItems: "center",
               padding: "6px 10px",
-              background: selectedCwd ? "var(--bg-hover)" : "rgba(37,99,235,0.06)",
-              border: selectedCwd ? "1px solid var(--border)" : "1px solid rgba(37,99,235,0.4)",
+              background: selectedCwd ? "var(--bg-hover)" : "rgb(0 216 255 / 0.06)",
+              border: selectedCwd ? "1px solid var(--border)" : "1px solid rgb(0 216 255 / 0.4)",
               borderRadius: 7,
               cursor: "pointer",
               fontSize: 12,
@@ -1497,7 +1476,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 sessionSearchToggleRef.current?.focus();
               }
             }}
-            className="mt-[6px] block h-[29px] w-full min-w-0 rounded-[7px] border border-border bg-bg px-[10px] text-xs text-text focus:outline-2 focus:outline-accent"
+            className={cn(fieldClass, "mt-[6px] block h-[29px] px-[10px] text-xs")}
           />
         )}
 
@@ -1609,14 +1588,14 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                       const isCurrent = wt.path === currentWorktreePath;
                       if (wtConfirmRemove === wt.path) {
                         return (
-                          <div key={wt.path} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderBottom: "1px solid var(--border)", background: "rgba(239,68,68,0.06)" }}>
+                          <div key={wt.path} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--color-tron-red) 6%, transparent)" }}>
                             <span style={{ flex: 1, fontSize: 11, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {t("sidebar.forceRemoveCheckout")}
                             </span>
                             <button
                               onClick={() => void handleRemoveWorktree(wt.path, true)}
                               disabled={wtBusy}
-                              style={{ padding: "3px 9px", background: "#ef4444", border: "none", borderRadius: 5, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+                              style={{ padding: "3px 9px", background: "var(--color-tron-red)", border: "none", borderRadius: 0, color: "#000", fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
                             >
                               {t("sidebar.force")}
                             </button>
@@ -1682,7 +1661,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                                 borderRadius: 5, flexShrink: 0,
                                 transition: "color 0.12s, background 0.12s",
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-tron-red)"; e.currentTarget.style.background = "color-mix(in srgb, var(--color-tron-red) 8%, transparent)"; }}
                               onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-dim)"; e.currentTarget.style.background = "none"; }}
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1804,7 +1783,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                   {wtError && (
                     <div style={{
                       padding: "5px 10px 8px",
-                      color: "#dc2626",
+                      color: "var(--color-tron-red)",
                       fontSize: 11,
                       lineHeight: 1.35,
                       overflowWrap: "anywhere",
@@ -1885,7 +1864,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
           </div>
         )}
         {error && (
-          <div style={{ padding: "12px 14px", color: "#f87171", fontSize: 12 }}>
+          <div style={{ padding: "12px 14px", color: "var(--color-tron-red)", fontSize: 12 }}>
             {error}
           </div>
         )}
@@ -2079,12 +2058,12 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
               }}
               title={t("sidebar.refreshExplorer")}
               skipHover={explorerRefreshDone}
-              color={explorerRefreshDone ? "#4ade80" : "var(--text-dim)"}
-              background={explorerRefreshDone ? "rgba(74,222,128,0.18)" : "none"}
+              color={explorerRefreshDone ? "var(--color-tron-cyan)" : "var(--text-dim)"}
+              background={explorerRefreshDone ? "rgb(0 216 255 / 0.18)" : "none"}
               marginRight={6}
             >
               {explorerRefreshDone ? (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : (
@@ -2096,7 +2075,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
             </ToolbarIconButton>
           </div>
           {fileManagerErrorMessage && (
-            <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "0 10px 6px", fontSize: 10, lineHeight: 1.35, color: "#f87171" }}>
+            <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "0 10px 6px", fontSize: 10, lineHeight: 1.35, color: "var(--color-tron-red)" }}>
               <span style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere" }}>{fileManagerErrorMessage}</span>
               <DismissButton onClick={() => setFileManagerError(null)} title={t("files.dismissError")} />
             </div>
@@ -2127,35 +2106,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
 function RunningSessionIndicator() {
   const { t } = useI18n();
   return (
-    <span
-      title={t("sidebar.agentRunning")}
-      aria-label={t("sidebar.agentRunning")}
-      style={{
-        width: 14,
-        height: 14,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        color: "var(--accent)",
-      }}
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="animate-spin"
-        style={{ display: "block" }}
-      >
-        <path
-          d="M21 12a9 9 0 1 1-3.8-7.4"
-          stroke="currentColor"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-        />
-      </svg>
+    <span className="inline-flex size-3.5 shrink-0 items-center justify-center" title={t("sidebar.agentRunning")}>
+      <Led status="running" label={t("sidebar.agentRunning")} />
     </span>
   );
 }
@@ -2163,23 +2115,8 @@ function RunningSessionIndicator() {
 function UnreadSessionIndicator() {
   const { t } = useI18n();
   return (
-    <span
-      title={t("sidebar.newActivity")}
-      aria-label={t("sidebar.newSessionActivity")}
-      style={{
-        width: 14,
-        height: 14,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        color: "#0891b2",
-      }}
-    >
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ display: "block" }}>
-        <circle cx="7" cy="7" r="2.5" fill="currentColor" />
-        <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" opacity="0.16" className="unread-ping" />
-      </svg>
+    <span className="inline-flex size-3.5 shrink-0 items-center justify-center" title={t("sidebar.newActivity")}>
+      <Led status="done" label={t("sidebar.newSessionActivity")} className="animate-pulse motion-reduce:animate-none" />
     </span>
   );
 }
@@ -2203,17 +2140,7 @@ function showProjectActivity(
           aria-label={`${t("sidebar.agentRunning")} (${activity.running})`}
           style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--accent)", fontSize: 10, fontFamily: "var(--font-mono)" }}
         >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-            className="animate-spin"
-            style={{ display: "block" }}
-          >
-            <path d="M21 12a9 9 0 1 1-3.8-7.4" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-          </svg>
+          <Led status="running" />
           {activity.running}
         </span>
       )}
@@ -2221,9 +2148,9 @@ function showProjectActivity(
         <span
           title={t("sidebar.newSessionActivity")}
           aria-label={`${t("sidebar.newSessionActivity")} (${activity.unread})`}
-          style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "#0891b2", fontSize: 10, fontFamily: "var(--font-mono)" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--color-tron-cyan)", fontSize: 10, fontFamily: "var(--font-mono)" }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+          <Led status="done" />
           {activity.unread}
         </span>
       )}
@@ -2231,8 +2158,8 @@ function showProjectActivity(
   );
 }
 
-const sessionStripButtonStyle: CSSProperties = { height: 30, padding: "0 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 };
-const sessionMoreButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, flexShrink: 0, border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-hover)", color: "var(--text-muted)", cursor: "pointer", fontSize: 16 };
+const sessionStripButtonStyle: CSSProperties = { height: 30, padding: "0 10px", borderRadius: 0, border: "1px solid var(--color-tron-line)", background: "#000", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 };
+const sessionMoreButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, flexShrink: 0, border: "1px solid var(--color-tron-line)", borderRadius: 0, background: "#000", color: "var(--text-muted)", cursor: "pointer", fontSize: 16 };
 
 function SessionItem({
   session,
@@ -2397,7 +2324,6 @@ function SessionItem({
   return (
     <div
       ref={rowRef}
-      className="session-row"
       data-session-row={session.id}
       tabIndex={0}
       role="button"
@@ -2418,20 +2344,19 @@ function SessionItem({
       onContextMenu={confirmDelete || renaming ? undefined : handleContextMenu}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); }}
+      className={cn(
+        "session-row cursor-pointer border-l-2 border-l-transparent transition-colors",
+        !isSelected && !confirmDelete && "hover:bg-bg-hover",
+        isSelected && !confirmDelete && "border-l-tron-orange bg-[linear-gradient(90deg,rgb(255_154_0/0.12),transparent)] text-white shadow-[-6px_0_12px_-6px_var(--color-tron-orange)]",
+        confirmDelete && "border-l-tron-red bg-tron-red/5",
+        (confirmDelete || renaming) && "cursor-default",
+      )}
       style={{
         height: SESSION_LIST_ITEM_HEIGHT,
         display: "flex",
         alignItems: "center",
         paddingLeft: depth > 0 ? depth * 12 + 14 : 14,
         paddingRight: 8,
-        cursor: confirmDelete || renaming ? "default" : "pointer",
-        background: confirmDelete
-          ? "rgba(239,68,68,0.06)"
-          : isSelected ? "var(--bg-selected)" : hovered ? "var(--bg-hover)" : "transparent",
-        borderLeft: confirmDelete
-          ? "2px solid #ef4444"
-          : isSelected ? "2px solid var(--accent)" : "2px solid transparent",
-        transition: "background 0.1s",
         opacity: deleting ? 0.5 : 1,
         gap: 6,
         overflow: "hidden",
@@ -2446,33 +2371,14 @@ function SessionItem({
           <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
             <button
               onClick={handleDeleteConfirm}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                height: 30, padding: "0 11px",
-                background: "#ef4444", border: "none",
-                borderRadius: 6, color: "#fff",
-                cursor: "pointer", fontSize: 12, fontWeight: 600,
-                whiteSpace: "nowrap",
-              }}
+              className="flex h-[30px] items-center gap-1 whitespace-nowrap bg-tron-red px-[11px] text-xs font-semibold text-black outline-none hover:shadow-[0_0_10px_rgb(255_77_94/0.6)] focus-visible:shadow-glow-cyan"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-              </svg>
+              <Trash2 aria-hidden="true" className="size-3" />
               {t("sidebar.delete")}
             </button>
             <button
               onClick={handleDeleteCancel}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                height: 30, padding: "0 11px",
-                background: "var(--bg)", border: "1px solid var(--border)",
-                borderRadius: 6, color: "var(--text-muted)",
-                cursor: "pointer", fontSize: 12, fontWeight: 500,
-                whiteSpace: "nowrap",
-              }}
+              className="flex h-[30px] items-center whitespace-nowrap border border-tron-line bg-black px-[11px] text-xs text-text-muted outline-none hover:text-text focus-visible:shadow-glow-cyan"
             >
               {t("sidebar.cancel")}
             </button>
@@ -2497,27 +2403,14 @@ function SessionItem({
             }
           }}
           autoFocus
-          style={{
-            flex: 1,
-            fontSize: 12,
-            padding: "5px 8px",
-            border: "1px solid var(--accent)",
-            borderRadius: 5,
-            outline: "none",
-            background: "var(--bg)",
-            color: "var(--text)",
-            height: 30,
-          }}
+          className={cn(fieldClass, "h-[30px] flex-1 px-2 text-xs border-tron-cyan")}
         />
       ) : (
         /* ── Normal view ── */
         <>
           {/* Subagent indicator for child sessions */}
           {depth > 0 && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <rect x="5" y="7" width="14" height="11" rx="2" />
-              <path d="M9 11h.01M15 11h.01M9 15h6M12 7V4M10 4h4" />
-            </svg>
+            <Bot aria-hidden="true" className="size-[11px] shrink-0 text-tron-cyan" />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -2539,7 +2432,7 @@ function SessionItem({
             </div>
             <div style={{ marginTop: 2, display: "flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 11, minWidth: 0 }}>
               {actionError ? (
-                <span role="status" style={{ color: "#f87171", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{actionError}</span>
+                <span role="status" style={{ color: "var(--color-tron-red)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{actionError}</span>
               ) : (
                 <>
                   {isRunning ? (
@@ -2598,7 +2491,7 @@ function SessionItem({
               {actionsOpen && (
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   <button type="button" onClick={(e) => { setActionsOpen(false); startRename(e); }} style={sessionStripButtonStyle}>{t("sidebar.rename")}</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setActionsOpen(false); setConfirmDelete(true); }} style={{ ...sessionStripButtonStyle, color: "#ef4444" }}>{t("sidebar.delete")}</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setActionsOpen(false); setConfirmDelete(true); }} style={{ ...sessionStripButtonStyle, color: "var(--color-tron-red)" }}>{t("sidebar.delete")}</button>
                 </div>
               )}
               <button
@@ -2631,7 +2524,7 @@ function SessionItem({
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "var(--bg-selected)";
                   e.currentTarget.style.color = "var(--accent)";
-                  e.currentTarget.style.borderColor = "rgba(37,99,235,0.35)";
+                  e.currentTarget.style.borderColor = "rgb(0 216 255 / 0.35)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "var(--bg-hover)";
@@ -2657,9 +2550,9 @@ function SessionItem({
                   transition: "background 0.12s, color 0.12s, border-color 0.12s",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(239,68,68,0.08)";
-                  e.currentTarget.style.color = "#ef4444";
-                  e.currentTarget.style.borderColor = "rgba(239,68,68,0.35)";
+                  e.currentTarget.style.background = "color-mix(in srgb, var(--color-tron-red) 8%, transparent)";
+                  e.currentTarget.style.color = "var(--color-tron-red)";
+                  e.currentTarget.style.borderColor = "color-mix(in srgb, var(--color-tron-red) 35%, transparent)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "var(--bg-hover)";

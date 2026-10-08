@@ -26,7 +26,7 @@ test("uses a compact narrow-mobile toolbar with a floating action layer", () => 
 
 test("only renders the Agents switcher when the active session family has subagents", () => {
   assert.match(source, /const hasSubagentSessions = Boolean\(activeSessionFamily\?\.subagents\.length\)/);
-  assert.match(source, /\{hasSubagentSessions && \(\s*<button[\s\S]*?toggleTopPanel\("agents", mobile\)/);
+  assert.match(source, /\{hasSubagentSessions && \(\s*<TopBarButton[\s\S]*?toggleTopPanel\("agents", mobile\)/);
   assert.match(source, /activeTopPanel === "agents" && activeSessionFamily && selectedSession/);
 });
 
@@ -83,8 +83,7 @@ test("keeps theme and language in settings instead of the chat toolbar", () => {
   assert.doesNotMatch(source, /toggleTopPanel\("language"/);
   assert.doesNotMatch(source, /data-mobile-toolbar-action=\{mobile \? "theme"/);
   assert.doesNotMatch(source, /data-mobile-toolbar-action=\{mobile \? "language"/);
-  assert.match(source, /import \{ useTheme \} from "@\/hooks\/useTheme"/);
-  assert.match(source, /useTheme\(\);/);
+  assert.doesNotMatch(source, /useTheme/);
 });
 
 test("prioritizes context and cost when the mobile statistics area narrows", () => {

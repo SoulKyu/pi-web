@@ -120,7 +120,7 @@ export function ModelSelector({
         padding: "0 9px",
         overflow: "hidden",
         border: "1px solid var(--border)",
-        borderRadius: 5,
+        borderRadius: 0,
         background: locked ? "var(--bg-panel)" : "var(--bg)",
         color: locked ? "var(--text-dim)" : "var(--text)",
         cursor: locked ? "default" : "pointer",
@@ -138,7 +138,7 @@ export function ModelSelector({
         padding: isMobile ? "8px 10px" : "8px 12px",
         overflow: "hidden",
         border: "none",
-        borderRadius: 9,
+        borderRadius: 0,
         background: open ? "var(--bg-hover)" : "none",
         color: "var(--text-muted)",
         cursor: locked ? "not-allowed" : "pointer",
@@ -256,9 +256,9 @@ export function ModelSelector({
               maxHeight,
               overflow: "hidden",
               border: "1px solid var(--border)",
-              borderRadius: 8,
+              borderRadius: 0,
               background: "var(--bg)",
-              boxShadow: openAbove ? "0 -4px 16px rgba(0,0,0,0.10)" : "0 4px 16px rgba(0,0,0,0.10)",
+              boxShadow: "var(--shadow-glow-cyan)",
             }}
           >
             {showFilter && (
@@ -280,7 +280,7 @@ export function ModelSelector({
                     minWidth: isMobile ? 0 : 220,
                     padding: "5px 8px",
                     border: "1px solid var(--border)",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     outline: "none",
                     background: "var(--bg)",
                     color: "var(--text)",

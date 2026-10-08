@@ -6,7 +6,7 @@ import { formatRelativeTime } from "@/lib/i18n/format";
 import type { StagedFactView } from "@/lib/agent-ops/memory-review";
 import { requestTaskAction } from "./task-view";
 
-const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
+const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
 function FactRow({ fact, onChanged }: { fact: StagedFactView; onChanged: () => void }) {
   const { locale, t } = useI18n();

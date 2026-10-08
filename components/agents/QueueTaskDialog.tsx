@@ -9,7 +9,7 @@ import { clipQuote, type HandTarget, QUOTE_MAX, queueErrorKey, reviewExcerpt } f
 const REVIEW_TOOLS = ["read", "grep", "find", "ls", "memory_search"];
 // Mirrors PROMPT_MAX in app/api/agents/[name]/tasks/route.ts, counted the same way (prompt.length); the route stays authoritative.
 const PROMPT_MAX = 20_000;
-const ERROR_COLOR = "#e5484d";
+const ERROR_COLOR = "var(--color-tron-red)";
 
 /** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread.
  *  `purpose="review"` queues an isolated read-only review run instead of a thread task. `onQueued` receives the agent the task went to. */
@@ -86,7 +86,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
         {deliverTo && !review && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agents.handTo.mentionHint", { name: target })}</span>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !prompt.trim() || overCap} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff", cursor: "pointer" }}>{t(review ? "agents.askReview.submit" : "agents.tasks.queue")}</button>
+          <button type="submit" disabled={busy || !prompt.trim() || overCap} style={{ ...buttonStyle, border: "1px solid var(--accent)", background: "var(--accent)", color: "var(--accent-contrast)", cursor: "pointer" }}>{t(review ? "agents.askReview.submit" : "agents.tasks.queue")}</button>
         </div>
       </form>
     </div>

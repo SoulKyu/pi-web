@@ -12,7 +12,7 @@ import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
 import { nextFireHint, requestTrigger, runsTodayOf, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
 
-const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
+const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
 const SOURCE_ICON: Record<TriggerLogEntry["source"], string> = { schedule: "⏱", webhook: "🪝", manual: "▶" };
 
@@ -62,7 +62,7 @@ function TriggerTestPanel({ plan, template, onClose }: { plan: DryRunPlan; templ
   const lines = (plan.prompt ?? template).split("\n");
   const clipped = !all && lines.length > PROMPT_LINES;
   return (
-    <div style={{ display: "grid", gap: 4, fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 6, padding: 8 }}>
+    <div style={{ display: "grid", gap: 4, fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 0, padding: 8 }}>
       <div>{t("agentOps.trigger.testVerdict", { verdict: plan.verdict })}</div>
       {plan.reason && <div>{t("agentOps.trigger.testReason", { reason: plan.reason })}</div>}
       <div>{t("agentOps.trigger.testTokenFree", { value: plan.tokenFree ? t("agentOps.trigger.yes") : t("agentOps.trigger.no") })}</div>
@@ -152,7 +152,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   };
 
   return (
-    <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0, opacity: trigger.enabled ? 1 : 0.7 }}>
+    <li style={{ border: "1px solid var(--border)", borderRadius: 0, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0, opacity: trigger.enabled ? 1 : 0.7 }}>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 }}>
         <label style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 12em", minWidth: 0 }}>
           <input type="checkbox" role="switch" checked={trigger.enabled} onChange={toggle} aria-label={t("agentOps.trigger.toggle", { name: trigger.name })} />
@@ -167,7 +167,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
         <span>{trigger.maxRunsPerDay ? t("agentOps.trigger.runsTodayCap", { count: runsToday, cap: trigger.maxRunsPerDay }) : t("agentOps.trigger.runsToday", { count: runsToday })}</span>
       </div>
       {trigger.pinStatus !== "ok" && (
-        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 8px" }}>
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text)", border: "1px solid var(--border)", borderRadius: 0, padding: "4px 8px" }}>
           <span>{trigger.pinStatus === "drift" ? t("agentOps.trigger.pinDrift", { profile: trigger.profile }) : t("agentOps.trigger.pinMissing", { profile: trigger.profile })}</span>
           {trigger.pinStatus === "drift" && <button type="button" onClick={repin} style={{ ...smallButton, marginLeft: "auto", flexShrink: 0 }}>{t("agentOps.trigger.repin")}</button>}
         </div>

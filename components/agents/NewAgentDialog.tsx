@@ -90,7 +90,7 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
   const toggleMcp = (server: string) => setMcpServers((current) => (current.includes(server) ? current.filter((name) => name !== server) : [...current, server]));
   const mcpNames = [...new Set([...fetchedMcp, ...mcpServers])].sort();
   const title = t("agents.new.title");
-  const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
+  const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 0, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>

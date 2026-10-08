@@ -92,7 +92,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally { onPauseChanged(); }
   };
-  const pauseButtonStyle = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" } as const;
+  const pauseButtonStyle = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" } as const;
 
   const bucketLine = (bucket: UsageBucket) => {
     const head = `${t("agents.usage.runs", { runs: bucket.runs })} · ${formatCompact(bucket.tokens)} tok`;
@@ -145,12 +145,12 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
         </div>
       )}
       {allPaused ? (
-        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6 }}>
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 0 }}>
           <span style={{ flex: 1 }}>{t("agentOps.pause.allBanner")}</span>
           <button type="button" onClick={() => void setPaused("all")} style={pauseButtonStyle}>{t("agentOps.pause.resume")}</button>
         </div>
       ) : paused ? (
-        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6 }}>
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 0 }}>
           <span style={{ flex: 1 }}>{t("agentOps.pause.banner", { name: agent.name })}</span>
           <button type="button" onClick={() => void setPaused(false)} style={pauseButtonStyle}>{t("agentOps.pause.resume")}</button>
         </div>
@@ -164,7 +164,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
         </>
       )}
       <div className="agent-space-section">{t("agents.space.tasks")}</div>
-      <button type="button" onClick={() => setQueueOpen(true)} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", marginBottom: 6 }}>{t("agents.tasks.queue")}</button>
+      <button type="button" onClick={() => setQueueOpen(true)} style={{ padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", marginBottom: 6 }}>{t("agents.tasks.queue")}</button>
       {tasks.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.tasks.none")}</div>}
       {tasks.length > 0 && <AgentTasks tasks={tasks} compact onOpenSession={onOpenSession} onChanged={reloadMemory} />}
       {agent.memoryMd && (
@@ -172,7 +172,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
           <div className="agent-space-section">{t("agents.space.knowledge")}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ flex: 1 }}>MEMORY.md ({(agent.memoryMd.size / 1024).toFixed(1)} KB)</span>
-            <button type="button" onClick={() => onOpenFile(`${agent.home}/MEMORY.md`, "MEMORY.md")} style={{ padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.space.knowledgeOpen")}</button>
+            <button type="button" onClick={() => onOpenFile(`${agent.home}/MEMORY.md`, "MEMORY.md")} style={{ padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.space.knowledgeOpen")}</button>
           </div>
         </>
       )}

@@ -209,7 +209,7 @@ test("renders subagents as standard tool calls with only an extra session button
     onOpenSession() {},
   });
 
-  assert.match(html, /border:1px solid rgba\(34,197,94,0\.25\)/);
+  assert.match(html, /data-card-state="done"/);
   assert.match(html, />Agent</);
   assert.match(html, />Explore</);
   assert.match(html, /aria-label="Open sub-agent session"/);
@@ -439,9 +439,9 @@ test("marks apply_patch returned failures as errors even when isError is unset",
     content: [block],
   }, { toolResults: new Map([[block.toolCallId, failed]]) });
 
-  assert.match(html, /border:1px solid rgba\(248,113,113,0\.45\)/);
+  assert.match(html, /data-card-state="failed"/);
   assert.match(html, />apply_patch</);
-  assert.doesNotMatch(html, /border:1px solid rgba\(34,197,94,0\.25\)/);
+  assert.doesNotMatch(html, /data-card-state="done"/);
 });
 
 test("renders custom-message images as buttons that open a larger preview", () => {
@@ -683,7 +683,7 @@ test("tool cards say their status in words: running, failed, no result; done for
   const running = renderMessage(statusMessage, { toolResults: new Map(), runningToolIds: new Set([statusBlock.toolCallId]), runActive: true });
   assert.match(running, /class="tool-status-spinner"/);
   assert.match(running, /<span class="tool-status-word">Running…<\/span>/);
-  assert.match(running, /border:1px solid var\(--border\)/);
+  assert.match(running, /data-card-state="running"/);
   assert.match(running, /aria-expanded="false"/);
 
   const failed = renderMessage(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, statusResult(true, "ENOENT")]]) });
@@ -694,7 +694,7 @@ test("tool cards say their status in words: running, failed, no result; done for
 
   const done = renderMessage(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, statusResult(false, "ok")]]) });
   assert.match(done, /<span aria-hidden="true">✓<\/span><span class="visually-hidden">Done<\/span>/);
-  assert.match(done, /border:1px solid rgba\(34,197,94,0\.25\)/);
+  assert.match(done, /data-card-state="done"/);
 });
 
 test("a tool call still waiting in a live run shows no status instead of 'No result'", () => {

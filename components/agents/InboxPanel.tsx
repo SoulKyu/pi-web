@@ -46,7 +46,7 @@ export function InboxPanel({ onClose, onOpen }: { onClose: () => void; onOpen: (
   const title = t("agents.inbox.title");
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
-      <div style={{ width: "min(560px, 100%)", display: "grid", gap: 12, padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxHeight: "100%", overflowY: "auto" }}>
+      <div style={{ width: "min(560px, 100%)", display: "grid", gap: 12, padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 0, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxHeight: "100%", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, marginLeft: "auto", border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.close")}</button>
@@ -60,7 +60,7 @@ export function InboxPanel({ onClose, onOpen }: { onClose: () => void; onOpen: (
               <strong style={{ fontSize: 13, color: "var(--text)" }}>{group.name}</strong>
             </div>
             {group.items.map((item, index) => (
-              <button key={`${item.entryId ?? item.kind}-${index}`} type="button" onClick={() => onOpen(group.name, item.entryId)} style={{ display: "flex", gap: 8, alignItems: "baseline", textAlign: "left", padding: "4px 6px", background: "none", border: "none", borderRadius: 6, color: "var(--text)", cursor: "pointer", fontSize: 12 }}>
+              <button key={`${item.entryId ?? item.kind}-${index}`} type="button" onClick={() => onOpen(group.name, item.entryId)} style={{ display: "flex", gap: 8, alignItems: "baseline", textAlign: "left", padding: "4px 6px", background: "none", border: "none", borderRadius: 0, color: "var(--text)", cursor: "pointer", fontSize: 12 }}>
                 <span aria-hidden>{ICONS[item.kind]}</span>
                 <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.kind === "approval" ? t("agents.inbox.approval") : item.title}{item.detail ? ` (${item.detail})` : ""}</span>
                 <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>· {formatRelativeTime(item.at, locale)}</span>

@@ -140,6 +140,7 @@ lib/
   enabled-models.ts         pure minimal-edit engine for the enabledModels pattern list
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
+  cn.ts                     clsx + tailwind-merge class joiner
   agent-profile-extensions.ts extensions of every agent-profile session: sanitized bash, read-only MCP policy, agent_notify (trusted thread)
   agents/registry.ts        long-term agent files: profile, space state, home, trash; AGENT_NAME_RE
   agents/mcp-access.ts      per-agent MCP allowlist: lists global adapter servers, writes <home>/.pi/mcp-adapter.json
@@ -290,6 +291,8 @@ components/
   FileIcons.tsx            file icon helpers
   FileViewer.tsx           file content in a tab
   TabBar.tsx               file panel tab bar (file and terminal tabs)
+  ui/                      Tron primitives (Button, Input, Dialog/sheets, menus, Tabs, Switch, Led, Gauge…)
+  tron/                    Tron identity pieces (PerspectiveGrid, ScanBar, StreamCursor, HexAvatar, Chamfer)
 
 hooks/
   useAgentSession.ts       messages, streaming, SSE, fork/navigate, reconciliation; built-in slash commands (/session, bare /mcp)
@@ -298,7 +301,6 @@ hooks/
   useIsMobile.ts           responsive breakpoint
   useKeyboardShortcuts.ts  Esc stops the running agent unless a field or nearer handler took it; Ctrl+Alt+N
   useRailShortcuts.ts      rail Alt+Up/Down (unread agents), Ctrl+Alt+1..9 (n-th agent)
-  useTheme.ts              theme state
 ```
 
 ---
@@ -321,13 +323,15 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [finops.md](docs/agents/finops.md): `runs.jsonl` fields, promtail / Alloy ingestion into Loki, Grafana alert rules, troubleshooting. Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/metrics.ts`, `app/api/metrics/route.ts`; also the optional Prometheus endpoint.
 - [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation, event cards, the per-agent queue, trigger binding, `agent_notify`. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/*`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `components/MessageView.tsx`, `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/web-push.ts`, `lib/initial-navigation.ts`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
+- [ui.md](docs/agents/ui.md): the Tron design system: single palette and tokens, color meaning, components/ui primitives, Chamfer/clip-path trap, reduced motion, /dev/ui. Files: `app/globals.css`, `app/layout.tsx`, `lib/cn.ts`, `components/ui/**`, `components/tron/**`, `app/dev/ui/**`.
 
 ---
 
-## Old Safari (iOS 16.2)
+## Browser floor (Safari / iOS 16.4)
 
-- `/` renders entirely on the client, so one script chunk the browser cannot parse is a blank page. Next 16 targets Safari 16.4+; the `browserslist` in `package.json` lowers Safari and iOS to 16.2 so SWC turns class `static {}` blocks into private static fields. That covers Next's client runtime; other node_modules keep their syntax unless listed in `transpilePackages` (mermaid and `@mermaid-js/parser` are, for their lazy diagram chunks). Keep the other browserslist entries at Next's defaults.
-- Never write a RegExp lookbehind (`(?<=`, `(?<!`) in client code: SWC cannot downlevel it and Safari parses it only from 16.4. `lib/markdown.ts` emulates its leading lookbehinds with `replaceNotPrecededBy()`. A lookbehind built at runtime (`new RegExp("(?<=…)")` in `try`) fails only when run; that is how `lib/gfm-autolink-email-loader.cjs` fixes `mdast-util-gfm-autolink-literal`'s email regex. The loader is registered for webpack and Turbopack in `next.config.ts` and fails the build if that regex changes upstream.
+- The fork targets Safari and iOS 16.4+ (`browserslist` in `package.json`, pinned by `lib/browser-floor.test.mjs`). It was 16.2 upstream; the Tron UI raised it so Tailwind v4 (`@property`, cascade layers) and Radix work unmodified.
+- `/` still renders entirely on the client: one chunk the browser cannot parse is a blank page. Keep new client dependencies to ones that support Safari 16.4.
+- The RegExp-lookbehind workarounds (`replaceNotPrecededBy()` in `lib/markdown.ts`, `lib/gfm-autolink-email-loader.cjs`) date from the 16.2 floor. They are harmless at 16.4 and stay until someone removes them deliberately.
 
 ## Pi Session File Format
 

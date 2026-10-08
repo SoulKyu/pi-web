@@ -18,8 +18,8 @@
     "chrome 111",
     "edge 111",
     "firefox 111",
-    "safari 16.2",
-    "ios_saf 16.2"
+    "safari 16.4",
+    "ios_saf 16.4"
   ],
   "bin": {
     "pi-web": "bin/pi-web.js"
@@ -52,13 +52,20 @@
     "@earendil-works/pi-tui": "1.0.4",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
     "js-yaml": "^5.2.3",
+    "lucide-react": "1.53.0",
     "next": "16.3.6",
     "node-pty": "1.2.0-beta.15",
     "proper-lockfile": "4.1.2",
+    "radix-ui": "1.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "7.8.5",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.0",
     "undici": "8.11.0",
     "web-push": "^3.6.7"
   },

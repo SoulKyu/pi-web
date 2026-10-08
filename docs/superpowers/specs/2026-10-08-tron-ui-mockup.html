@@ -1,0 +1,145 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+.tron { --bg:#000; --panel:#03080b; --line:#0e3a4a; --cyan:#00d8ff; --cyan-dim:#4f8fa3; --orange:#ff9a00; --text:#dff6ff; --muted:#7fa6b5;
+  --glow-c: 0 0 0 1px rgba(0,216,255,.55), 0 0 14px rgba(0,216,255,.35);
+  --glow-o: 0 0 0 1px rgba(255,154,0,.6), 0 0 14px rgba(255,154,0,.35);
+  background:var(--bg); color:var(--text); font-family:Geist, Inter, system-ui, sans-serif; font-size:12.5px;
+  height:620px; display:grid; grid-template-columns:44px 230px 1fr 300px; border-radius:6px; overflow:hidden; position:relative; }
+.tron * { box-sizing:border-box; }
+.hud { font-family:Orbitron, sans-serif; letter-spacing:.14em; text-transform:uppercase; font-size:9.5px; }
+.mono { font-family:"JetBrains Mono", ui-monospace, monospace; }
+
+/* agent rail */
+.rail { border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; gap:12px; padding:12px 0; background:var(--panel); }
+.av { width:26px; height:26px; border:1px solid var(--cyan-dim); clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%); display:grid; place-items:center; font-size:10px; color:var(--cyan); position:relative; }
+.av.on { background:rgba(0,216,255,.15); border-color:var(--cyan); }
+.led { width:6px; height:6px; border-radius:50%; display:inline-block; }
+.led.run { background:var(--orange); box-shadow:0 0 8px var(--orange); }
+.led.ok { background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+.led.idle { background:#24414c; }
+
+/* sessions */
+.sessions { border-right:1px solid var(--line); background:var(--panel); padding:12px 10px; display:flex; flex-direction:column; gap:10px; }
+.search { border:1px solid var(--line); padding:7px 9px; color:var(--muted); display:flex; justify-content:space-between; }
+.kbd { border:1px solid var(--line); padding:0 4px; font-size:9px; color:var(--cyan-dim); }
+.group { color:var(--cyan-dim); margin-top:4px; }
+.srow { padding:7px 9px; display:flex; justify-content:space-between; align-items:center; color:var(--muted); border-left:2px solid transparent; }
+.srow.on { color:#fff; border-left-color:var(--orange); background:linear-gradient(90deg,rgba(255,154,0,.12),transparent); box-shadow:-6px 0 12px -6px var(--orange); }
+.srow small { color:#3f6676; font-size:10px; }
+
+/* main */
+.main { display:flex; flex-direction:column; position:relative; overflow:hidden; }
+.main::before { content:""; position:absolute; left:-30%; right:-30%; bottom:-14%; height:42%; z-index:0;
+  background-image:linear-gradient(rgba(0,216,255,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(0,216,255,.22) 1px,transparent 1px);
+  background-size:34px 34px; transform:perspective(260px) rotateX(62deg); -webkit-mask-image:linear-gradient(transparent,#000 70%); mask-image:linear-gradient(transparent,#000 70%); pointer-events:none; }
+.top { height:44px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; padding:0 14px; position:relative; z-index:1; background:rgba(0,0,0,.85); }
+.top .title { font-weight:600; font-size:13px; }
+.chip { border:1px solid var(--line); padding:3px 8px; color:var(--muted); display:flex; gap:6px; align-items:center; }
+.gauge { width:22px; height:22px; border-radius:50%; background:conic-gradient(var(--cyan) 0 62%, #0d2a35 62% 100%); display:grid; place-items:center; box-shadow:0 0 8px rgba(0,216,255,.4); }
+.gauge::after { content:""; width:16px; height:16px; border-radius:50%; background:#000; }
+.msgs { flex:1; padding:18px 22px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:1; overflow:hidden; }
+.user { align-self:flex-end; max-width:70%; padding:9px 12px; background:rgba(0,0,0,.9); box-shadow:var(--glow-o); clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%); }
+.assist { max-width:88%; padding-left:14px; border-left:1px solid var(--cyan); box-shadow:-6px 0 10px -8px var(--cyan); line-height:1.55; }
+.assist code { font-family:"JetBrains Mono",monospace; color:var(--cyan); background:rgba(0,216,255,.08); padding:0 4px; }
+.tools { display:flex; flex-direction:column; gap:4px; max-width:88%; }
+.tool { display:grid; grid-template-columns:auto auto 1fr auto; gap:10px; align-items:center; padding:6px 10px; border:1px solid var(--line); background:rgba(0,0,0,.9); }
+.tool .name { color:var(--cyan); } .tool .arg { color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; } .tool .t { color:#3f6676; }
+.tool.running { box-shadow:var(--glow-o); border-color:transparent; }
+.tool.running .bar { grid-column:1/-1; height:1px; background:linear-gradient(90deg,transparent,var(--orange),transparent); background-size:50% 100%; animation:scan 1.4s linear infinite; }
+@keyframes scan { from { background-position:-50% 0 } to { background-position:150% 0 } }
+.cursor { display:inline-block; width:7px; height:13px; background:var(--cyan); box-shadow:0 0 8px var(--cyan); vertical-align:-2px; animation:blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity:0 } }
+
+/* dock */
+.dock { margin:0 22px 16px; position:relative; z-index:1; background:#000; box-shadow:var(--glow-c); clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px); }
+.dock textarea { all:unset; display:block; width:100%; padding:12px 14px 6px; color:var(--muted); }
+.dock .bar2 { display:flex; gap:6px; padding:6px 10px 10px; align-items:center; }
+.dock .send { margin-left:auto; width:30px; height:26px; background:var(--orange); clip-path:polygon(0 0,100% 50%,0 100%,18% 50%); filter:drop-shadow(0 0 6px var(--orange)); }
+
+/* right panel */
+.right { border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; }
+.tabs { display:flex; border-bottom:1px solid var(--line); }
+.tab { padding:10px 12px; color:var(--muted); border-bottom:2px solid transparent; }
+.tab.on { color:#fff; border-bottom-color:var(--cyan); box-shadow:0 6px 10px -8px var(--cyan); }
+.code { padding:10px 12px; font-family:"JetBrains Mono",monospace; font-size:11px; line-height:1.7; color:#9fc3d0; }
+.code .ln { color:#244855; margin-right:10px; } .code .add { background:rgba(0,216,255,.08); box-shadow:inset 2px 0 0 var(--cyan); display:block; } .code .k { color:var(--orange); }
+
+/* palette overlay */
+.pal { position:absolute; top:70px; left:50%; transform:translateX(-30%); width:380px; background:rgba(0,0,0,.94); box-shadow:var(--glow-c); z-index:5; backdrop-filter:blur(6px); }
+.pal .q { padding:11px 14px; border-bottom:1px solid var(--line); color:#fff; }
+.pal .it { padding:8px 14px; display:flex; justify-content:space-between; color:var(--muted); }
+.pal .it.on { color:#fff; background:linear-gradient(90deg,rgba(0,216,255,.15),transparent); box-shadow:inset 2px 0 0 var(--cyan); }
+.notes { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+.notes div { border:1px solid #ddd3; padding:10px; border-radius:6px; font-size:13px; }
+</style>
+
+<h2>Section 1 — Langage visuel & layout (Tron)</h2>
+<p class="subtitle">Maquette haute-fidélité de l'écran principal refait. La palette ⌘K est affichée par-dessus pour montrer un nouveau composant. Dis-moi ce qui va / ce qui cloche.</p>
+
+<div class="tron">
+  <div class="rail">
+    <div class="av on">PI</div><div class="av">OP</div><div class="av">RV</div>
+    <div style="margin-top:auto" class="av">⚙</div>
+  </div>
+
+  <div class="sessions">
+    <div class="search"><span>Rechercher…</span><span class="kbd">⌘K</span></div>
+    <div class="hud group">pi-web // local</div>
+    <div class="srow on"><span>Refonte UI Tron</span><span class="led run"></span></div>
+    <div class="srow"><span>Fix SSE reconnect</span><small>2h</small></div>
+    <div class="srow"><span>Agent ops triggers</span><small>hier</small></div>
+    <div class="hud group">infra // terraform</div>
+    <div class="srow"><span>Budget alerts GCP</span><small>3j</small></div>
+    <div class="srow"><span>Karpenter spot</span><span class="led ok"></span></div>
+  </div>
+
+  <div class="main">
+    <div class="top">
+      <span class="title">Refonte UI Tron</span>
+      <span class="chip hud"><span class="led run"></span>running</span>
+      <span style="margin-left:auto" class="chip mono">claude-opus-5-5 · high</span>
+      <span class="chip"><span class="gauge"></span><span class="mono">62%</span></span>
+    </div>
+    <div class="msgs">
+      <div class="user">Ajoute un cache LRU sur fetchModels et un test.</div>
+      <div class="tools">
+        <div class="tool"><span class="led ok"></span><span class="name mono">read</span><span class="arg mono">lib/models.ts</span><span class="t mono">0.2s</span></div>
+        <div class="tool"><span class="led ok"></span><span class="name mono">edit</span><span class="arg mono">lib/models.ts  +12 −3</span><span class="t mono">0.4s</span></div>
+        <div class="tool running"><span class="led run"></span><span class="name mono">bash</span><span class="arg mono">npm test -- models</span><span class="t mono">3.1s</span><span class="bar"></span></div>
+      </div>
+      <div class="assist">J'ai ajouté un cache sur <code>fetchModels()</code> (TTL 60 s) et un test qui vérifie qu'un second appel ne refait pas de requête. Je lance la suite<span class="cursor"></span></div>
+    </div>
+    <div class="dock">
+      <textarea placeholder="Message…  (@ fichier · / commande)"></textarea>
+      <div class="bar2">
+        <span class="chip mono">opus-5.5</span><span class="chip mono">◆ high</span><span class="chip mono">tools: default</span><span class="chip">📎</span>
+        <span class="send"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="tabs"><span class="tab on mono">models.ts</span><span class="tab mono">terminal</span><span class="tab mono">diff</span></div>
+    <div class="code">
+      <div><span class="ln">12</span><span class="k">const</span> cache = new Map()</div>
+      <span class="add"><span class="ln">13</span><span class="k">export async function</span> fetchModels() {</span>
+      <span class="add"><span class="ln">14</span>  const hit = cache.get(KEY)</span>
+      <span class="add"><span class="ln">15</span>  if (hit &amp;&amp; fresh(hit)) return hit.v</span>
+      <div><span class="ln">16</span>  const res = await fetch(URL)</div>
+    </div>
+  </div>
+
+  <div class="pal">
+    <div class="q mono">› nouvelle ses▍</div>
+    <div class="it on"><span>Nouvelle session</span><span class="kbd">⌃⌥N</span></div>
+    <div class="it"><span>Nouvelle session dans un worktree</span></div>
+    <div class="it"><span>Changer de modèle…</span><span class="kbd">⌘M</span></div>
+    <div class="it"><span>Ouvrir Settings › MCP</span></div>
+  </div>
+</div>
+
+<div class="notes">
+  <div><b>Typo</b><br>Orbitron uniquement pour labels HUD (petites capitales). Corps en Geist, code en JetBrains Mono — lisibilité d'abord.</div>
+  <div><b>Couleurs = sens</b><br>Cyan = système/assistant/sélection. Orange = toi, action en cours, envoi. Pas d'autre couleur sauf erreur (rouge).</div>
+  <div><b>Nouveautés UI</b><br>Palette ⌘K, appels d'outils compacts avec LED + durée + barre de scan, jauge de contexte, dock de saisie flottant, rail d'agents hexagonal, toasts.</div>
+</div>

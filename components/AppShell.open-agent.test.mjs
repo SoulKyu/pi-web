@@ -6,7 +6,7 @@ const source = fs.readFileSync(new URL("./AppShell.tsx", import.meta.url), "utf8
 
 test("openAgent shows agents.error when the thread cannot be opened", () => {
   const body = source.slice(source.indexOf("const openAgent = useCallback"), source.indexOf("agentMountOpenedRef.current ="));
-  assert.match(body, /window\.alert\(translate\("agents\.error", \{ error:/);
+  assert.match(body, /toast\.error\(translate\("agents\.error", \{ error:/);
 });
 
 test("the Agent pseudo-tab is first, never persisted, and brings the panel back", () => {

@@ -7,7 +7,7 @@ import type { AgentMemoryItem, JournalEvent, Mem0Health } from "@/lib/agents/mem
 import { MemoryRowActions } from "../MemoryRowActions";
 import { requestTaskAction } from "./task-view";
 
-const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
+const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 // A request still pending after this long was refused or is stuck: show the item normally again.
 const FORGET_GIVE_UP_MS = 2 * 60 * 1000;
 const WATCHER_STALE_MS = 2 * 60 * 1000;

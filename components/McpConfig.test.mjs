@@ -558,7 +558,7 @@ test("a failed save is shown with its reason on every platform", () => {
   // Unlike the PowerShell switch in General, nothing here waits for the platform.
   assert.doesNotMatch(source, /isWindows/);
   // The error line has its own color.
-  assert.match(cssSource, /\.mcp-config-line\.is-error \{[\s\S]*?color: #ef4444;/);
+  assert.match(cssSource, /\.mcp-config-line\.is-error \{[\s\S]*?color: var\(--color-tron-red\);/);
 });
 
 test("a trusted project whose defaultTools decides Code mode is named in the pane", () => {

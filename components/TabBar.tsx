@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { getFileIcon } from "./FileIcons";
 import { tabLabelSuffixes } from "./tab-labels";
 import { useI18n } from "@/hooks/useI18n";
@@ -31,7 +31,6 @@ interface Props {
 
 export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
   const { t } = useI18n();
-  const [hoveredClose, setHoveredClose] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const suffixes = useMemo(() => tabLabelSuffixes(tabs), [tabs]);
 
@@ -88,6 +87,9 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               e.stopPropagation();
               if (!tab.closing && tab.closable !== false) onCloseTab(tab.id);
             }}
+            className={isActive
+              ? "bg-bg text-text shadow-[inset_0_-2px_0_var(--color-tron-cyan)] outline-none focus-visible:shadow-[inset_0_-2px_0_var(--color-tron-cyan),var(--shadow-glow-cyan)]"
+              : "bg-bg-panel text-text-muted outline-none hover:bg-bg-hover hover:text-text focus-visible:shadow-glow-cyan"}
             style={{
               display: "flex",
               alignItems: "center",
@@ -96,10 +98,8 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               paddingLeft: 12,
               paddingRight: 6,
               borderRight: "1px solid var(--border)",
-              background: isActive ? "var(--bg)" : "var(--bg-panel)",
               cursor: "pointer",
               fontSize: 12,
-              color: isActive ? "var(--text)" : "var(--text-muted)",
               whiteSpace: "nowrap",
               maxWidth: suffix ? 240 : 180,
               minWidth: 80,
@@ -146,16 +146,12 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
             {tab.closable !== false && <button
               disabled={tab.closing}
               onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
-              onMouseEnter={() => setHoveredClose(tab.id)}
-              onMouseLeave={() => setHoveredClose(null)}
+              className="bg-transparent text-text-dim outline-none hover:bg-bg-hover hover:text-text focus-visible:shadow-glow-cyan"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 24, height: 24,
-                background: hoveredClose === tab.id ? "var(--bg-hover)" : "transparent",
                 border: "none",
-                borderRadius: 4,
-                color: hoveredClose === tab.id ? "var(--text)" : "var(--text-dim)",
-                cursor: "pointer",
+                borderRadius: 0,
                 padding: 0,
                 flexShrink: 0,
                 transition: "background 0.1s, color 0.1s",

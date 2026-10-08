@@ -28,6 +28,9 @@ import { RecallCard } from "@/components/agents/RecallCard";
 import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
 import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
+import { Chamfer, ScanBar, StreamCursor } from "@/components/tron";
+import { Led } from "./ui/led";
+import { cn } from "@/lib/cn";
 import { TOOL_STATUS_GLYPH, TOOL_STATUS_LABEL_KEY, toolCallStatus } from "./tool-call-status";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
@@ -130,7 +133,7 @@ function SafeMarkdownBody({ children, className, ...props }: React.ComponentProp
           margin: "4px 0",
           padding: "7px 10px",
           border: "1px solid var(--border)",
-          borderRadius: 6,
+          borderRadius: 0,
           background: "var(--bg-panel)",
           color: "var(--text-muted)",
           cursor: "pointer",
@@ -442,7 +445,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
             <img
               src={src}
               alt=""
-              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid rgba(59,130,246,0.15)" }}
+              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 0, objectFit: "contain", display: "block", border: "1px solid var(--color-tron-line)" }}
             />
           </ImagePreview>
         );
@@ -475,23 +478,15 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
       onMouseLeave={() => setHovered(false)}
     >
       <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: "85%" }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: isEditing ? "color-mix(in srgb, var(--accent) 14%, var(--user-bg))" : "var(--user-bg)",
-            border: isEditing ? "1px solid color-mix(in srgb, var(--accent) 62%, var(--user-bg))" : "1px solid rgba(59,130,246,0.2)",
-            boxShadow: isEditing ? "0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent)" : undefined,
-            borderRadius: 12,
-            padding: "8px 12px",
-            fontSize: "calc(14px + var(--chat-font-size-offset, 0px))",
-            lineHeight: 1.6,
-            color: "var(--text)",
-            wordBreak: "break-word",
-            maxHeight: USER_BUBBLE_MAX_HEIGHT,
-            overflowY: "auto",
-          }}
-        >
+        <Chamfer tone="orange" glow={isEditing} cut={10} className="min-w-0 flex-1" innerClassName="text-text" innerStyle={{
+          padding: "8px 12px",
+          fontSize: "calc(14px + var(--chat-font-size-offset, 0px))",
+          lineHeight: 1.6,
+          wordBreak: "break-word",
+          maxHeight: USER_BUBBLE_MAX_HEIGHT,
+          overflowY: "auto",
+          background: isEditing ? "color-mix(in srgb, var(--color-tron-orange) 12%, #000)" : "var(--user-bg)",
+        }}>
           {commandText ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
               {imageBlocksNode}
@@ -557,7 +552,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
           {content && <SafeMarkdownBody className="markdown-user-message" keepLineBreaks cwd={cwd} onOpenFile={onOpenFile}>{content}</SafeMarkdownBody>}
           </>
           )}
-        </div>
+        </Chamfer>
 
       </div>
 
@@ -580,7 +575,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "3px 8px", height: 22,
                 background: "none", border: "none",
-                borderRadius: 5,
+                borderRadius: 0,
                 color: copied ? "var(--accent)" : "var(--text-dim)",
                 cursor: "pointer",
                 fontSize: 11, fontWeight: 400,
@@ -618,7 +613,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: "var(--text-dim)",
                     cursor: "pointer",
                     fontSize: 11, fontWeight: 400,
@@ -645,7 +640,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: "var(--accent)",
                     cursor: "pointer",
                     fontSize: 11, fontWeight: 500,
@@ -667,7 +662,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: forking ? "var(--accent)" : "var(--text-dim)",
                     cursor: forking ? "not-allowed" : "pointer",
                     fontSize: 11, fontWeight: 400,
@@ -887,9 +882,8 @@ function AssistantMessageView({
     >
       {/* Model label */}
       <div
+        className="font-hud text-[9px] uppercase tracking-[0.16em] text-tron-cyan/80"
         style={{
-          fontSize: 11,
-          color: "var(--text-dim)",
           marginBottom: 4,
           display: "flex",
           alignItems: "center",
@@ -913,9 +907,9 @@ function AssistantMessageView({
                     {est}
                   </span>
                   {tps !== null && (() => {
-                    const bg = tps >= 50 ? "#53b3cb" : tps >= 30 ? "#9bc53d" : tps >= 15 ? "#f9c22e" : "#e01a4f";
+                    const tone = tps >= 30 ? "var(--color-tron-cyan)" : tps >= 15 ? "var(--color-tron-orange)" : "var(--color-tron-red)";
                     return (
-                      <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 4, background: bg, color: "#fff", fontSize: 11, fontWeight: 400 }}>
+                      <span style={{ marginLeft: 6, padding: "1px 6px", background: tone, color: "#000", fontSize: 10, fontFamily: "var(--font-mono)" }}>
                         {tps.toFixed(1)} t/s
                       </span>
                     );
@@ -927,10 +921,11 @@ function AssistantMessageView({
         })()}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="border-l border-tron-cyan pl-3.5 shadow-[-6px_0_10px_-8px_var(--color-tron-cyan)]" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {blockItems.map(({ block, originalIndex }) => (
           <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} runningToolIds={runningToolIds} runActive={runActive} />
         ))}
+        {isStreaming && <StreamCursor />}
       </div>
 
       {providerError && (
@@ -939,10 +934,10 @@ function AssistantMessageView({
           style={{
             marginTop: blocks.length > 0 ? 8 : 0,
             padding: "7px 10px",
-            border: "1px solid rgba(239,68,68,0.3)",
-            borderRadius: 6,
-            background: "rgba(239,68,68,0.07)",
-            color: "#ef4444",
+            border: "1px solid color-mix(in srgb, var(--color-tron-red) 30%, transparent)",
+            borderRadius: 0,
+            background: "color-mix(in srgb, var(--color-tron-red) 7%, transparent)",
+            color: "var(--color-tron-red)",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
             lineHeight: 1.5,
@@ -960,10 +955,10 @@ function AssistantMessageView({
           style={{
             marginTop: blocks.length > 0 || providerError ? 8 : 0,
             padding: "7px 10px",
-            border: "1px solid rgba(234,179,8,0.3)",
-            borderRadius: 6,
-            background: "rgba(234,179,8,0.07)",
-            color: "#ca8a04",
+            border: "1px solid color-mix(in srgb, var(--color-tron-orange) 30%, transparent)",
+            borderRadius: 0,
+            background: "color-mix(in srgb, var(--color-tron-orange) 7%, transparent)",
+            color: "var(--color-tron-orange)",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
             lineHeight: 1.5,
@@ -982,7 +977,7 @@ function AssistantMessageView({
                 marginTop: 8,
                 padding: "3px 8px",
                 border: "1px solid currentColor",
-                borderRadius: 5,
+                borderRadius: 0,
                 background: "transparent",
                 color: "inherit",
                 cursor: isCompacting ? "default" : "pointer",
@@ -993,7 +988,7 @@ function AssistantMessageView({
             </button>
           )}
           {unansweredTruncation && compactError && (
-            <div style={{ marginTop: 8, color: "#ef4444", whiteSpace: "pre-wrap" }}>{compactError}</div>
+            <div style={{ marginTop: 8, color: "var(--color-tron-red)", whiteSpace: "pre-wrap" }}>{compactError}</div>
           )}
         </div>
       )}
@@ -1018,7 +1013,7 @@ function AssistantMessageView({
               display: "flex", alignItems: "center", gap: 4,
               padding: "3px 8px", height: 22,
               background: "none", border: "none",
-              borderRadius: 5,
+              borderRadius: 0,
               color: copied ? "var(--accent)" : "var(--text-dim)",
               cursor: "pointer",
               fontSize: 11, fontWeight: 400,
@@ -1049,7 +1044,7 @@ function AssistantMessageView({
             title={t("agents.handTo.title")}
             style={{
               padding: "3px 8px", height: 22,
-              background: "none", border: "none", borderRadius: 5,
+              background: "none", border: "none", borderRadius: 0,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
               opacity: actionsVisible ? 1 : 0,
@@ -1068,7 +1063,7 @@ function AssistantMessageView({
             title={t("agents.askReview.title")}
             style={{
               padding: "3px 8px", height: 22,
-              background: "none", border: "none", borderRadius: 5,
+              background: "none", border: "none", borderRadius: 0,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
               opacity: actionsVisible ? 1 : 0,
@@ -1166,10 +1161,10 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex 
   return (
     <div style={{
       display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0,
-      border: "1px solid var(--border)",
-      borderRadius: 7,
+      border: "1px solid var(--color-tron-line)",
+      borderRadius: 0,
       padding: "6px 10px",
-      background: "var(--bg)",
+      background: "#000",
       fontFamily: "var(--font-mono)",
       fontSize: "calc(11px + var(--chat-font-size-offset, 0px))",
       lineHeight: 1.5,
@@ -1209,7 +1204,7 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex 
           style={{
             flex: 1,
             minWidth: 0,
-            color: error ? "#f87171" : "var(--text-muted)",
+            color: error ? "var(--color-tron-red)" : "var(--text-muted)",
             whiteSpace: "pre-wrap",
             overflowWrap: "anywhere",
           }}
@@ -1300,15 +1295,20 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
   const planLinks = isExternalContentTool(block.toolName) ? [] : plannotatorLinks(joinedResultText ?? "", plannotator ?? null);
   const subagent = isSubagentToolDetails(result?.details) ? result.details : null;
   const codemodeCallCount = codemode ? codemode.calls.length + codemode.omitted : 0;
+  const cardTone = status === "running" ? "running" : isError ? "failed" : status === "done" ? "done" : "pending";
 
   return (
     <div
+      data-card-state={cardTone}
+      className={cn(
+        "border",
+        cardTone === "failed" ? "border-tron-red/60 bg-[color-mix(in_srgb,var(--color-tron-red)_5%,#000)]" : "bg-black/90",
+        cardTone === "running" && "border-transparent shadow-glow-orange",
+        cardTone !== "running" && cardTone !== "failed" && "border-tron-line",
+      )}
       style={{
-        borderRadius: 7,
         overflow: "hidden",
         fontSize: 12,
-        border: status === "running" ? "1px solid var(--border)" : isError ? "1px solid rgba(248,113,113,0.45)" : "1px solid rgba(34,197,94,0.25)",
-        background: isError ? "rgba(248,113,113,0.05)" : "rgba(34,197,94,0.04)",
       }}
     >
       {/* ── Tool call header ── */}
@@ -1317,6 +1317,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
           type="button"
           onClick={toggleExpanded}
           aria-expanded={expanded}
+          className="bg-transparent text-text-muted outline-none hover:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px_var(--color-tron-cyan)]"
           style={{
             display: "flex",
             alignItems: "center",
@@ -1324,17 +1325,16 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             flex: 1,
             minWidth: 0,
             padding: "6px 10px",
-            background: "none",
             border: "none",
-            color: "var(--text-muted)",
-            cursor: "pointer",
             fontSize: 12,
             textAlign: "left",
           }}
         >
+          <Led status={cardTone === "running" ? "running" : cardTone === "failed" ? "error" : cardTone === "done" ? "done" : "idle"} />
           <span
             title={mcpLabel ? block.toolName : undefined}
-            style={{ color: isError ? "#f87171" : "#16a34a", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11, flexShrink: 0 }}
+            className={isError ? "text-tron-red" : "text-tron-cyan"}
+            style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11, flexShrink: 0 }}
           >
             {mcpLabel ? (
               <>
@@ -1357,14 +1357,14 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
           )}
           {status && (
-            <span className="tool-status" style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontSize: 11, color: status === "failed" ? "#f87171" : "var(--text-dim)" }}>
+            <span className="tool-status" style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontSize: 11, color: status === "failed" ? "var(--color-tron-red)" : "var(--text-dim)" }}>
               {status === "running"
                 ? <span className="tool-status-spinner" aria-hidden="true" />
                 : <span aria-hidden="true">{TOOL_STATUS_GLYPH[status]}</span>}
               <span className={status === "done" ? "visually-hidden" : "tool-status-word"}>{t(TOOL_STATUS_LABEL_KEY[status])}</span>
             </span>
           )}
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text-dim)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim" aria-hidden="true" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
             <polyline points="2 3.5 5 6.5 8 3.5" />
           </svg>
         </button>
@@ -1374,12 +1374,14 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             onClick={() => onOpenSession(subagent.sessionId)}
             title={t("subagent.open")}
             aria-label={t("subagent.open")}
-            style={{ width: 32, display: "grid", placeItems: "center", border: "none", borderLeft: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+            className="text-text-muted hover:text-tron-cyan"
+            style={{ width: 32, display: "grid", placeItems: "center", border: "none", borderLeft: "1px solid var(--color-tron-line)", background: "none", flexShrink: 0 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
           </button>
         )}
       </div>
+      {cardTone === "running" && <ScanBar />}
 
       {/* ── Expanded: input args (only when no richer view exists); a codemode script in place of its JSON ── */}
       {expanded && (isStreamingInput || !isEditTool) && !patchFiles && (
@@ -1392,7 +1394,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             lineHeight: 1.5,
             overflow: "auto",
             background: "var(--bg-subtle)",
-            borderTop: isError ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(34,197,94,0.2)",
+            borderTop: isError ? "1px solid color-mix(in srgb, var(--color-tron-red) 25%, transparent)" : "1px solid var(--color-tron-line)",
             whiteSpace: "pre-wrap",
             wordBreak: "break-all",
           }}
@@ -1411,7 +1413,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
 
       {/* ── Expanded: applied-patch split diff ── */}
       {expanded && patchFiles && (
-        <div style={{ borderTop: "1px solid rgba(34,197,94,0.15)", background: "var(--bg)" }}>
+        <div style={{ borderTop: "1px solid var(--color-tron-line)", background: "var(--bg)" }}>
           <SplitFilesView files={patchFiles} />
         </div>
       )}
@@ -1457,7 +1459,7 @@ function PairedDiffResult({ diff }: {
   return (
     <div
       style={{
-        borderTop: "1px solid rgba(34,197,94,0.15)",
+        borderTop: "1px solid var(--color-tron-line)",
         background: "var(--bg)",
       }}
     >
@@ -1623,12 +1625,12 @@ function PatchTextView({ text }: { text: string }) {
         const bg =
           kind === "added" ? "var(--diff-added-bg)" :
           kind === "removed" ? "var(--diff-removed-bg)" :
-          kind === "hunk" ? "rgba(96,165,250,0.12)" :
+          kind === "hunk" ? "var(--bg-panel)" :
           "transparent";
         const color =
           kind === "added" ? "var(--diff-added)" :
           kind === "removed" ? "var(--diff-removed)" :
-          kind === "hunk" ? "var(--accent)" :
+          kind === "hunk" ? "var(--text-dim)" :
           "var(--text)";
 
         return (
@@ -1727,7 +1729,7 @@ function ResultImages({ images, isError }: { images: ImageContent[]; isError: bo
         flexWrap: "wrap",
         padding: "10px",
         background: "var(--bg)",
-        borderTop: `1px solid ${isError ? "rgba(248,113,113,0.3)" : "rgba(34,197,94,0.15)"}`,
+        borderTop: `1px solid ${isError ? "color-mix(in srgb, var(--color-tron-red) 30%, transparent)" : "var(--color-tron-line)"}`,
       }}
     >
       {images.map((image, index) => {
@@ -1748,7 +1750,7 @@ function ResultImages({ images, isError }: { images: ImageContent[]; isError: bo
                 display: "block",
                 maxWidth: "min(100%, 720px)",
                 maxHeight: 520,
-                borderRadius: 6,
+                borderRadius: 0,
                 objectFit: "contain",
                 border: "1px solid var(--border)",
               }}
@@ -1769,15 +1771,15 @@ function PairedResult({ text, isEmpty, isError }: {
   return (
     <div
       style={{
-        borderTop: `1px solid ${isError ? "rgba(248,113,113,0.3)" : "rgba(34,197,94,0.15)"}`,
-        background: isError ? "rgba(248,113,113,0.04)" : "var(--bg-subtle)",
+        borderTop: `1px solid ${isError ? "color-mix(in srgb, var(--color-tron-red) 30%, transparent)" : "var(--color-tron-line)"}`,
+        background: isError ? "color-mix(in srgb, var(--color-tron-red) 4%, transparent)" : "var(--bg-subtle)",
       }}
     >
       <pre
         style={{
           margin: 0,
           padding: "8px 10px",
-          color: isError ? "#f87171" : (isEmpty ? "var(--text-dim)" : "var(--text-muted)"),
+          color: isError ? "var(--color-tron-red)" : (isEmpty ? "var(--text-dim)" : "var(--text-muted)"),
           fontSize: "calc(12px + var(--chat-font-size-offset, 0px))",
           lineHeight: 1.5,
           overflow: "auto",
@@ -1806,7 +1808,7 @@ function CompactionMessageView({ message }: { message: CustomMessage }) {
       <div
         style={{
           border: "1px solid var(--border)",
-          borderRadius: 8,
+          borderRadius: 0,
           overflow: "hidden",
           background: "var(--bg)",
         }}
@@ -1903,7 +1905,7 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
       <div
         style={{
           border: "1px solid var(--border)",
-          borderRadius: 8,
+          borderRadius: 0,
           overflow: "hidden",
           background: isHiddenDisplay ? "var(--bg-subtle)" : "var(--bg)",
           opacity: isHiddenDisplay && !contentExpanded ? 0.82 : 1,
@@ -1941,7 +1943,7 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
                       <img
                         src={src}
                         alt=""
-                        style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid var(--border)" }}
+                        style={{ maxWidth: 240, maxHeight: 240, borderRadius: 0, objectFit: "contain", display: "block", border: "1px solid var(--border)" }}
                       />
                     </ImagePreview>
                   );
