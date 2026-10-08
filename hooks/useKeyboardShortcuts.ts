@@ -43,7 +43,7 @@ export function handleGlobalEscape(event: KeyboardEvent): boolean {
  * composing, a dialog is open already, or something nearer took the key.
  */
 export function isShortcutsHelpKey(event: KeyboardEvent, dialogOpen: boolean): boolean {
-  if (event.key !== "?" || event.defaultPrevented || event.isComposing || dialogOpen) return false;
+  if (event.key !== "?" || event.defaultPrevented || event.isComposing || event.metaKey || dialogOpen) return false;
   const target = event.target as HTMLElement | null;
   const tag = target?.tagName;
   return tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !target?.isContentEditable;

@@ -47,13 +47,15 @@ test("with no run to stop, Escape is left alone", () => {
   assert.equal(event.defaultPrevented, false);
 });
 
-function questionMark({ tagName = "BODY", isContentEditable = false, defaultPrevented = false, isComposing = false } = {}) {
-  return { key: "?", target: { tagName, isContentEditable }, defaultPrevented, isComposing };
+function questionMark({ tagName = "BODY", isContentEditable = false, defaultPrevented = false, isComposing = false, metaKey = false } = {}) {
+  return { key: "?", target: { tagName, isContentEditable }, defaultPrevented, isComposing, metaKey };
 }
 
 test("? opens the shortcuts dialog from the page, never from a field, an open dialog or an IME", () => {
   assert.equal(isShortcutsHelpKey(questionMark(), false), true);
   assert.equal(isShortcutsHelpKey(questionMark({ tagName: "BUTTON" }), false), true);
+  // Cmd+Shift+/ is the macOS Help menu.
+  assert.equal(isShortcutsHelpKey(questionMark({ metaKey: true }), false), false);
   // The composer, the terminal's hidden textarea, a rename box, a select: the key types there.
   for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(isShortcutsHelpKey(questionMark({ tagName }), false), false, tagName);
   assert.equal(isShortcutsHelpKey(questionMark({ tagName: "DIV", isContentEditable: true }), false), false);
