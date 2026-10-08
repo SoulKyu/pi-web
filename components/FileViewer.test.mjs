@@ -32,6 +32,16 @@ test("large source previews bypass the per-line syntax highlighter", () => {
   assert.notEqual(source.indexOf("highlightedSource", branchStart), -1);
 });
 
+test("the highlighted source view owns its <pre> background without a competing shorthand", () => {
+  // One fixed Tron theme: the source view sets backgroundColor itself, never the background shorthand.
+  const start = source.indexOf("const highlightedSource = useMemo(");
+  const element = source.slice(start, source.indexOf("</SyntaxHighlighter>", start));
+  assert.match(element, /style=\{tronSyntaxTheme\}/);
+  const customStyle = element.slice(element.indexOf("customStyle={{"), element.indexOf("codeTagProps={{"));
+  assert.match(customStyle, /backgroundColor: "var\(--bg\)"/);
+  assert.doesNotMatch(customStyle, /\bbackground:/);
+});
+
 test("lightweight source rows are skipped for highlighted, diff, and preview views", () => {
   // Execute the source-view calculations without mounting the file-fetching component.
   const file = ts.createSourceFile("FileViewer.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);

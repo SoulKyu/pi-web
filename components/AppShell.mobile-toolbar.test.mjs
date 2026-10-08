@@ -117,3 +117,8 @@ test("closing the shortcuts dialog opened from the mobile layer refocuses the mo
   assert.match(source, /shortcutsFromMobileLayerRef\.current = true; setMobileToolbarMoreOpen\(false\); setShortcutsOpen\(true\);/);
   assert.match(source, /document\.querySelector<HTMLElement>\("\[data-mobile-toolbar-more\]"\)\?\.focus\(\)/);
 });
+
+test("a sidebar pick closes the phone's drawer unless it asks to stay open (the sidebar's Fork)", () => {
+  assert.match(source, /const handleSelectSession = useCallback\(\(session: SessionInfo, isRestore = false, entryId\?: string, blockIndex\?: number, options\?: SelectSessionOptions\) => \{/);
+  assert.match(source, /if \(isMobile && !isRestore && !options\?\.keepSidebarOpen\) setSidebarOpen\(false\);/);
+});

@@ -67,6 +67,7 @@ const DISPLAY_MODE_LABELS: Record<DisplayMode, string> = {
 
 const FILE_CODE_STYLE: CSSProperties = {
   fontFamily: "var(--font-mono)",
+  fontWeight: "var(--font-mono-weight)",
   fontSize: 13,
   lineHeight: 1.6,
 };
@@ -80,6 +81,7 @@ const FILE_LINE_NUMBER_STYLE: CSSProperties = {
   background: "var(--bg-panel)",
   borderRight: "1px solid var(--border)",
   fontFamily: "var(--font-mono)",
+  fontWeight: "var(--font-mono-weight)",
   fontSize: 11,
   fontStyle: "normal",
   fontVariantNumeric: "tabular-nums",
@@ -1389,7 +1391,7 @@ function TextFileViewer({
           margin: 0,
           padding: 0,
           border: 0,
-          background: "var(--bg)",
+          backgroundColor: "var(--bg)",
           ...FILE_CODE_STYLE,
           width: wrapLines ? "100%" : "max-content",
           minWidth: "100%",
@@ -1399,6 +1401,7 @@ function TextFileViewer({
         codeTagProps={{
           style: {
             fontFamily: "var(--font-mono)",
+            fontWeight: "var(--font-mono-weight)",
             overflowWrap: wrapLines ? "anywhere" : "normal",
           },
         }}

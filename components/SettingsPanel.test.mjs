@@ -6,7 +6,6 @@ const panelSource = await readFile(new URL("./SettingsPanel.tsx", import.meta.ur
 const cssSource = await readFile(new URL("../app/settings.css", import.meta.url), "utf8");
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
-const sidebarSource = await readFile(new URL("./SessionSidebar.tsx", import.meta.url), "utf8");
 const enSource = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zhSource = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
 const loginSource = await readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8");
@@ -142,16 +141,26 @@ test("keeps language selection in General settings", () => {
   assert.match(panelSource, /setLocale\(plugin\.id/);
 });
 
-test("groups chat display controls together without row backgrounds", () => {
+test("groups fonts, chat font size and width in one section, chat behavior in another, without row backgrounds", () => {
+  const typographySection = panelSource.slice(
+    panelSource.indexOf('{t("settings.typography")}'),
+    panelSource.indexOf('{t("settings.chat")}'),
+  );
   const chatSection = panelSource.slice(
     panelSource.indexOf('{t("settings.chat")}'),
     panelSource.indexOf("{shellSettings?.isWindows"),
   );
 
+  assert.match(typographySection, /className="settings-chat-options"[\s\S]*<FontSettings \/>/);
+  assert.equal((typographySection.match(/className="settings-chat-option settings-chat-range-option"/g) ?? []).length, 2);
+  for (const key of ["chatContentWidth", "chatContentFontSize", "fontDescription"]) {
+    assert.match(typographySection, new RegExp(`t\\("settings\\.${key}"\\)`));
+  }
   assert.match(chatSection, /className="settings-chat-options"/);
-  assert.equal((chatSection.match(/className="settings-chat-option(?: |")/g) ?? []).length, 5);
+  assert.doesNotMatch(chatSection, /settings-chat-content/);
+  assert.equal((chatSection.match(/className="settings-chat-option(?: |")/g) ?? []).length, 3);
   assert.equal((chatSection.match(/<ConfigSwitch/g) ?? []).length, 2);
-  for (const key of ["thinkingExpandedDefault", "chatContentWidth", "chatContentFontSize", "quoteSelection", "enterSendMode", "enterSendModeEnter", "enterSendModeCtrlEnter"]) {
+  for (const key of ["thinkingExpandedDefault", "quoteSelection", "enterSendMode", "enterSendModeEnter", "enterSendModeCtrlEnter"]) {
     assert.match(chatSection, new RegExp(`t\\("settings\\.${key}"\\)`));
   }
   assert.doesNotMatch(panelSource, /ThinkingIcon|settings-thinking-/);
@@ -194,9 +203,7 @@ test("labels agent profiles as sub-agents", () => {
 });
 
 test("uses the child-session robot glyph for the sub-agents tab", () => {
-  // One shared glyph: lucide Bot in the sub-agents tab and for sidebar child sessions.
   assert.match(panelSource, /section === "agents"\) return <Bot \{\.\.\.common\} className="settings-section-icon is-agent"/);
-  assert.match(sidebarSource, /<Bot aria-hidden="true" className="size-\[11px\] shrink-0 text-tron-cyan" \/>/);
   assert.match(cssSource, /\.settings-section-icon\.is-agent \{[\s\S]*?transform: scale\(1\.25\)/);
 });
 

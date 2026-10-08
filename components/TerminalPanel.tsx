@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { useI18n } from "@/hooks/useI18n";
+import { subscribeFontPreferences } from "@/hooks/useFontPreferences";
+import { readFontWeight } from "@/lib/font-preferences";
 import { createTerminalWriter, terminalRequest } from "@/lib/terminal-client";
 import type { TerminalEvent } from "@/lib/terminal-manager";
 import type { TerminalTab } from "./terminal-tab-state";
@@ -44,9 +46,17 @@ export function TerminalPanel({ tab, active, onRestart, onClosed, onCloseError }
     setError(null);
     setExitCode(null);
 
+    const readTerminalFont = () => {
+      const style = getComputedStyle(container);
+      return {
+        fontFamily: style.getPropertyValue("--font-mono").trim() || "monospace",
+        // Base weights stop at 600, so xterm's default bold (700) stays heavier.
+        fontWeight: readFontWeight(style.getPropertyValue("--font-mono-weight")),
+      };
+    };
     const terminal = new Terminal({
       cursorBlink: true,
-      fontFamily: getComputedStyle(container).getPropertyValue("--font-mono").trim() || "monospace",
+      ...readTerminalFont(),
       fontSize: 13,
       lineHeight: 1.25,
       scrollback: 8000,
@@ -86,6 +96,14 @@ export function TerminalPanel({ tab, active, onRestart, onClosed, onCloseError }
     });
     const resizeObserver = new ResizeObserver(fitAndResize);
     resizeObserver.observe(container);
+    const updateFont = () => {
+      if (disposed) return;
+      const font = readTerminalFont();
+      terminal.options.fontFamily = font.fontFamily;
+      terminal.options.fontWeight = font.fontWeight;
+      fitAndResize();
+    };
+    const unsubscribeFonts = subscribeFontPreferences(updateFont);
 
     const connect = () => {
       if (disposed || exited || !navigator.onLine) return;
@@ -159,6 +177,7 @@ export function TerminalPanel({ tab, active, onRestart, onClosed, onCloseError }
       events?.close();
       void writer.stop();
       resizeObserver.disconnect();
+      unsubscribeFonts();
       onData.dispose();
       onResize.dispose();
       window.removeEventListener("pagehide", pageHide);

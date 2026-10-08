@@ -1083,13 +1083,14 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
       )}
 
       {fileSearchOpen && (
-      <div style={{ padding: "6px 8px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ padding: "2px 8px 6px" }}>
         <div style={{ position: "relative" }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)", pointerEvents: "none" }}>
             <circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" />
           </svg>
           <input
             ref={searchInputRef}
+            id="file-search-input"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Escape") onFileSearchOpenChange?.(false); }}

@@ -31,7 +31,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { isNewDay } from "@/lib/day-separators";
 import { phaseAnnouncement, phaseLabel } from "@/lib/chat-phase-label";
 import { findInMessages, stepFindIndex } from "@/lib/chat-find";
-import { useAgentSession, type NoticeItem } from "@/hooks/useAgentSession";
+import { useAgentSession, type NewSessionChoices, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
@@ -61,6 +61,11 @@ interface Props {
   sessionRunning?: boolean;
   newSessionCwd: string | null;
   newSessionDraftKey: string | null;
+  /** Shown above the composer while a fresh composer is still empty: where its session starts. */
+  newSessionContextBar?: ReactNode;
+  /** A fresh composer's model and reasoning picks, carried from the composer it replaces. */
+  initialNewSessionChoices?: NewSessionChoices | null;
+  onNewSessionChoicesChange?: (choices: NewSessionChoices) => void;
   onAgentEnd?: () => void;
   onAttentionNeeded?: (request: BlockingExtensionUiRequest) => void;
   onSessionCreated?: (session: SessionInfo, sourceDraftKey: string) => void;
@@ -106,29 +111,47 @@ interface Props {
 const CHAT_MINIMAP_WIDTH = 36;
 const CHAT_COLUMN_PADDING = 16;
 
+// One update check per page. Every fresh composer mounts the header again
+// (each move of the new-session bar does), and a link that turned up late
+// each time could push the bar onto a line of its own under the composer's
+// eyes; from the second header on it is there in the first paint.
+let appUpdateCheck: Promise<AppUpdateResponse | null> | null = null;
+let appUpdateFound: AppUpdateResponse | null = null;
+
+function checkAppUpdate(): Promise<AppUpdateResponse | null> {
+  appUpdateCheck ??= fetch("/api/app-update")
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const result = await response.json() as AppUpdateResponse;
+      return result.updateAvailable && result.latestVersion && result.releaseUrl ? result : null;
+    })
+    .then((result) => {
+      appUpdateFound = result;
+      return result;
+    })
+    .catch(() => {
+      // Update checks are best-effort and must not interrupt a new session;
+      // a later header asks again.
+      appUpdateCheck = null;
+      return null;
+    });
+  return appUpdateCheck;
+}
+
 function NewSessionUpdateLink({
   label,
 }: {
   label: (version: string) => string;
 }) {
-  const [update, setUpdate] = useState<AppUpdateResponse | null>(null);
+  const [update, setUpdate] = useState<AppUpdateResponse | null>(() => appUpdateFound);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void fetch("/api/app-update", { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return response.json() as Promise<AppUpdateResponse>;
-      })
-      .then((result) => {
-        if (result?.updateAvailable && result.latestVersion && result.releaseUrl) {
-          setUpdate(result);
-        }
-      })
-      .catch(() => {
-        // Update checks are best-effort and must not interrupt a new session.
-      });
-    return () => controller.abort();
+    if (appUpdateFound) return;
+    let cancelled = false;
+    void checkAppUpdate().then((result) => {
+      if (!cancelled && result) setUpdate(result);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   if (!update) return null;
@@ -261,7 +284,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
 /** Upper bound of `before=` pages one click on the unread pill may load. */
 const JUMP_UNREAD_MAX_PAGES = 20;
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onRequestSearchTarget, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onFilesUploaded, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onRequestSearchTarget, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, newSessionContextBar, initialNewSessionChoices, onNewSessionChoicesChange, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onFilesUploaded, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -314,7 +337,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     handleToolPresetChange, handleAgentProfileChange, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadSlashCommands, scrollUserMsgToTop,
     loadContext, activeLeafId, scrollToBottom, scrollToMessage,
   } = useAgentSession({
-    session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd: wrappedOnAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
+    session, sessionRunning, newSessionCwd, newSessionDraftKey, initialNewSessionChoices, onNewSessionChoicesChange, onAgentEnd: wrappedOnAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
     modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsPanelOpen,
     onOpenSettings, onNewSessionRequested, onResetThread,
     deferInitialScroll: Boolean(pendingScrollRestore),
@@ -1637,22 +1660,23 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
             </button>
           </div>
         )}
+        {/* The brand, the project/worktree bar and the versions: one row, or
+            the bar on a line of its own under the brand where it does not
+            fit beside it (.new-session-hero in app/globals.css). The
+            versions come first: floated right of the first line. */}
         {isEmptyNew && (
-          <div className="mb-3 w-full" style={{ paddingLeft: 16, paddingRight: isMobile ? 16 : 52 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, maxWidth: "var(--chat-content-max-width, 820px)", margin: "0 auto", fontFamily: "var(--font-mono)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 7 : 10, minWidth: 0, flex: 1, lineHeight: 1.4, overflow: "hidden" }}>
+          <div className="new-session-hero" style={{ paddingLeft: 16, paddingRight: isMobile ? 16 : 52 }}>
+            <div className="new-session-hero-row" style={{ maxWidth: "var(--chat-content-max-width, 820px)" }}>
+              <div className="new-session-versions">
+                <span>web <span className="new-session-version">v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}</span></span>
+                <span>pi <span className="new-session-version">v{process.env.NEXT_PUBLIC_PI_VERSION ?? "0.0.0"}</span></span>
+              </div>
+              <div className="new-session-brand" style={{ gap: isMobile ? 7 : 10 }}>
                 <Image src="/icons/apple-touch-icon.png" width={32} height={32} alt="" priority style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 22, color: "var(--text)", fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>Pi Web</span>
+                <span className="new-session-brand-name">Pi Web</span>
                 <NewSessionUpdateLink label={(version) => t("appUpdate.releaseNotes", { version })} />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  web <span style={{ color: "var(--text)" }}>v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}</span>
-                </span>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  pi <span style={{ color: "var(--text)" }}>v{process.env.NEXT_PUBLIC_PI_VERSION ?? "0.0.0"}</span>
-                </span>
-              </div>
+              {newSessionContextBar}
             </div>
           </div>
         )}
