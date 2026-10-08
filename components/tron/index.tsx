@@ -13,16 +13,26 @@ export function StreamCursor() {
   return <span aria-hidden className="tron-cursor" />;
 }
 
+const segmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+
 function initials(label: string): string {
-  const letters = Array.from(label.trim()).slice(0, 2).join("");
+  const trimmed = label.trim();
+  const graphemes = segmenter ? Array.from(segmenter.segment(trimmed), (part) => part.segment) : Array.from(trimmed);
+  const letters = graphemes.slice(0, 2).join("");
   return letters ? letters.toUpperCase() : "?";
 }
 
-export function HexAvatar({ label, active = false, className }: { label: string; active?: boolean; className?: string }) {
+type HexAvatarProps = { label: string; active?: boolean; color?: string; size?: number; className?: string; children?: ReactNode };
+
+export function HexAvatar({ label, active = false, color, size = 28, className, children }: HexAvatarProps) {
   return (
-    <span aria-hidden className={cn("tron-hex grid size-7 shrink-0 place-items-center p-px", active ? "bg-tron-cyan" : "bg-tron-line", className)}>
+    <span
+      aria-hidden
+      className={cn("tron-hex grid shrink-0 place-items-center p-px", active && "bg-tron-cyan", className)}
+      style={{ width: size, height: size, ...(active ? {} : { background: color ?? "var(--color-tron-line)" }) }}
+    >
       <span className={cn("tron-hex grid size-full place-items-center font-hud text-[9px]", active ? "bg-[#00303a] text-white" : "bg-black text-tron-cyan")}>
-        {initials(label)}
+        {children ?? initials(label)}
       </span>
     </span>
   );

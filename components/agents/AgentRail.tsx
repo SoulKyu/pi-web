@@ -1,7 +1,9 @@
 "use client";
 
-import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Check, Inbox, ListTodo, Menu, Moon, Pause, Play, Plus, TriangleAlert, X } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentListItem } from "@/lib/agents/agent-view";
@@ -12,7 +14,7 @@ import { healthPopoverLines, healthPopoverPosition } from "./rail-health";
 
 type HealthLevel = "ok" | "warn" | "down";
 export interface HealthState { health: AgentOpsHealth; level: HealthLevel; plannotator: PlannotatorConfig | null }
-const HEALTH_COLORS: Record<HealthLevel, string> = { ok: "#3fb950", warn: "#d29922", down: "#f85149" };
+const HEALTH_COLORS: Record<HealthLevel, string> = { ok: "var(--color-tron-cyan)", warn: "var(--color-tron-orange)", down: "var(--color-tron-red)" };
 
 /** Polls the internal health gauges every 30 s while the tab is visible; null until the first answer or when the route fails. */
 export function useHealthPoll(): HealthState | null {
@@ -97,7 +99,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
   return { agents, agentsHomeDir, paused, error, lastOkAt, reload };
 }
 
-const railButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, fontSize: 16 };
+const railButtonClass = "flex size-8 shrink-0 items-center justify-center bg-transparent p-0 text-text-muted outline-none transition-colors hover:text-tron-cyan focus-visible:shadow-glow-cyan [&_svg]:size-4";
 
 export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, onShowInbox, orientation, paused, error, lastOkAt, onPauseChanged, healthState }: {
   healthState: HealthState | null;
@@ -200,13 +202,13 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             aria-current={agent.name === activeAgent ? "true" : undefined}
             aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.state === "needs_input" ? t("agents.rail.needsInput") : agent.running ? t("agents.rail.running") : agent.state === "failed" ? t("agents.rail.failed") : ""].filter(Boolean).join(", ")}
             title={[agent.name + (index < 9 ? ` · Ctrl+Alt+${index + 1}` : ""), [agent.lastPreview, agent.lastActivityAt && formatRelativeTime(agent.lastActivityAt, locale)].filter(Boolean).join(" · ")].filter(Boolean).join("\n")}
-            style={vertical ? { ...railButtonStyle, borderRadius: "50%" } : { ...railButtonStyle, flexDirection: "column", gap: 2, width: "auto", height: "auto", padding: "0 2px", borderRadius: 6 }}
+            className={vertical ? cn(railButtonClass, "size-9") : cn(railButtonClass, "h-auto w-auto flex-col gap-0.5 px-0.5")}
           >
             <AgentAvatar avatar={agent.avatar} running={agent.running} state={agent.state} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />
             {!vertical && <span className="agent-rail-name" aria-hidden="true">{agent.name}</span>}
           </button>
         ))}
-        <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>
+        <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} className={railButtonClass}><Plus aria-hidden="true" /></button>
         {(healthState || pauseError) && (
           <button
             ref={healthButtonRef}
@@ -216,13 +218,13 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             aria-expanded={healthOpen}
             aria-label={healthLabel}
             title={healthLabel}
-            style={{ ...railButtonStyle, gap: 2 }}
+            className={cn(railButtonClass, "gap-0.5")}
           >
-            {healthState && <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: HEALTH_COLORS[healthState.level] }} />}
-            {pauseError && <span aria-hidden="true" style={{ fontSize: 12 }}>⚠</span>}
+            {healthState && <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: HEALTH_COLORS[healthState.level], boxShadow: `0 0 6px ${HEALTH_COLORS[healthState.level]}` }} />}
+            {pauseError && <TriangleAlert aria-hidden="true" className="!size-3 text-tron-orange" />}
           </button>
         )}
-        {healthState?.health.quietHours && <span role="img" aria-label={t("agentOps.quietHours.active")} title={t("agentOps.quietHours.active")} style={{ fontSize: 12 }}>🌙</span>}
+        {healthState?.health.quietHours && <span role="img" aria-label={t("agentOps.quietHours.active")} title={t("agentOps.quietHours.active")} className="text-text-dim"><Moon aria-hidden="true" className="size-3" /></span>}
         {confirmingPause ? (
           <div
             role="group"
@@ -236,17 +238,17 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             }}
             style={{ display: "flex", flexDirection: vertical ? "column" : "row", alignItems: "center", gap: 4, flexShrink: 0 }}
           >
-            <button type="button" onClick={() => { closePauseConfirm(); void setPausedAll(true); }} aria-label={t("agentOps.pause.confirmYes")} title={t("agentOps.pause.confirm")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 6 }}>✓{!vertical && <span>{t("agentOps.pause.confirmYes")}</span>}</button>
-            <button ref={pauseCancelRef} type="button" onClick={closePauseConfirm} aria-label={t("i18n.cancel")} title={t("i18n.cancel")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), border: "1px solid var(--border)", borderRadius: 6 }}>✕{!vertical && <span>{t("i18n.cancel")}</span>}</button>
+            <button type="button" onClick={() => { closePauseConfirm(); void setPausedAll(true); }} aria-label={t("agentOps.pause.confirmYes")} title={t("agentOps.pause.confirm")} className={cn(railButtonClass, !vertical && "w-auto gap-1 px-2 text-xs", "border border-tron-cyan text-tron-cyan")}><Check aria-hidden="true" />{!vertical && <span>{t("agentOps.pause.confirmYes")}</span>}</button>
+            <button ref={pauseCancelRef} type="button" onClick={closePauseConfirm} aria-label={t("i18n.cancel")} title={t("i18n.cancel")} className={cn(railButtonClass, !vertical && "w-auto gap-1 px-2 text-xs", "border border-tron-line")}><X aria-hidden="true" />{!vertical && <span>{t("i18n.cancel")}</span>}</button>
           </div>
         ) : (
-          <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void setPausedAll(false) : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
+          <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void setPausedAll(false) : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} className={cn(railButtonClass, paused && "text-tron-cyan")}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}</button>
         )}
         {pauseError && <span role="alert" className="visually-hidden">{t("agents.error", { error: pauseError })}</span>}
-        {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}
-        <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto", width: "auto" }) }}>📥{inboxUnread > 0 && <span style={{ fontSize: 12, marginLeft: 2 }}>{inboxUnread}</span>}{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.inbox")}</span>}</button>
-        <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} style={vertical ? railButtonStyle : { ...railButtonStyle, width: "auto" }}>⧉{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.tasks")}</span>}</button>
-        <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} style={{ ...railButtonStyle, color: activeAgent === null ? "var(--accent)" : "var(--text-muted)" }}>☰</button>
+        {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} className="text-tron-orange"><TriangleAlert aria-hidden="true" className="size-3" /></span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}
+        <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} className={cn(railButtonClass, vertical ? "mt-auto" : "ml-auto w-auto")}><Inbox aria-hidden="true" />{inboxUnread > 0 && <span className="ml-0.5 font-mono text-xs text-tron-cyan">{inboxUnread}</span>}{!vertical && <span className="ml-1 text-xs">{t("agents.rail.inbox")}</span>}</button>
+        <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} className={cn(railButtonClass, !vertical && "w-auto")}><ListTodo aria-hidden="true" />{!vertical && <span className="ml-1 text-xs">{t("agents.rail.tasks")}</span>}</button>
+        <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} className={cn(railButtonClass, activeAgent === null && "text-tron-cyan")}><Menu aria-hidden="true" /></button>
       </nav>
       {healthOpen && createPortal(
         <div
@@ -267,17 +269,17 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             width: "max-content",
             maxWidth: "min(320px, calc(100vw - 16px))",
             padding: "8px 10px",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            background: "var(--bg)",
+            border: "1px solid var(--color-tron-line)",
+            borderRadius: 0,
+            background: "#000",
             color: "var(--text)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            boxShadow: "var(--shadow-glow-cyan)",
             fontSize: 12,
           }}
         >
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 4 }}>
             {healthLines.map((line, index) => (
-              <li key={index} style={{ overflowWrap: "anywhere", color: index === 0 ? "var(--text)" : "var(--text-muted)", fontWeight: index === 0 ? 600 : 400 }}>{line}</li>
+              <li key={index} className={index === 0 ? "font-hud text-[10px] uppercase tracking-[0.14em] text-tron-cyan" : "text-text-muted"} style={{ overflowWrap: "anywhere" }}>{line}</li>
             ))}
           </ul>
         </div>,

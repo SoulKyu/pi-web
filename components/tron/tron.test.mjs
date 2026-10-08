@@ -35,3 +35,11 @@ test("Chamfer draws a tone border layer and puts the glow on an outer wrapper", 
 test("scan bar and cursor stop under reduced motion", () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.tron-scan,\s*\.tron-cursor \{\s*animation: none;/);
 });
+
+test("HexAvatar keeps ZWJ emoji whole and accepts color, size and custom content", () => {
+  assert.match(html(h(HexAvatar, { label: "👩‍💻dev" })), />👩‍💻D</);
+  const custom = html(h(HexAvatar, { label: "ops", color: "#ff00aa", size: 32 }, "🤖"));
+  assert.match(custom, />🤖</);
+  assert.match(custom, /background:#ff00aa/);
+  assert.match(custom, /width:32px/);
+});
