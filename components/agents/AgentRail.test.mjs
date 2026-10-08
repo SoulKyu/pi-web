@@ -97,7 +97,7 @@ test("pausing all agents asks inline; Escape cancels without reaching the global
   assert.match(rail, /if \(event\.key !== "Escape"\) return;\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*closePauseConfirm\(\);/);
   assert.match(rail, /onClick=\{\(\) => \{ closePauseConfirm\(\); void setPausedAll\(true\); \}\}/);
   assert.match(rail, /JSON\.stringify\(\{ paused: next \}\)/);
-  assert.match(rail, /useEffect\(\(\) => \{ if \(paused\) setConfirmingPause\(false\); \}, \[paused\]\);/);
+  assert.match(rail, /useEffect\(\(\) => \{ if \(paused && confirmingPause\) closePauseConfirm\(\); \}, \[paused, confirmingPause, closePauseConfirm\]\);/);
   assert.match(rail, /aria-label=\{t\("agentOps\.pause\.confirmYes"\)\} title=\{t\("agentOps\.pause\.confirm"\)\}/);
   assert.doesNotMatch(rail, /togglePause/);
   assert.match(rail, /aria-label=\{t\("agentOps\.pause\.confirmYes"\)\}/);
@@ -107,5 +107,30 @@ test("pausing all agents asks inline; Escape cancels without reaching the global
   for (const id of ["en", "fr", "zh-CN", "zh-TW"]) {
     const locale = Object.values(await jiti.import(`../../lib/i18n/messages/${id}.ts`)).find((value) => value?.messages);
     assert.equal(typeof locale.messages["agentOps.pause.confirmYes"], "string", id);
+  }
+});
+
+test("the health dot is a button opening a fixed popover outside the scrolling rail; Escape is taken before the global stop", async () => {
+  assert.doesNotMatch(rail, /title=\{healthTitle/);
+  assert.match(rail, /aria-haspopup="dialog"/);
+  assert.match(rail, /aria-expanded=\{healthOpen\}/);
+  assert.match(rail, /role="dialog"/);
+  assert.match(rail, /position: "fixed"/);
+  assert.match(rail, /healthPopoverPosition\(/);
+  assert.match(rail, /healthPopoverLines\(/);
+  assert.ok(rail.indexOf("createPortal(") > rail.indexOf("</nav>"), "the popover renders after the nav, through a portal");
+  assert.match(rail, /document\.addEventListener\("keydown", onKeyDown\)/);
+  assert.match(rail, /if \(event\.key !== "Escape"\) return;\s*event\.preventDefault\(\);\s*closeHealth\(true\);/);
+  assert.match(rail, /document\.addEventListener\("pointerdown", onPointerDown\)/);
+  assert.doesNotMatch(rail, /<span role="alert" title=/); // the pause error lives in the popover now
+  assert.match(rail, /<span role="alert" className="visually-hidden">/);
+  assert.doesNotMatch(rail, /\(\?<[=!]/);
+  const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /@media \(pointer: coarse\) \{\s*\.agent-rail > button \{ min-width: 44px; min-height: 44px; \}/);
+  assert.match(css, /\.visually-hidden \{/);
+  for (const locale of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const messages = await readFile(new URL(`../../lib/i18n/messages/${locale}.ts`, import.meta.url), "utf8");
+    for (const key of ["agents.health.title", "agents.health.lastTick", "agents.health.running", "agents.health.freeMemory", "agents.health.sessions", "agents.health.extensionError"]) assert.ok(messages.includes(`"${key}"`), `${locale} ${key}`);
+    assert.ok(!messages.includes('"agents.health.details"'), `${locale} drops the unused details key`);
   }
 });
