@@ -1,6 +1,8 @@
 "use client";
 
 import { Command } from "cmdk";
+import { useRef } from "react";
+import { focusIfLost } from "@/lib/stacked-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { useI18n } from "@/hooks/useI18n";
@@ -16,9 +18,22 @@ const GROUPS: { group: PaletteGroup; labelKey: string }[] = [
 
 export function CommandPalette({ open, onOpenChange, commands }: { open: boolean; onOpenChange: (open: boolean) => void; commands: PaletteCommand[] }) {
   const { t } = useI18n();
+  const openerRef = useRef<HTMLElement | null>(null);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={t("chat.close")} aria-describedby={undefined} className="top-[15vh] w-[min(92vw,36rem)] translate-y-0 gap-0 p-0">
+      <DialogContent
+        data-command-palette=""
+        closeLabel={t("chat.close")}
+        aria-describedby={undefined}
+        className="top-[15vh] w-[min(92vw,36rem)] translate-y-0 gap-0 p-0"
+        onOpenAutoFocus={() => {
+          openerRef.current = document.activeElement as HTMLElement | null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          focusIfLost(document, openerRef.current);
+        }}
+      >
         <DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
         <Command label={t("palette.title")} loop className="flex flex-col">
           <Command.Input

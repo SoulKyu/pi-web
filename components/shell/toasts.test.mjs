@@ -21,3 +21,10 @@ test("security-relevant quarantine warnings stay until dismissed", () => {
   assert.match(profile, /toast\.warning\(t\("agents\.profile\.quarantineVault"[\s\S]*?\{ duration: Infinity, closeButton: true \}\)/);
   assert.match(profile, /toast\.warning\(t\("agents\.profile\.quarantinePartial"[\s\S]*?\{ duration: Infinity, closeButton: true \}\)/);
 });
+
+test("error toasts glow red: the cyan glow is not on the shared toast class", () => {
+  const base = shell.match(/toast: "([^"]*)"/)?.[1] ?? "";
+  assert.doesNotMatch(base, /shadow-/);
+  assert.match(shell, /default: "[^"]*shadow-glow-cyan/);
+  assert.match(shell, /error: "[^"]*shadow-\[0_0_14px_rgb\(255_77_94\/0\.35\)\]/);
+});

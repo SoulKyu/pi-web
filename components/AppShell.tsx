@@ -1272,6 +1272,8 @@ export function AppShell() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isCommandPaletteKey(event, shortcutPlatform)) return;
+      // Settings and the agent dialogs sit above the palette's layer: opening under them would trap focus out of sight.
+      if (document.querySelector('[role="dialog"]:not([data-command-palette])')) return;
       event.preventDefault();
       setPaletteOpen((open) => !open);
     };
@@ -2709,12 +2711,14 @@ export function AppShell() {
       toastOptions={{
         unstyled: true,
         classNames: {
-          toast: "flex w-[min(92vw,360px)] items-start gap-2 border border-tron-line bg-black px-3 py-2.5 text-sm text-text shadow-glow-cyan",
+          toast: "flex w-[min(92vw,360px)] items-start gap-2 border border-tron-line bg-black px-3 py-2.5 text-sm text-text",
+          default: "shadow-glow-cyan",
+          info: "shadow-glow-cyan",
           title: "font-medium",
           description: "text-xs text-text-muted",
           error: "border-tron-red/60 text-tron-red shadow-[0_0_14px_rgb(255_77_94/0.35)]",
           warning: "border-tron-orange/60 text-tron-orange shadow-glow-orange",
-          success: "text-tron-cyan",
+          success: "text-tron-cyan shadow-glow-cyan",
           closeButton: "border border-tron-line bg-black text-text-muted hover:text-text",
         },
       }}

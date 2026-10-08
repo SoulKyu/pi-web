@@ -43,3 +43,13 @@ test("every locale has the palette strings", async () => {
     for (const k of keys) assert.ok(src.includes(`"${k}"`), `${locale} ${k}`);
   }
 });
+
+test("the palette does not open under another dialog (Settings, agent dialogs)", () => {
+  assert.match(shell, /document\.querySelector\('\[role="dialog"\]:not\(\[data-command-palette\]\)'\)/);
+  assert.match(palette, /data-command-palette=""/);
+});
+
+test("closing the palette gives focus back to where it was opened from", () => {
+  assert.match(palette, /onOpenAutoFocus=\{\(\) => \{\s*openerRef\.current = document\.activeElement as HTMLElement \| null;/);
+  assert.match(palette, /onCloseAutoFocus=\{\(event\) => \{\s*event\.preventDefault\(\);\s*focusIfLost\(document, openerRef\.current\);/);
+});
