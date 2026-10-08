@@ -141,6 +141,10 @@ test("the health dot is a button opening a fixed popover outside the scrolling r
 test("the horizontal rail shows each agent's name under its avatar, clipped by CSS; the vertical rail does not", async () => {
   const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
   assert.match(rail, /\{!vertical && <span className="agent-rail-name" aria-hidden="true">\{agent\.name\}<\/span>\}/);
+  // Inline min sizes would beat the coarse-pointer 44px rule in globals.css.
+  const horizontalStyle = rail.match(/style=\{vertical \? \{[^}]*\} : (\{[^}]*\})\}/)?.[1] ?? "";
+  assert.match(horizontalStyle, /flexDirection: "column"/);
+  assert.doesNotMatch(horizontalStyle, /minWidth|minHeight/);
   // The accessible name still starts with the full name; the label is decoration only.
   assert.match(rail, /aria-label=\{\[agent\.name, /);
   const start = css.indexOf(".agent-rail-name {");
