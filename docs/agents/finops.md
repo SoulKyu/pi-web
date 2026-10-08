@@ -1,6 +1,6 @@
 # FinOps: runs.jsonl in Grafana
 
-Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/scheduler.ts` (rotation).
+Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/metrics.ts`, `app/api/metrics/route.ts`, `lib/agent-ops/scheduler.ts` (rotation).
 
 ## What `runs.jsonl` contains
 
@@ -101,3 +101,34 @@ sum by (agent) (sum_over_time({job="pi-web-runs"} | json | unwrap usage_input [2
 - **Timezone**: line timestamps are UTC; the `timestamp` stage keeps Loki in UTC. Compare with the in-app budget (local midnight) knowing it differs.
 - **Single writer**: the file is appended by one pi-web process. Two servers sharing one agent dir interleave lines (appends under 4 KiB stay whole on POSIX); run one ingestion agent per file.
 - **Torn or junk line**: the app skips them; Loki ingests them as plain text and `| json` marks them `__error__`. Add `| __error__=""` if that shows up.
+
+## Prometheus metrics (optional, off by default)
+
+For a setup without Loki. `GET /api/metrics` renders in-memory counters in the text exposition format 0.0.4. They are fed by `appendRunRecord` (`recordRunMetrics()` in `lib/agent-ops/metrics.ts`) as each run finishes: no session scan, no re-read of `runs.jsonl`.
+
+| Metric | Labels |
+|---|---|
+| `pi_web_runs_total` | `agent`, `origin`, `status` |
+| `pi_web_run_tokens_total` | `agent`, `kind` = `input` \| `output` \| `cache_read` \| `cache_write` |
+| `pi_web_run_cost_usd_total` | `agent` (provider `usage.cost` only, never `costEquivalent`) |
+| `pi_web_run_duration_seconds_sum` / `_count` | `agent` (`_count` only counts runs that recorded a duration) |
+
+- **Enable**: set `PI_WEB_METRICS_TOKEN` in the server's environment and restart. Unset or empty → `GET /api/metrics` answers 404.
+- **Auth**: `Authorization: Bearer <token>` (constant-time compare); 401 otherwise. `proxy.ts` exempts exactly `GET /api/metrics` from the web password/session (the host check still applies), so the bearer is the only gate: use a long random token (`openssl rand -base64 32`) and keep the port off the public internet.
+- **Counters restart at zero** with the process. Use `rate()` / `increase()`, which handle resets; they do not backfill past runs (use `runs.jsonl` for that). Only runs finished since the start are counted.
+- Nothing from sessions, prompts or the token appears in the output; the `agent` label is the agent name.
+
+```yaml
+scrape_configs:
+  - job_name: pi-web
+    metrics_path: /api/metrics
+    authorization: { type: Bearer, credentials_file: /etc/prometheus/pi-web.token }
+    static_configs: [{ targets: ["127.0.0.1:30141"] }]
+```
+
+```promql
+sum by (agent) (increase(pi_web_run_tokens_total[24h]))
+sum by (agent) (increase(pi_web_runs_total{status="failed"}[1h])) > 2
+```
+
+Troubleshooting: 404 → token unset in the server process (not your shell); 401 → token mismatch or a proxy stripping `Authorization`; 403 → `Host` header not accepted by the host check (see files-and-access.md).

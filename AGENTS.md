@@ -48,6 +48,7 @@ app/api/
   agent-ops/triggers/[id]/dry-run/route.ts POST { payload? } plan of a fire (verdict, fenced prompt, tokenFree, tools, pinStatus, target), writes nothing
   agent-ops/triggers/[id]/fire/route.ts POST { payload? } manual fire, no dedup token: 202 { taskId } | 409 { reason }
   agent-ops/triggers/[id]/hook/route.ts POST webhook ingestion (secret header, exempt from the session in proxy.ts)
+  metrics/route.ts                 GET Prometheus text 0.0.4 of in-memory run counters; 404 unless PI_WEB_METRICS_TOKEN is set, else Bearer token (401); exempt from the session in proxy.ts
   agent-ops/health/route.ts        GET { health, level, plannotator } internal gauges (scheduler last tick, runners, sessions, free MB, extension errors, paused); plannotator: { host, ports } | null from PLANNOTATOR_PORT / PLANNOTATOR_URL_HOST
   agent-ops/memory/route.ts        GET [?agent=] pi-mem0 staged memories (approval queue)
   agent-ops/memory/[id]/decision/route.ts POST { approved } write a staged memory's decision file
@@ -182,7 +183,8 @@ lib/
   agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin
   agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
   agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
-  agent-ops/hook-path.ts    exact hook path the proxy lets through without a session + the secret header name (client-safe)
+  agent-ops/hook-path.ts    exact hook path and GET /api/metrics (isMetricsRequest) the proxy lets through without a session + the secret header name (client-safe)
+  agent-ops/metrics.ts      recordRunMetrics (called by appendRunRecord) / renderPrometheus: in-memory run counters, reset on restart
   agent-ops/payload-formats.ts mapPayload(format, body): raw / Alertmanager / Grafana alerts[] to one line per alert, dedupKey on fingerprints, severity
   agent-ops/budget.ts       spentToday / budgetRefusal: daily token and cost budget per agent (local midnight, provider cost only)
   agent-ops/budget-push.ts  pushBudgetReachedOnce(): one push per agent per day when the budget is reached
@@ -305,7 +307,7 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [settings-ui.md](docs/agents/settings-ui.md): Plugins and Skills routes, sidebar group switches, the shared `SettingsUi` blocks every settings panel and add pane uses. Files: `app/api/plugins/**`, `app/api/skills/**`, `components/SettingsUi.tsx`, `components/settings-ui-helpers.ts`, `components/SkillsConfig.tsx`, `components/PluginsConfig.tsx`; also before adding a settings section or add pane.
 - [subagents.md](docs/agents/subagents.md): the built-in subagent setting, profiles and their files, run status, completion notifications. Files: `lib/subagent*.ts`, `app/api/subagents/**`, `components/AgentsConfig.tsx`.
 - [agent-ops.md](docs/agents/agent-ops.md): the task store and FIFO runner, cancel/steer ordering, the single deadline, the unawaited prompt send, trigger tool check, the two runners. Files: `lib/agent-ops/**`, `lib/agents/{queue,thread-run}.ts`, `app/api/agent-ops/**`, `components/agents/{AgentTasks,AgentTriggers,TriggerDialog,TriggerSecretDialog,AgentMemory}.tsx`, `task-view.ts`, `trigger-view.ts`.
-- [finops.md](docs/agents/finops.md): `runs.jsonl` fields, promtail / Alloy ingestion into Loki, Grafana alert rules, troubleshooting. Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`.
+- [finops.md](docs/agents/finops.md): `runs.jsonl` fields, promtail / Alloy ingestion into Loki, Grafana alert rules, troubleshooting. Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/metrics.ts`, `app/api/metrics/route.ts`; also the optional Prometheus endpoint.
 - [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation, event cards, the per-agent queue, trigger binding, `agent_notify`. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/*`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `components/MessageView.tsx`, `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/web-push.ts`, `lib/initial-navigation.ts`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
 

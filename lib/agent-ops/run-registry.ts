@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { recordRunMetrics } from "./metrics";
 import type { RunUsage } from "./run-usage";
 
 export interface RunRecord {
@@ -18,6 +19,7 @@ export function appendRunRecord(record: RunRecord, path = runsPath()): void {
   try {
     mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     appendFileSync(path, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+    recordRunMetrics(record);
   } catch (error) {
     console.error("[agent-ops] run record:", error instanceof Error ? error.message : error);
   }

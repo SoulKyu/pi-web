@@ -4,7 +4,7 @@ import {
   recordAuthFailure,
   retryAfterSeconds,
 } from "@/lib/auth-throttle";
-import { isAgentOpsHookRequest } from "@/lib/agent-ops/hook-path";
+import { isAgentOpsHookRequest, isMetricsRequest } from "@/lib/agent-ops/hook-path";
 import {
   isApiRequestAllowed,
   hasBrowserOriginHeaders,
@@ -33,6 +33,7 @@ export function proxy(request: NextRequest) {
     || request.nextUrl.pathname.startsWith("/api/");
   // A webhook sender (Alertmanager, curl) is no browser and sends no Origin: the secret authenticates it, so it skips the origin requirement of mutating calls.
   const isHookRequest = isAgentOpsHookRequest(request.nextUrl.pathname, request.method);
+  const isMetrics = isMetricsRequest(request.nextUrl.pathname, request.method);
   const isTrustedRequest = isApiRequest && !isHookRequest
     ? isApiRequestAllowed(request)
     : isApiRequestHostAllowed(request) && (!isHookRequest || !hasBrowserOriginHeaders(request) || isApiRequestOriginAllowed(request));
@@ -47,6 +48,8 @@ export function proxy(request: NextRequest) {
   // Authenticated by the trigger's shared secret and a dedicated throttle (lib/agent-ops/webhook.ts), not by
   // the browser session. Before any Authorization handling, so a wrong header here never feeds the login throttle.
   if (isHookRequest) return NextResponse.next();
+  // GET /api/metrics checks its own bearer token (PI_WEB_METRICS_TOKEN) and is a 404 while that is unset. The host check above still applied.
+  if (isMetrics) return NextResponse.next();
 
   const password = process.env.PI_WEB_PASSWORD;
   if (!isWebPasswordEnabled(password)) {
