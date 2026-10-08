@@ -28,7 +28,9 @@ import { RecallCard } from "@/components/agents/RecallCard";
 import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
 import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
-import { Chamfer, StreamCursor } from "@/components/tron";
+import { Chamfer, ScanBar, StreamCursor } from "@/components/tron";
+import { Led } from "./ui/led";
+import { cn } from "@/lib/cn";
 import { TOOL_STATUS_GLYPH, TOOL_STATUS_LABEL_KEY, toolCallStatus } from "./tool-call-status";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
@@ -1159,10 +1161,10 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex 
   return (
     <div style={{
       display: "flex", alignItems: "flex-start", gap: 6, minWidth: 0,
-      border: "1px solid var(--border)",
-      borderRadius: 7,
+      border: "1px solid var(--color-tron-line)",
+      borderRadius: 0,
       padding: "6px 10px",
-      background: "var(--bg)",
+      background: "#000",
       fontFamily: "var(--font-mono)",
       fontSize: "calc(11px + var(--chat-font-size-offset, 0px))",
       lineHeight: 1.5,
@@ -1202,7 +1204,7 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex 
           style={{
             flex: 1,
             minWidth: 0,
-            color: error ? "#f87171" : "var(--text-muted)",
+            color: error ? "var(--color-tron-red)" : "var(--text-muted)",
             whiteSpace: "pre-wrap",
             overflowWrap: "anywhere",
           }}
@@ -1293,15 +1295,20 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
   const planLinks = isExternalContentTool(block.toolName) ? [] : plannotatorLinks(joinedResultText ?? "", plannotator ?? null);
   const subagent = isSubagentToolDetails(result?.details) ? result.details : null;
   const codemodeCallCount = codemode ? codemode.calls.length + codemode.omitted : 0;
+  const cardTone = status === "running" ? "running" : isError ? "failed" : status === "done" ? "done" : "pending";
 
   return (
     <div
+      data-card-state={cardTone}
+      className={cn(
+        "border bg-black/90",
+        cardTone === "running" && "border-transparent shadow-glow-orange",
+        cardTone === "failed" && "border-tron-red/60 bg-tron-red/5",
+        cardTone !== "running" && cardTone !== "failed" && "border-tron-line",
+      )}
       style={{
-        borderRadius: 7,
         overflow: "hidden",
         fontSize: 12,
-        border: status === "running" ? "1px solid var(--border)" : isError ? "1px solid rgba(248,113,113,0.45)" : "1px solid rgba(34,197,94,0.25)",
-        background: isError ? "rgba(248,113,113,0.05)" : "rgba(34,197,94,0.04)",
       }}
     >
       {/* ── Tool call header ── */}
@@ -1310,6 +1317,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
           type="button"
           onClick={toggleExpanded}
           aria-expanded={expanded}
+          className="bg-transparent text-text-muted outline-none hover:bg-bg-hover focus-visible:shadow-glow-cyan"
           style={{
             display: "flex",
             alignItems: "center",
@@ -1317,17 +1325,16 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             flex: 1,
             minWidth: 0,
             padding: "6px 10px",
-            background: "none",
             border: "none",
-            color: "var(--text-muted)",
-            cursor: "pointer",
             fontSize: 12,
             textAlign: "left",
           }}
         >
+          <Led status={cardTone === "running" ? "running" : cardTone === "failed" ? "error" : cardTone === "done" ? "done" : "idle"} />
           <span
             title={mcpLabel ? block.toolName : undefined}
-            style={{ color: isError ? "#f87171" : "#16a34a", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11, flexShrink: 0 }}
+            className={isError ? "text-tron-red" : "text-tron-cyan"}
+            style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11, flexShrink: 0 }}
           >
             {mcpLabel ? (
               <>
@@ -1350,14 +1357,14 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
           )}
           {status && (
-            <span className="tool-status" style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontSize: 11, color: status === "failed" ? "#f87171" : "var(--text-dim)" }}>
+            <span className="tool-status" style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontSize: 11, color: status === "failed" ? "var(--color-tron-red)" : "var(--text-dim)" }}>
               {status === "running"
                 ? <span className="tool-status-spinner" aria-hidden="true" />
                 : <span aria-hidden="true">{TOOL_STATUS_GLYPH[status]}</span>}
               <span className={status === "done" ? "visually-hidden" : "tool-status-word"}>{t(TOOL_STATUS_LABEL_KEY[status])}</span>
             </span>
           )}
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text-dim)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim" aria-hidden="true" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
             <polyline points="2 3.5 5 6.5 8 3.5" />
           </svg>
         </button>
@@ -1367,12 +1374,14 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             onClick={() => onOpenSession(subagent.sessionId)}
             title={t("subagent.open")}
             aria-label={t("subagent.open")}
-            style={{ width: 32, display: "grid", placeItems: "center", border: "none", borderLeft: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+            className="text-text-muted hover:text-tron-cyan"
+            style={{ width: 32, display: "grid", placeItems: "center", border: "none", borderLeft: "1px solid var(--color-tron-line)", background: "none", flexShrink: 0 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
           </button>
         )}
       </div>
+      {cardTone === "running" && <ScanBar />}
 
       {/* ── Expanded: input args (only when no richer view exists); a codemode script in place of its JSON ── */}
       {expanded && (isStreamingInput || !isEditTool) && !patchFiles && (
@@ -1385,7 +1394,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
             lineHeight: 1.5,
             overflow: "auto",
             background: "var(--bg-subtle)",
-            borderTop: isError ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(34,197,94,0.2)",
+            borderTop: isError ? "1px solid color-mix(in srgb, var(--color-tron-red) 25%, transparent)" : "1px solid var(--color-tron-line)",
             whiteSpace: "pre-wrap",
             wordBreak: "break-all",
           }}
@@ -1404,7 +1413,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
 
       {/* ── Expanded: applied-patch split diff ── */}
       {expanded && patchFiles && (
-        <div style={{ borderTop: "1px solid rgba(34,197,94,0.15)", background: "var(--bg)" }}>
+        <div style={{ borderTop: "1px solid var(--color-tron-line)", background: "var(--bg)" }}>
           <SplitFilesView files={patchFiles} />
         </div>
       )}
@@ -1450,7 +1459,7 @@ function PairedDiffResult({ diff }: {
   return (
     <div
       style={{
-        borderTop: "1px solid rgba(34,197,94,0.15)",
+        borderTop: "1px solid var(--color-tron-line)",
         background: "var(--bg)",
       }}
     >
@@ -1616,7 +1625,7 @@ function PatchTextView({ text }: { text: string }) {
         const bg =
           kind === "added" ? "var(--diff-added-bg)" :
           kind === "removed" ? "var(--diff-removed-bg)" :
-          kind === "hunk" ? "rgba(96,165,250,0.12)" :
+          kind === "hunk" ? "rgb(0 216 255 / 0.10)" :
           "transparent";
         const color =
           kind === "added" ? "var(--diff-added)" :
@@ -1720,7 +1729,7 @@ function ResultImages({ images, isError }: { images: ImageContent[]; isError: bo
         flexWrap: "wrap",
         padding: "10px",
         background: "var(--bg)",
-        borderTop: `1px solid ${isError ? "rgba(248,113,113,0.3)" : "rgba(34,197,94,0.15)"}`,
+        borderTop: `1px solid ${isError ? "color-mix(in srgb, var(--color-tron-red) 30%, transparent)" : "var(--color-tron-line)"}`,
       }}
     >
       {images.map((image, index) => {
@@ -1762,15 +1771,15 @@ function PairedResult({ text, isEmpty, isError }: {
   return (
     <div
       style={{
-        borderTop: `1px solid ${isError ? "rgba(248,113,113,0.3)" : "rgba(34,197,94,0.15)"}`,
-        background: isError ? "rgba(248,113,113,0.04)" : "var(--bg-subtle)",
+        borderTop: `1px solid ${isError ? "color-mix(in srgb, var(--color-tron-red) 30%, transparent)" : "var(--color-tron-line)"}`,
+        background: isError ? "color-mix(in srgb, var(--color-tron-red) 4%, transparent)" : "var(--bg-subtle)",
       }}
     >
       <pre
         style={{
           margin: 0,
           padding: "8px 10px",
-          color: isError ? "#f87171" : (isEmpty ? "var(--text-dim)" : "var(--text-muted)"),
+          color: isError ? "var(--color-tron-red)" : (isEmpty ? "var(--text-dim)" : "var(--text-muted)"),
           fontSize: "calc(12px + var(--chat-font-size-offset, 0px))",
           lineHeight: 1.5,
           overflow: "auto",

@@ -1666,6 +1666,7 @@ span.token.table {
   50% { opacity: 0.5; }
 }
 .tool-status-spinner {
+  color: var(--color-tron-orange);
   width: 10px;
   height: 10px;
   box-sizing: border-box;

@@ -36,3 +36,26 @@ test("assistant reply has the cyan trace, a HUD model label and a cursor while s
 test("no off-palette colors remain in MessageView", () => {
   assert.doesNotMatch(source, /#16a34a|#f87171|#ef4444|#ca8a04|#53b3cb|#9bc53d|#f9c22e|#e01a4f|rgba\((34,197,94|248,113,113|239,68,68|234,179,8|59,130,246|96,165,250)/);
 });
+
+const statusBlock = { type: "toolCall", toolCallId: "call-tron-1", toolName: "read", input: { path: "/tmp/a" } };
+const statusMessage = { role: "assistant", provider: "anthropic", model: "claude-test", content: [statusBlock] };
+const result = (isError) => ({ role: "toolResult", toolCallId: statusBlock.toolCallId, toolName: "read", content: [{ type: "text", text: isError ? "ENOENT" : "ok" }], isError });
+
+test("tool cards expose their status and draw it in Tron colors", () => {
+  const running = render(statusMessage, { toolResults: new Map(), runningToolIds: new Set([statusBlock.toolCallId]), runActive: true });
+  assert.match(running, /data-card-state="running"/);
+  assert.match(running, /tron-scan/);
+  assert.match(running, /shadow-glow-orange/);
+  const failed = render(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, result(true)]]) });
+  assert.match(failed, /data-card-state="failed"/);
+  assert.match(failed, /border-tron-red/);
+  const done = render(statusMessage, { toolResults: new Map([[statusBlock.toolCallId, result(false)]]) });
+  assert.match(done, /data-card-state="done"/);
+  assert.match(done, /data-status="done"/); // the Led
+  assert.match(done, /text-tron-cyan/); // the tool name
+});
+
+test("code mode statuses use Tron colors", async () => {
+  const codemode = await readFile(new URL("./CodemodeToolView.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(codemode, /#d97706|#16a34a|#f87171|rgba\(/);
+});
