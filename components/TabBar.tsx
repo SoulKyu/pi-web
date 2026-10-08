@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getFileIcon } from "./FileIcons";
+import { tabLabelSuffixes } from "./tab-labels";
 import { useI18n } from "@/hooks/useI18n";
 import type { FileViewerDisplayMode, FileViewerState } from "@/lib/file-viewer-state";
 
@@ -31,9 +32,18 @@ interface Props {
 export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
   const { t } = useI18n();
   const [hoveredClose, setHoveredClose] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const suffixes = useMemo(() => tabLabelSuffixes(tabs), [tabs]);
+
+  useEffect(() => {
+    const active = listRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    active?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [activeTabId]);
 
   return (
     <div
+      ref={listRef}
       role="tablist"
       style={{
         display: "flex",
@@ -46,11 +56,12 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
+        const suffix = suffixes.get(tab.id);
         return (
           <div
             key={tab.id}
             role="tab"
-            aria-label={tab.kind === "terminal" ? t("terminal.tabLabel", { name: tab.label }) : tab.label}
+            aria-label={tab.kind === "terminal" ? t("terminal.tabLabel", { name: tab.label }) : suffix ? t("files.tabWithDir", { name: tab.label, dir: suffix }) : tab.label}
             aria-selected={isActive}
             tabIndex={isActive || (!activeTabId && tabs[0].id === tab.id) ? 0 : -1}
             onKeyDown={(event) => {
@@ -90,7 +101,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               fontSize: 12,
               color: isActive ? "var(--text)" : "var(--text-muted)",
               whiteSpace: "nowrap",
-              maxWidth: 180,
+              maxWidth: suffix ? 240 : 180,
               minWidth: 80,
               flexShrink: 0,
               userSelect: "none",
@@ -108,13 +119,30 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               style={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                flex: 1,
+                flex: suffix ? "0 1 auto" : 1,
+                minWidth: 0,
                 fontWeight: isActive ? 500 : 400,
               }}
               title={tab.filePath}
             >
               {tab.label}
             </span>
+            {suffix && (
+              <span
+                aria-hidden="true"
+                title={tab.filePath}
+                style={{
+                  flex: "1 1000 auto",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontSize: 11,
+                  color: "var(--text-dim)",
+                }}
+              >
+                {suffix}
+              </span>
+            )}
             {tab.closable !== false && <button
               disabled={tab.closing}
               onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}

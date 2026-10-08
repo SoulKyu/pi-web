@@ -249,6 +249,7 @@ export const frLocale: LocalePlugin = {
     "files.restorePanelWidth": "Restaurer la largeur du panneau de fichiers",
     "files.showPanel": "Afficher le panneau de fichiers",
     "files.noneOpen": "Aucun fichier ouvert",
+    "files.tabWithDir": "{name} dans {dir}",
     "layout.resizeSidebar": "Redimensionner la barre latérale",
     "layout.resizeFilePanel": "Redimensionner le panneau de fichiers",
     "layout.resizeSidebarSections": "Redimensionner les conversations et l'explorateur de fichiers",

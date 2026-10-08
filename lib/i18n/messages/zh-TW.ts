@@ -249,6 +249,7 @@ export const zhTWLocale: LocalePlugin = {
     "files.restorePanelWidth": "還原檔案面板寬度",
     "files.showPanel": "顯示檔案面板",
     "files.noneOpen": "沒有開啟的檔案",
+    "files.tabWithDir": "{name}（{dir}）",
     "layout.resizeSidebar": "調整側邊欄寬度",
     "layout.resizeFilePanel": "調整檔案面板寬度",
     "layout.resizeSidebarSections": "調整對話列表與檔案瀏覽器高度",
