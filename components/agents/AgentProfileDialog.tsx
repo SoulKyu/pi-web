@@ -10,6 +10,7 @@ import { COMMAND_DENY_PRESETS } from "@/lib/agents/command-policy";
 import { HOST_RE } from "@/lib/agents/egress-policy";
 import { curationPrompt } from "@/lib/agents/curation-prompt";
 import { AgentPermissions } from "./AgentPermissions";
+import { AgentSecrets } from "./AgentSecrets";
 import { TriggerDialog } from "./TriggerDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
@@ -254,6 +255,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
             </label>
           ))}
         </div>
+        <AgentSecrets agentName={agent.name} />
         <AgentPermissions agentName={agent.name} />
         {agent.memorySnapshotPath && (
           <button type="button" disabled={busy} onClick={() => setCuration(true)} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text)" }}>{t("agents.profile.scheduleCuration")}</button>

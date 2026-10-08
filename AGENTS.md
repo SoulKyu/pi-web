@@ -62,6 +62,7 @@ app/api/
   agents/[name]/permissions/route.ts GET { permissions } read-only sheet + lethal-trifecta check (files and live thread tool names; no MCP connection, no session start)
   agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
   agents/[name]/audit/route.ts     GET ?limit= the agent's audit journal (tool-call arguments and policy blocks, never results), oldest first
+  agents/[name]/secrets/route.ts   GET { names } | PUT { name, value } 204 | DELETE { name } 204/404: per-agent secrets vault, values never returned; PUT/DELETE restart an idle thread
   agents/[name]/memory/forget/route.ts POST request a forget
   memory/route.ts                  GET ?scope=user|project:<id>|agent:<name> pi-mem0 scope snapshot + { scopes, health } (400 on a bad scope)
   memory/forget/route.ts           POST { scope, memoryIds } (1-50) queue forget requests: 202 { requestIds } | 404 unknown id
@@ -153,6 +154,8 @@ lib/
   agents/command-policy.ts  COMMAND_DENY_PRESETS, commandDenyReason, createCommandPolicyExtension: per-agent command_deny regexes on bash/powershell, top-level and nested calls, fail closed
   agents/permissions.ts     buildAgentPermissions / assessTrifecta / explainTrifecta: what an agent can do, privateData + untrustedContent + exfiltration legs
   agents/audit.ts           appendAudit / readAudit / createAuditObserver / blockLine: per-agent audit journal, <agentDir>/agent-ops/audit/<agent>/<YYYY-MM>.jsonl (0600), args redacted
+  agents/secrets.ts         listSecretNames / setSecret / deleteSecret / readSecrets: <agentDir>/agents-secrets/<agent>.env (0600), reserved names refused, injected as bash extraEnv
+  agents/secret-redaction.ts createSecretRedactionExtension(): exact secret values (8+ chars) in text tool results become [SECRET:<NAME>] (accidental leaks only)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
@@ -249,6 +252,7 @@ components/
   agents/PromptChips.tsx   prompt chips above the agent composer, from <home>/prompts
   agents/AgentMemoryRecent.tsx recent memories with forget
   agents/AgentPermissions.tsx read-only Permissions section of the profile dialog
+  agents/AgentSecrets.tsx  Secrets section of the profile dialog: names, add (password input), delete
   agents/AgentSpaceLeft.tsx / AgentSpaceRight.tsx  agent view panels (home files; profile and status)
   agents/dialog-styles.ts  shared styles of the agent dialogs
   PluginsConfig.tsx        Settings › Plugins: installed package plugins

@@ -44,6 +44,7 @@ export function AgentPermissions({ agentName }: { agentName: string }) {
     [t("agents.permissions.webHosts"), permissions.webAllowHosts === "any" ? t("agents.permissions.anyHost") : list(permissions.webAllowHosts)],
     [t("agents.permissions.env"), permissions.env],
     [t("agents.permissions.sandbox"), permissions.sandbox],
+    [t("agents.permissions.secrets"), list(permissions.secrets)],
   ];
   return (
     <div style={labelStyle}>

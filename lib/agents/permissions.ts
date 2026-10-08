@@ -1,5 +1,6 @@
 import type { TriggerConfig } from "../agent-ops/trigger-store";
 import { bwrapAvailable } from "./sandbox";
+import { listSecretNames } from "./secrets";
 import { isExternalContentTool } from "./untrusted-content";
 import { TOOLS_BY_PRESET, type LongTermAgent, type ToolsPreset } from "./registry";
 
@@ -9,7 +10,7 @@ const FILE_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 export interface AgentPermissions {
   tools: string[]; preset: ToolsPreset; mcpAllowed: string[]; mcpBlockedCount: number; extensionTools: string[] | "unknown-until-start";
   env: "sanitized"; sandbox: "none" | "bubblewrap"; memory: { capture: "auto" | "off"; save: "direct" | "staged" };
-  triggers: Array<{ id: string; name: string; tools: string[]; target: "thread" | "isolated" }>; commandDeny: string[]; webAllowHosts: string[] | "any";
+  triggers: Array<{ id: string; name: string; tools: string[]; target: "thread" | "isolated" }>; commandDeny: string[]; webAllowHosts: string[] | "any"; /** Names only: injected into the agent's bash. */ secrets: string[];
   trifecta: { privateData: boolean; untrustedContent: boolean; exfiltration: boolean };
   /** Why each leg is set, as short English facts (tool names, "webhook trigger"); empty when the leg is off. */
   trifectaReasons: { privateData: string[]; untrustedContent: string[]; exfiltration: string[] };
@@ -47,6 +48,8 @@ export interface PermissionsDeps {
   triggers: TriggerConfig[];
   /** Whether bwrap is installed; read from PATH when omitted. */
   sandboxAvailable?: boolean;
+  /** Secret names of the agent; read from the vault when omitted. */
+  secretNames?: string[];
 }
 
 export function buildAgentPermissions(agent: LongTermAgent, deps: PermissionsDeps): AgentPermissions {
@@ -65,7 +68,7 @@ export function buildAgentPermissions(agent: LongTermAgent, deps: PermissionsDep
     extensionTools: deps.extensionTools, env: "sanitized", sandbox,
     memory: { capture: agent.memoryCapture ?? "auto", save: agent.memorySave ?? "direct" },
     triggers: triggers.map((t) => ({ id: t.id, name: t.name, tools: t.tools ? [...t.tools] : [], target: t.webhookSecretSha256 !== undefined ? "isolated" : (t.runTarget ?? "thread") })),
-    commandDeny: agent.commandDeny ?? [], webAllowHosts, trifecta: assessTrifecta(input), trifectaReasons: explainTrifecta(input),
+    commandDeny: agent.commandDeny ?? [], secrets: deps.secretNames ?? listSecretNames(agent.name), webAllowHosts, trifecta: assessTrifecta(input), trifectaReasons: explainTrifecta(input),
     notCovered: ["MCP servers from host imports or plugins are not listed", ...(deps.extensionTools === "unknown-until-start" ? ["extension tools are known only once the thread has started"] : [])],
   };
 }

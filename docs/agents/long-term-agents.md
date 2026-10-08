@@ -83,6 +83,13 @@
 - Retention: none yet, files are never deleted.
 - Display-only: the Audit `<details>` filters client-side by tool name and "blocked only".
 
+## Secrets vault (`lib/agents/{secrets,secret-redaction}.ts`, `app/api/agents/[name]/secrets/route.ts`, `components/agents/AgentSecrets.tsx`)
+- `<agentDir>/agents-secrets/<name>.env` (dir 0700, file 0600, atomic temp+rename), one `NAME=value` per line. `NAME` is `[A-Z][A-Z0-9_]{0,63}`; the value is 1-4096 characters on one line; at most 50 per agent. Reserved names are refused at write time (`PATH`, `HOME`, `SHELL`, `ENV`, `BASH_ENV`, `TMPDIR`, `USER`, `LOGNAME`, `IFS`, `PS4`, `PI_*`, `NODE_*`, `LD_*`, `DYLD_*`: env hijack).
+- The route lists names, writes (`PUT { name, value }`, 204) and deletes (`DELETE { name }`); no route, log or error returns a value. PUT/DELETE restart an idle thread (`shutdownWhenIdle`).
+- Injection: `agentProfileExtensionFactories` reads the file at session start and passes it as `extraEnv` to `createProjectCommandBashOperations`, merged after the sanitizer; so only that agent's bash (thread and isolated runs, sandboxed or not) gets it. A change takes effect at the next thread start.
+- `createSecretRedactionExtension` (right after the untrusted-content one) replaces exact occurrences of values of 8+ characters in text results by `[SECRET:<NAME>]`, longest first. Accidental leaks only: an encoded or split value passes, `structuredContent` is untouched, and on error the result is left as is. It is a convenience, not a barrier.
+- The agent can read its own secrets (`env`), so they count as private data the agent can exfiltrate: the Permissions sheet lists the names. Deleting an agent does not delete its secrets file.
+
 ## Permissions sheet (`lib/agents/permissions.ts`, `app/api/agents/[name]/permissions/route.ts`, `components/agents/AgentPermissions.tsx`)
 - Read-only section of the profile dialog, fetched on open. It reads the profile, `listGlobalMcpServers()` (names from the mcp.json files, no connection), the triggers of the agent and, only when the pinned thread's wrapper is alive, its `get_tools` (active names). It never starts a session or connects to an MCP server; otherwise `extensionTools` is `"unknown-until-start"`.
 - Cannot know: MCP servers from host imports or plugins, extension tools before the thread started, whether bwrap really starts (the sheet shows `"bubblewrap"` when the profile asks and the binary is on PATH, `"none"` otherwise).

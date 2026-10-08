@@ -23,6 +23,8 @@ type ProjectCommandBashOperationsOptions = {
   abortSettleGraceMs?: number;
   agentBinDir?: string;
   baseEnvironment?: NodeJS.ProcessEnv;
+  /** Merged after sanitization: the sanitizer cannot strip it; reserved names are refused where it is written. */
+  extraEnv?: Record<string, string>;
   localOperations?: BashOperations;
   platform?: NodeJS.Platform;
   shellPath?: string;
@@ -77,6 +79,7 @@ export function createProjectCommandBashOperations(
     abortSettleGraceMs = ABORT_SETTLE_GRACE_MS,
     agentBinDir = join(getAgentDir(), "bin"),
     baseEnvironment = process.env,
+    extraEnv,
     localOperations = createLocalBashOperations({ shellPath: options.shellPath }),
     platform = process.platform,
     wrapCommand,
@@ -84,11 +87,14 @@ export function createProjectCommandBashOperations(
 
   return {
     exec(command, cwd, executionOptions) {
-      const environment = withAgentBinDirectory(
-        sanitizeProjectCommandEnvironment(executionOptions.env ?? baseEnvironment, platform),
-        agentBinDir,
-        platform,
-      );
+      const environment = {
+        ...withAgentBinDirectory(
+          sanitizeProjectCommandEnvironment(executionOptions.env ?? baseEnvironment, platform),
+          agentBinDir,
+          platform,
+        ),
+        ...extraEnv,
+      };
       const { onData, signal, timeout } = executionOptions;
       let released = false;
       const execution = localOperations.exec(wrapCommand ? wrapCommand(command) : command, cwd, {
@@ -148,6 +154,7 @@ export function createProjectCommandBashExtension(options: {
   cwd: string;
   settings: ProjectShellSettings;
   wrapCommand?: (command: string) => string;
+  extraEnv?: Record<string, string>;
 }): InlineExtension {
   return {
     name: HOST_EXTENSION_NAME,
@@ -162,6 +169,7 @@ export function createProjectCommandBashExtension(options: {
             operations: createProjectCommandBashOperations({
               shellPath: options.settings.getShellPath(),
               wrapCommand: options.wrapCommand,
+              extraEnv: options.extraEnv,
             }),
           });
           return executionDefinition.execute(toolCallId, params, signal, onUpdate, context);
