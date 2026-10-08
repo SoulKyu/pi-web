@@ -5,7 +5,7 @@ import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentListItem } from "@/lib/agents/agent-view";
 import type { AgentOpsHealth } from "@/lib/agent-ops/health";
-import type { PlannotatorConfig } from "@/lib/plannotator";
+import { samePlannotator, type PlannotatorConfig } from "@/lib/plannotator";
 import { AgentAvatar } from "./AgentAvatar";
 
 type HealthLevel = "ok" | "warn" | "down";
@@ -22,7 +22,11 @@ export function useHealthPoll(): HealthState | null {
       try {
         const response = await fetch("/api/agent-ops/health", { cache: "no-store", signal: controller.signal });
         const data = await response.json() as { health?: AgentOpsHealth; level?: HealthLevel; plannotator?: PlannotatorConfig | null };
-        setState(response.ok && data.health && data.level ? { health: data.health, level: data.level, plannotator: data.plannotator ?? null } : null);
+        setState((prev) => {
+          if (!response.ok || !data.health || !data.level) return null;
+          const plannotator = data.plannotator ?? null;
+          return { health: data.health, level: data.level, plannotator: prev && samePlannotator(prev.plannotator, plannotator) ? prev.plannotator : plannotator };
+        });
       } catch {
         if (!controller.signal.aborted) setState(null);
       }

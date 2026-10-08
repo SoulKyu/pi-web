@@ -25,5 +25,11 @@ export function plannotatorConfig(env: NodeJS.ProcessEnv = process.env): Plannot
     }
   }
   if (ports.length > MAX_PORTS) return null;
-  return { host: env.PLANNOTATOR_URL_HOST?.trim() || "127.0.0.1", ports };
+  return { host: env.PLANNOTATOR_URL_HOST?.trim().toLowerCase() || "127.0.0.1", ports };
+}
+
+/** Same host and ports: lets a poll keep the previous object so memoized transcripts do not re-render. */
+export function samePlannotator(a: PlannotatorConfig | null, b: PlannotatorConfig | null): boolean {
+  if (!a || !b) return a === b;
+  return a.host === b.host && a.ports.length === b.ports.length && a.ports.every((port, i) => port === b.ports[i]);
 }
