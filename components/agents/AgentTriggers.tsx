@@ -10,7 +10,7 @@ import { AgentTasks } from "./AgentTasks";
 import { TriggerDialog } from "./TriggerDialog";
 import type { PayloadFormat } from "@/lib/agent-ops/payload-formats";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
-import { requestTrigger, runsTodayOf, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
+import { nextFireHint, requestTrigger, runsTodayOf, tasksOfTrigger, triggerActivity, type TriggerResponse } from "./trigger-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
@@ -103,6 +103,13 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
     trigger.source ? t("agentOps.trigger.feed") : null,
     trigger.hasWebhookSecret ? t("agentOps.trigger.webhook") : null,
   ].filter(Boolean).join(" · ") || t("agentOps.trigger.noSchedule");
+  const nextFire = nextFireHint(trigger, lastFireAt);
+  const nextFireText = nextFire && [
+    nextFire.everyInMinutes === undefined ? null
+      : nextFire.everyInMinutes === "soon" ? t("agentOps.trigger.nextSoon")
+      : t("agentOps.trigger.nextIn", { minutes: nextFire.everyInMinutes }),
+    nextFire.dailyAt ? t("agentOps.trigger.nextDaily", { time: nextFire.dailyAt }) : null,
+  ].filter(Boolean).join(" · ");
 
   const run = async (init: RequestInit, path = url, changes = true) => {
     const result = await requestTrigger(path, init);
@@ -153,8 +160,9 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
         </label>
                 <span style={{ marginLeft: "auto", flexShrink: 0, color: "var(--text-muted)" }}>{schedule}</span>
       </div>
-      <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-dim)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", columnGap: 12, rowGap: 2, fontSize: 11, color: "var(--text-dim)" }}>
         <span>{lastFireAt ? t("agentOps.trigger.lastFire", { time: formatRelativeTime(lastFireAt, locale) }) : t("agentOps.trigger.neverFired")}</span>
+        {nextFireText && <span>{nextFireText}</span>}
         <span>{t("agentOps.trigger.active", { count: active })}</span>
         <span>{trigger.maxRunsPerDay ? t("agentOps.trigger.runsTodayCap", { count: runsToday, cap: trigger.maxRunsPerDay }) : t("agentOps.trigger.runsToday", { count: runsToday })}</span>
       </div>

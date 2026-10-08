@@ -54,3 +54,21 @@ export async function requestTrigger(url: string, init: RequestInit): Promise<{ 
     return { error: reason instanceof Error ? reason.message : String(reason) };
   }
 }
+
+export interface NextFireHint { everyInMinutes?: number | "soon"; dailyAt?: string }
+
+/** Next scheduled fire as the scheduler computes it: an interval fire comes at the first tick of each epoch-aligned
+ *  bucket (`floor(now / every)`, lib/agent-ops/scheduler.ts), so after a fire the next one is the next bucket's start;
+ *  a feed's interval is a poll, not a fire. Daily `at` is the server clock, shown as written. */
+export function nextFireHint(trigger: Pick<PublicTrigger, "enabled" | "everyMinutes" | "at" | "source">, lastFireAt: string | undefined, now = Date.now()): NextFireHint | null {
+  if (!trigger.enabled) return null;
+  const hint: NextFireHint = {};
+  if (trigger.everyMinutes && !trigger.source) {
+    const every = trigger.everyMinutes * 60_000;
+    const last = lastFireAt ? Date.parse(lastFireAt) : Number.NaN;
+    const next = (Math.floor(last / every) + 1) * every;
+    hint.everyInMinutes = Number.isNaN(next) || next <= now ? "soon" : Math.ceil((next - now) / 60_000);
+  }
+  if (trigger.at) hint.dailyAt = trigger.at;
+  return hint.everyInMinutes === undefined && hint.dailyAt === undefined ? null : hint;
+}
