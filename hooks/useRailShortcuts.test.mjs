@@ -7,9 +7,13 @@ const shell = await readFile(new URL("../components/AppShell.tsx", import.meta.u
 
 test("the rail shortcuts skip dialogs, prevent default only when handled, and run from the composer", () => {
   assert.match(source, /document\.querySelector\('\[role="dialog"\]'\)/);
-  assert.match(source, /if \(!target\) return;\s+e\.preventDefault\(\);/);
+  assert.match(source, /if \(!target \|\| target === activeAgent\) return;\s+e\.preventDefault\(\);/);
   assert.doesNotMatch(source, /TEXTAREA|INPUT/);
   assert.doesNotMatch(source, /\(\?<[=!]/);
+});
+
+test("a target equal to the active agent is a no-op", () => {
+  assert.match(source, /!target \|\| target === activeAgent/);
 });
 
 test("AppShell mounts them with the rail's agents and openAgent", () => {

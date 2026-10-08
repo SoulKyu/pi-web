@@ -13,7 +13,7 @@ export function useRailShortcuts(agents: readonly RailShortcutAgent[], activeAge
     const handler = (e: KeyboardEvent): void => {
       if (e.defaultPrevented || document.querySelector('[role="dialog"]')) return;
       const target = railShortcutTarget(e, agents, activeAgent);
-      if (!target) return;
+      if (!target || target === activeAgent) return;
       e.preventDefault();
       onOpenAgent(target);
     };

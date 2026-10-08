@@ -7,6 +7,7 @@
 
 ## Keyboard shortcuts (`hooks/useKeyboardShortcuts.ts`, `hooks/useRailShortcuts.ts`)
 - Rail agents use `Ctrl+Alt+1..9`, not `Alt+digit`: Firefox on Linux takes `Alt+digit` to switch tabs before the page sees it. `Alt+ArrowUp/Down` (next/previous unread agent) and these keys are handled even from the composer, but not while a dialog is open.
+- AltGr (ctrl+alt on Windows/some Linux layouts) is ignored via `getModifierState("AltGraph")`, so AZERTY `#`, `{`, `[`, `|` still type. On macOS, Option+↑/↓ in the composer (paragraph start/end) is taken by the shortcut whenever another unread agent exists (accepted trade-off).
 
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.

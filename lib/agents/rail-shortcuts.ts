@@ -10,6 +10,7 @@ interface RailShortcutKeys {
   altKey: boolean;
   shiftKey: boolean;
   metaKey: boolean;
+  getModifierState?: (key: string) => boolean;
 }
 
 /** Next (1) or previous (-1) agent with unread entries after the active one, in rail order, wrapping; null when none. */
@@ -30,7 +31,8 @@ export function nthAgent(agents: readonly RailShortcutAgent[], n: number): strin
 
 /** Alt+ArrowDown/Up: next/previous unread agent; Ctrl+Alt+1..9: the n-th agent. Null for any other key or no target. */
 export function railShortcutTarget(event: RailShortcutKeys, agents: readonly RailShortcutAgent[], active: string | null): string | null {
-  if (event.metaKey || event.shiftKey || !event.altKey) return null;
+  // AltGr reports ctrl+alt on Windows and some Linux layouts and types characters (# { [ | on AZERTY).
+  if (event.metaKey || event.shiftKey || !event.altKey || event.getModifierState?.("AltGraph")) return null;
   if (!event.ctrlKey) {
     if (event.key === "ArrowDown") return nextUnreadAgent(agents, active, 1);
     if (event.key === "ArrowUp") return nextUnreadAgent(agents, active, -1);
