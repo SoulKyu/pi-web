@@ -138,7 +138,7 @@ npm run lint
 Contrôle final que les modifs du fork sont toujours là :
 
 ```bash
-git diff --stat upstream/main "$BR" | tail -1    # comparer au journal (section 8) : ~374 fichiers au 2026-10-08
+git diff --stat upstream/main "$BR" | tail -1    # comparer au journal (section 8) : ~380 fichiers au 2026-10-08 (après synchro a096af3)
 git diff --name-only --diff-filter=M upstream/main "$BR" > /tmp/fork-modified.txt
 ```
 
@@ -188,17 +188,19 @@ Dans ce cas : laisser la branche `sync/…` poussée sur `origin`, et rédiger u
 
 ## 7. Modifications propres au fork
 
-> **À tenir à jour.** Référence pour résoudre les conflits. État au 2026-10-08 : 374 fichiers diffèrent de l'upstream (278 ajoutés, 96 modifiés). La liste exacte se régénère avec `git diff --name-status upstream/main...local`.
+> **À tenir à jour.** Référence pour résoudre les conflits. État au 2026-10-08, après la synchro de `a096af3` : 380 fichiers diffèrent de l'upstream (285 ajoutés, 95 modifiés). La liste exacte se régénère avec `git diff --name-status upstream/main...local`.
 
 | Zone | Nature | Règle en cas de conflit |
 | ---- | ------ | ----------------------- |
 | `AGENT.md` | Ce fichier (n'existe pas upstream) | Toujours la version du fork |
 | `lib/agent-ops/`, `app/api/agent-ops/` | Ajout : tâches, runner FIFO, triggers, webhooks, revue mémoire pi-mem0 | Fork (pas de conflit attendu, fichiers ajoutés) |
 | `lib/agents/`, `app/api/agents/`, `components/agents/` | Ajout : agents long terme (thread épinglé, file de tâches, mémoire, avatars) | Fork |
-| `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/subagents.ts` | Modifié : profils d'agent, env des sessions, événements d'agent | Fusion manuelle, garder les deux |
-| `components/AppShell.tsx`, `ChatWindow.tsx`, `MessageView.tsx`, `SessionSidebar.tsx`, `ChatInput.tsx` | Modifié : rail des agents, cartes d'événements, UX | Fusion manuelle |
+| `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/subagents.ts` | Modifié : profils d'agent, env des sessions, événements d'agent. Dans `startRpcSession`, branche profil : `extensionFactories` = factories de `skillsBinding` (upstream, en premier) **puis** `agentProfileExtensionFactories` ; `extensionsOverride` = `preferUserBashExtension(scopeSubagentExtensions(…)(base))`. Une clé du fork ne doit jamais écraser celle du spread upstream | Fusion manuelle, garder les deux |
+| `components/AppShell.tsx`, `ChatWindow.tsx`, `MessageView.tsx`, `SessionSidebar.tsx`, `ChatInput.tsx` | Modifié : rail des agents, cartes d'événements, UX. Dans `AppShell`, `handleAgentDeleted` doit rester **hors** de la tranche `handleSessionDeleted` → `handleOpenFile` (exécutée par `AppShell.session-delete.test.mjs` upstream) | Fusion manuelle |
+| `components/FileExplorer.tsx` (+ `FileExplorer.drop.test.mjs`) | Dépôt de fichiers dans le home d'agent ; consomme `useDragDrop` **upstream** (`DroppedItem[]`), dossiers écartés côté fork. `hooks/useDragDrop.ts` est redevenu identique à l'upstream | Fork pour l'explorateur, upstream pour le hook |
+| `lib/request-security.ts` | `Origin` obligatoire sur toute requête mutante : un test upstream qui appelle une route mutante en direct doit envoyer `origin` (ex. `app/api/files/upload-route.test.mjs`) | Fork ; adapter le test upstream |
 | `lib/i18n/messages/*.ts` | `fr.ts` ajouté ; clés ajoutées dans `en`, `zh-CN`, `zh-TW` | Union des clés |
-| `lib/deferred-provider-models.ts`, `lib/cost-equivalent.ts`, `lib/web-push.ts`, `components/MemoryConfig.tsx`, `components/AgentProfileSelector.tsx` | Ajouts/modifs : providers déclarés au `session_start`, coût équivalent, push, mémoire | Fork |
+| `lib/cost-equivalent.ts`, `lib/web-push.ts`, `components/MemoryConfig.tsx`, `components/AgentProfileSelector.tsx` | Ajouts/modifs : coût équivalent, push, mémoire (providers déclarés au `session_start` : repris upstream en `a136267`, #1071, plus propre au fork) | Fork |
 | `AGENTS.md`, `docs/agents/*.md` | Sections ajoutées (agent-ops, long-term-agents, finops) | Fusion : upstream + sections du fork |
 | `docs/superpowers/` | Plans et specs du fork (ajoutés) | Fork |
 
@@ -215,6 +217,7 @@ Champs `package.json` propres au fork :
 | Date | Commit upstream intégré | Conflits | Remarques |
 | ---- | ----------------------- | -------- | --------- |
 | 2026-10-08 | — (base : `6fcd7d4` Release v0.10.0) | — | État initial : `local` a 231 commits d'avance, upstream 22 de retard à intégrer (jusqu'à `a096af3`) |
+| 2026-10-08 | `a096af3` (22 commits, `6fcd7d4..a096af3`) | 10 : `AGENTS.md`, 4 × `docs/agents/*.md`, `ChatWindow.tsx`, `useDragDrop.ts`, `rpc-manager.ts`, `rpc-manager.test.mjs`, `subagents.test.mjs` (+ doublon `addNotice` dans `useAgentSession.ts`, fusion auto) | Branche `sync/upstream-2026-10-08` (merge `af99d15` + `fix(fork)` `d3def27`), non intégrée dans `local` en attente de relecture. 3196/3197 tests OK (1 ignoré), tsc et lint OK |
 
 ---
 
