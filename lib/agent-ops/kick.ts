@@ -68,7 +68,7 @@ export function handleTaskEnd(task: AgentTask): void {
       const { to, entryId: cardId } = delivered;
       await notifyAgent((locale) => ({
         title: to,
-        body: localeText(locale, task.status === "failed" ? "agentDelegationFailed" : "agentDelegationDone").replace("{name}", agentName).replace("{title}", task.title),
+        body: localeText(locale, task.status === "failed" ? "agentDelegationFailed" : "agentDelegationDone").replace("{name}", () => agentName).replace("{title}", () => task.title),
         url: `/?agent=${encodeURIComponent(to)}&entry=${encodeURIComponent(cardId)}`,
         tag: `pi-agent:${to}`,
       }));
@@ -77,7 +77,7 @@ export function handleTaskEnd(task: AgentTask): void {
     if (task.status !== "failed") return;
     await notifyAgent((locale) => ({
       title: agentName,
-      body: localeText(locale, "agentRunFailed").replace("{name}", agentName).replace("{title}", task.title),
+      body: localeText(locale, "agentRunFailed").replace("{name}", () => agentName).replace("{title}", () => task.title),
       url: `/?agent=${encodeURIComponent(agentName)}${entryId ? `&entry=${encodeURIComponent(entryId)}` : ""}`,
       tag: `pi-agent:${agentName}`,
     }));
