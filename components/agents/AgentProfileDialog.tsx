@@ -7,6 +7,7 @@ import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
 import { COMMAND_DENY_PRESETS } from "@/lib/agents/command-policy";
+import { HOST_RE } from "@/lib/agents/egress-policy";
 import { curationPrompt } from "@/lib/agents/curation-prompt";
 import { AgentPermissions } from "./AgentPermissions";
 import { TriggerDialog } from "./TriggerDialog";
@@ -28,6 +29,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [memoryRecallLimit, setMemoryRecallLimit] = useState(agent.memoryRecallLimit === undefined ? "" : String(agent.memoryRecallLimit));
   const [memoryRecallThreshold, setMemoryRecallThreshold] = useState(agent.memoryRecallThreshold === undefined ? "" : String(agent.memoryRecallThreshold));
   const [commandDeny, setCommandDeny] = useState((agent.commandDeny ?? []).join("\n"));
+  const [webAllowHosts, setWebAllowHosts] = useState((agent.webAllowHosts ?? []).join("\n"));
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -94,6 +96,10 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       const invalidDeny = denyLines.find((line) => { try { new RegExp(line); return false; } catch { return true; } });
       if (invalidDeny !== undefined) { setError(t("agents.profile.commandDenyInvalid", { pattern: invalidDeny })); return; }
       if (denyLines.join("\n") !== (agent.commandDeny ?? []).join("\n")) patch.commandDeny = denyLines.length ? denyLines : null;
+      const hostLines = webAllowHosts.split("\n").map((line) => line.trim().toLowerCase()).filter(Boolean);
+      const invalidHost = hostLines.find((line) => !HOST_RE.test(line));
+      if (invalidHost !== undefined) { setError(t("agents.profile.webAllowHostsInvalid", { host: invalidHost })); return; }
+      if (hostLines.join("\n") !== (agent.webAllowHosts ?? []).join("\n")) patch.webAllowHosts = hostLines.length ? hostLines : null;
       const recallLimit = memoryRecallLimit === "" ? undefined : Number(memoryRecallLimit);
       const recallThreshold = memoryRecallThreshold === "" ? undefined : Number(memoryRecallThreshold);
       if (recallLimit !== agent.memoryRecallLimit) patch.memoryRecallLimit = recallLimit ?? null;
@@ -200,6 +206,10 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
           <textarea aria-label={t("agents.new.memoryHint")} placeholder={t("agents.new.memoryHint")} maxLength={500} rows={2} value={memoryHint} onChange={(event) => setMemoryHint(event.target.value)} style={fieldStyle} />
           <input type="number" aria-label={t("agents.new.memoryRecallLimit")} placeholder={t("agents.new.memoryRecallLimit")} min={0} max={20} step={1} value={memoryRecallLimit} onChange={(event) => setMemoryRecallLimit(event.target.value)} style={fieldStyle} />
           <input type="number" aria-label={t("agents.new.memoryRecallThreshold")} placeholder={t("agents.new.memoryRecallThreshold")} min={0} max={1} step={0.05} value={memoryRecallThreshold} onChange={(event) => setMemoryRecallThreshold(event.target.value)} style={fieldStyle} />
+        </div>
+        <div style={labelStyle}>
+          {t("agents.profile.webAllowHosts")}
+          <textarea aria-label={t("agents.profile.webAllowHosts")} placeholder="example.com&#10;*.example.com" rows={3} value={webAllowHosts} onChange={(event) => setWebAllowHosts(event.target.value)} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
         </div>
         <div style={labelStyle}>
           {t("agents.profile.commandDeny")}

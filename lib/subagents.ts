@@ -11,6 +11,7 @@ import { UNTRUSTED_CONTENT_RULE } from "./agents/untrusted-content";
 import { disabledBuiltInSubagents } from "./subagent-settings";
 import { PRESET_READ_ONLY } from "./tool-presets";
 import type { SessionEntry, SubagentSessionStatus } from "./types";
+import { HOST_RE } from "./agents/egress-policy";
 
 export const SUBAGENT_META_TYPE = "pi-web:subagent";
 export const SUBAGENT_STATUS_TYPE = "pi-web:subagent-status";
@@ -161,7 +162,6 @@ const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium
 
 /** Per-agent settings read by the roadmap features; managed so a profile save never drops them. */
 export const ROADMAP_PROFILE_KEYS = ["memory_capture", "memory_hint", "memory_recall_limit", "memory_recall_threshold", "memory_save", "accepts_delegation", "budget_tokens_per_day", "budget_usd_per_day", "command_deny", "web_allow_hosts"] as const;
-const HOST_RE = /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 function numberIn(value: unknown, min: number, max: number, integer: boolean): number | undefined {
   return typeof value === "number" && value >= min && value <= max && (!integer || Number.isInteger(value)) ? value : undefined;

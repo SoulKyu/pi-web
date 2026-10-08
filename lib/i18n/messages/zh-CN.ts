@@ -1542,6 +1542,8 @@ export const zhCNLocale: LocalePlugin = {
     "agents.profile.title": "{name} 的档案",
     "agents.profile.commandDeny": "命令拒绝列表（每行一个正则）",
     "agents.profile.commandDenyInvalid": "无效的模式：{pattern}",
+    "agents.profile.webAllowHosts": "允许的网站主机，每行一个；可用 *.example.com",
+    "agents.profile.webAllowHostsInvalid": "无效的主机：{host}",
     "agents.profile.denyPresetCautious": "谨慎 SRE",
     "agents.profile.denyPresetReports": "仅报告",
     "agents.profile.save": "保存",

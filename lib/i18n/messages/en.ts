@@ -1542,6 +1542,8 @@ export const enLocale: LocalePlugin = {
     "agents.profile.title": "Profile of {name}",
     "agents.profile.commandDeny": "Command deny list (one regex per line)",
     "agents.profile.commandDenyInvalid": "Invalid pattern: {pattern}",
+    "agents.profile.webAllowHosts": "Allowed web hosts, one per line; *.example.com allowed",
+    "agents.profile.webAllowHostsInvalid": "Invalid host: {host}",
     "agents.profile.denyPresetCautious": "Cautious SRE",
     "agents.profile.denyPresetReports": "Reports only",
     "agents.profile.save": "Save",

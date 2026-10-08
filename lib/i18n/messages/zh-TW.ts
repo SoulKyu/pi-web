@@ -1542,6 +1542,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.profile.title": "{name} 的檔案",
     "agents.profile.commandDeny": "命令拒絕清單（每行一個正規表示式）",
     "agents.profile.commandDenyInvalid": "無效的模式：{pattern}",
+    "agents.profile.webAllowHosts": "允許的網站主機，每行一個；可用 *.example.com",
+    "agents.profile.webAllowHostsInvalid": "無效的主機：{host}",
     "agents.profile.denyPresetCautious": "謹慎 SRE",
     "agents.profile.denyPresetReports": "僅報告",
     "agents.profile.save": "保存",
