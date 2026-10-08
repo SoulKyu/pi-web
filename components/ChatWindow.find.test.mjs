@@ -35,7 +35,10 @@ test("the active hit resets when the scan source changes", () => {
 });
 
 test("the scan waits while a run streams, and a jump goes through AppShell's search target", () => {
-  assert.match(source, /if \(!\(sessionBusy \|\| streamState\.isStreaming\) && \(findSourceRef\.current\.messages !== messages \|\| findSourceRef\.current\.entryIds !== entryIds\)\)/);
+  assert.match(source, /const findSourceStale = findSourceRef\.current\.messages !== messages \|\| findSourceRef\.current\.entryIds !== entryIds;/);
+  assert.match(source, /const findQueryChanged = findSourceRef\.current\.query !== findQuery \|\| findSourceRef\.current\.open !== findOpen;/);
+  assert.match(source, /if \(findSourceStale && \(!\(sessionBusy \|\| streamState\.isStreaming\) \|\| findQueryChanged\)\)/);
+  assert.match(source, /aria-controls=\{findOpen \? "chat-find-bar" : undefined\}/);
   assert.match(source, /findInMessages\(findSource\.messages, findSource\.entryIds, findQuery\)/);
   assert.match(source, /onRequestSearchTarget\?\.\(\{ sessionId: session\.id, \.\.\.hit \}\)/);
   assert.match(shell, /onRequestSearchTarget=\{setSearchTarget\}/);

@@ -556,9 +556,13 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   const [findQuery, setFindQuery] = useState("");
   const [findIndex, setFindIndex] = useState(-1);
   const findToggleRef = useRef<HTMLButtonElement>(null);
-  const findSourceRef = useRef({ messages, entryIds });
-  if (!(sessionBusy || streamState.isStreaming) && (findSourceRef.current.messages !== messages || findSourceRef.current.entryIds !== entryIds)) {
-    findSourceRef.current = { messages, entryIds };
+  const findSourceRef = useRef({ messages, entryIds, query: findQuery, open: findOpen });
+  const findSourceStale = findSourceRef.current.messages !== messages || findSourceRef.current.entryIds !== entryIds;
+  const findQueryChanged = findSourceRef.current.query !== findQuery || findSourceRef.current.open !== findOpen;
+  if (findSourceStale && (!(sessionBusy || streamState.isStreaming) || findQueryChanged)) {
+    findSourceRef.current = { messages, entryIds, query: findQuery, open: findOpen };
+  } else if (findQueryChanged) {
+    findSourceRef.current = { ...findSourceRef.current, query: findQuery, open: findOpen };
   }
   const findSource = findSourceRef.current;
   const findHits = useMemo(
@@ -1564,7 +1568,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 title={t("chat.find.open")}
                 aria-label={t("chat.find.open")}
                 aria-expanded={findOpen}
-                aria-controls="chat-find-bar"
+                aria-controls={findOpen ? "chat-find-bar" : undefined}
                 onClick={() => (findOpen ? closeFind() : setFindOpen(true))}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
