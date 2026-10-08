@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const panelSource = await readFile(new URL("./SettingsPanel.tsx", import.meta.url), "utf8");
+// The sub-agents panel draws child sessions with the same robot glyph.
+const agentSessionPanelSource = await readFile(new URL("./AgentSessionPanel.tsx", import.meta.url), "utf8");
 const cssSource = await readFile(new URL("../app/settings.css", import.meta.url), "utf8");
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
@@ -204,6 +206,8 @@ test("labels agent profiles as sub-agents", () => {
 
 test("uses the child-session robot glyph for the sub-agents tab", () => {
   assert.match(panelSource, /section === "agents"\) return <Bot \{\.\.\.common\} className="settings-section-icon is-agent"/);
+  // One shared glyph: lucide Bot in the sub-agents tab and for child sessions in the sub-agents panel.
+  assert.match(agentSessionPanelSource, /\) : \(\s*<Bot size=\{17\} strokeWidth=\{1\.8\} aria-hidden="true" \/>\s*\)\}/);
   assert.match(cssSource, /\.settings-section-icon\.is-agent \{[\s\S]*?transform: scale\(1\.25\)/);
 });
 

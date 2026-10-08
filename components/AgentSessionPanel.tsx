@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Bot } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import type { SessionInfo, SubagentSessionStatus } from "@/lib/types";
 
@@ -123,9 +124,7 @@ function AgentRow({
             <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
           </svg>
         ) : (
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="5" y="7" width="14" height="11" rx="2" /><path d="M9 11h.01M15 11h.01M9 15h6M12 7V4M10 4h4" />
-          </svg>
+          <Bot size={17} strokeWidth={1.8} aria-hidden="true" />
         )}
       </span>
       <span style={{ minWidth: 0 }}>
