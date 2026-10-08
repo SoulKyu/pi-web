@@ -7,8 +7,6 @@ const cssSource = await readFile(new URL("../app/settings.css", import.meta.url)
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
 const sidebarSource = await readFile(new URL("./SessionSidebar.tsx", import.meta.url), "utf8");
-const themeSource = await readFile(new URL("../hooks/useTheme.ts", import.meta.url), "utf8");
-const themeOptionsSource = await readFile(new URL("../lib/theme.ts", import.meta.url), "utf8");
 const enSource = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zhSource = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
 const loginSource = await readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8");
@@ -134,14 +132,8 @@ test("trusting from Settings › MCP reloads, in place, the other mounted sectio
   assert.match(panelSource, /sectionHost\("models", <ModelsConfig embedded cwd=\{cwd\} onClose=\{onClose\} \/>\)/);
 });
 
-test("offers five palettes and system theme selection with native radios", () => {
-  for (const preference of ["light", "dark", "mist", "rose", "pine", "auto"]) {
-    assert.match(themeOptionsSource, new RegExp(`id: "${preference}"`));
-  }
-  assert.match(panelSource, /THEME_OPTIONS\.map/);
-  assert.match(panelSource, /type="radio"/);
-  assert.match(panelSource, /setThemePreference\(option\.id\)/);
-  assert.match(themeSource, /const setThemePreference = useCallback/);
+test("General settings offer no theme selector: Tron is the only UI", () => {
+  assert.doesNotMatch(panelSource, /THEME_OPTIONS|setThemePreference|settings\.appearance/);
 });
 
 test("keeps language selection in General settings", () => {
@@ -151,16 +143,11 @@ test("keeps language selection in General settings", () => {
 });
 
 test("groups chat display controls together without row backgrounds", () => {
-  const appearanceSection = panelSource.slice(
-    panelSource.indexOf('{t("settings.appearance")}'),
-    panelSource.indexOf('{t("settings.chat")}'),
-  );
   const chatSection = panelSource.slice(
     panelSource.indexOf('{t("settings.chat")}'),
     panelSource.indexOf("{shellSettings?.isWindows"),
   );
 
-  assert.doesNotMatch(appearanceSection, /settings-chat-content/);
   assert.match(chatSection, /className="settings-chat-options"/);
   assert.equal((chatSection.match(/className="settings-chat-option(?: |")/g) ?? []).length, 5);
   assert.equal((chatSection.match(/<ConfigSwitch/g) ?? []).length, 2);

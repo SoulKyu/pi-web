@@ -21,8 +21,7 @@
   --font-mono-font: var(--font-mono);
 }
 
-:root,
-[data-theme="light"] {
+:root {
   color-scheme: light;
   --bg: #ffffff;
   --bg-panel: #f5f5f5;
@@ -47,8 +46,7 @@
   --chat-content-font-size: 14px;
 }
 
-html.dark,
-[data-theme="dark"] {
+html.dark {
   color-scheme: dark;
   --bg: #1a1a1a;
   --bg-panel: #242424;
@@ -67,76 +65,6 @@ html.dark,
   --bg-subtle: rgba(255,255,255,0.04);
   --diff-added: #3fb950;
   --diff-removed: #f85149;
-  --diff-added-bg: color-mix(in srgb, var(--diff-added) 14%, transparent);
-  --diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, transparent);
-}
-
-[data-theme="mist"] {
-  color-scheme: light;
-  --bg: #f4f8f7;
-  --bg-panel: #e9f0ee;
-  --bg-hover: #e0eae7;
-  --bg-selected: #d7e4df;
-  --border: #afc4ba;
-  --text: #202e2b;
-  --text-muted: #455f56;
-  --text-dim: #52685f;
-  --accent: #1e6559;
-  --accent-hover: #174f46;
-  --accent-contrast: #ffffff;
-  --user-bg: #e0efeb;
-  --assistant-bg: #f4f8f7;
-  --tool-bg: #ecf3f0;
-  --bg-subtle: rgba(24,65,50,0.04);
-  --diff-added: #1a7f37;
-  --diff-removed: #cf222e;
-  --diff-added-bg: color-mix(in srgb, var(--diff-added) 14%, transparent);
-  --diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, transparent);
-}
-
-[data-theme="rose"] {
-  color-scheme: light;
-  --bg: #fcf7f8;
-  --bg-panel: #f3edef;
-  --bg-hover: #eee3e7;
-  --bg-selected: #e8dce1;
-  --border: #cdb5bf;
-  --text: #34282e;
-  --text-muted: #65505a;
-  --text-dim: #705b65;
-  --accent: #914360;
-  --accent-hover: #76324d;
-  --accent-contrast: #ffffff;
-  --user-bg: #f3e4eb;
-  --assistant-bg: #fcf7f8;
-  --tool-bg: #f7eef2;
-  --bg-subtle: rgba(89,39,62,0.04);
-  --diff-added: #1a7f37;
-  --diff-removed: #cf222e;
-  --diff-added-bg: color-mix(in srgb, var(--diff-added) 14%, transparent);
-  --diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, transparent);
-}
-
-html[data-theme="pine"],
-[data-theme="pine"] {
-  color-scheme: dark;
-  --bg: #19201f;
-  --bg-panel: #212b28;
-  --bg-hover: #2b3632;
-  --bg-selected: #35433c;
-  --border: #4a5f52;
-  --text: #e6ede8;
-  --text-muted: #c3d0c6;
-  --text-dim: #afc2b5;
-  --accent: #acccb7;
-  --accent-hover: #d0e2d3;
-  --accent-contrast: #182b20;
-  --user-bg: #25382f;
-  --assistant-bg: #19201f;
-  --tool-bg: #222d29;
-  --bg-subtle: rgba(210,236,219,0.04);
-  --diff-added: #3fb950;
-  --diff-removed: #ff7b72;
   --diff-added-bg: color-mix(in srgb, var(--diff-added) 14%, transparent);
   --diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, transparent);
 }
@@ -174,21 +102,6 @@ html.dark .catppuccin-file-icon {
     mask-image: var(--catppuccin-icon-dark);
     -webkit-mask-image: var(--catppuccin-icon-dark);
   }
-}
-
-/* Theme toggle: circular wipe via View Transitions API.
-   Disable the UA cross-fade; the actual clip-path animation is driven by
-   Element.animate() in hooks/useTheme.ts after transition.ready resolves. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-::view-transition-old(root) {
-  z-index: 1;
-}
-::view-transition-new(root) {
-  z-index: 2;
 }
 
 * {

@@ -2,9 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useI18n } from "@/hooks/useI18n";
-import { useTheme } from "@/hooks/useTheme";
-import { THEME_OPTIONS } from "@/lib/theme";
-import { ThemeIcon } from "./ThemeIcon";
 import {
   CHAT_CONTENT_WIDTH_DEFAULT,
   CHAT_CONTENT_WIDTH_MAX,
@@ -79,7 +76,6 @@ export function SettingsSectionIcon({ section, size = 16, strokeWidth = 1.8 }: {
 
 function GeneralSettings({ sessionId, onSessionReloaded, quoteSelectionEnabled, onQuoteSelectionChange, onShowShortcuts }: Pick<Props, "sessionId" | "onSessionReloaded" | "quoteSelectionEnabled" | "onQuoteSelectionChange" | "onShowShortcuts">) {
   const { locale, setLocale, supportedLocales, t } = useI18n();
-  const { preference, setThemePreference } = useTheme();
   const { width: chatContentWidth, setWidth: setChatContentWidth, fontSize, setFontSize } = useChatAppearance();
   const enterSendMode = useEnterSendMode();
   const [shellSettings, setShellSettings] = useState<ToolSettingsResponse | null>(null);
@@ -176,32 +172,6 @@ function GeneralSettings({ sessionId, onSessionReloaded, quoteSelectionEnabled, 
   return (
     <div className="settings-general">
       <h2 className="settings-general-title">{t("settings.general")}</h2>
-
-      <section className="settings-general-section">
-        <h3 className="settings-general-heading">{t("settings.appearance")}</h3>
-        <div role="radiogroup" aria-label={t("settings.appearance")} className="settings-theme-options">
-          {THEME_OPTIONS.map((option) => {
-            const selected = preference === option.id;
-            return (
-              <label
-                key={option.id}
-                className="settings-theme-option"
-              >
-                <input
-                  type="radio"
-                  name="theme"
-                  value={option.id}
-                  checked={selected}
-                  onChange={() => setThemePreference(option.id)}
-                  className="sr-only"
-                />
-                <ThemeIcon preference={option.id} />
-                <span className="settings-theme-option-label">{t(option.label)}</span>
-              </label>
-            );
-          })}
-        </div>
-      </section>
 
       <section className="settings-general-section">
         <h3 className="settings-general-heading">{t("settings.chat")}</h3>

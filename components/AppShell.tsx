@@ -28,7 +28,6 @@ import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
 import { TerminalPanel } from "./TerminalPanel";
 import { newTerminalTab, restoreTerminalTabs, TERMINAL_TABS_KEY, type TerminalTab } from "./terminal-tab-state";
-import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile, useIsNarrowMobile } from "@/hooks/useIsMobile";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
@@ -93,7 +92,6 @@ export function AppShell() {
   const searchParams = useSearchParams();
   const [initialNavigation, setInitialNavigation] = useState(() => getInitialNavigation(searchParams));
   // Keep the system-theme subscription mounted for the lifetime of the app.
-  useTheme();
   const { locale, t: translate } = useI18n();
   const isMobile = useIsMobile();
   const isNarrowMobile = useIsNarrowMobile();

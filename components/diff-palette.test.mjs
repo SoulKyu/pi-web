@@ -30,7 +30,7 @@ function contrast(a, b) {
   return (light + 0.05) / (dark + 0.05);
 }
 
-const THEMES = ['[data-theme="light"]', '[data-theme="dark"]', '[data-theme="mist"]', '[data-theme="rose"]', '[data-theme="pine"]'];
+const THEMES = [":root", "html.dark"];
 
 test("every theme defines the four diff variables, backgrounds mixed from the marker colour", () => {
   for (const theme of THEMES) {

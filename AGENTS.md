@@ -298,7 +298,6 @@ hooks/
   useIsMobile.ts           responsive breakpoint
   useKeyboardShortcuts.ts  Esc stops the running agent unless a field or nearer handler took it; Ctrl+Alt+N
   useRailShortcuts.ts      rail Alt+Up/Down (unread agents), Ctrl+Alt+1..9 (n-th agent)
-  useTheme.ts              theme state
 ```
 
 ---
