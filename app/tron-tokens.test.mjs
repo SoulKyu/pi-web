@@ -60,3 +60,7 @@ test("fonts are self-hosted through next/font and wired to Tailwind", () => {
 test("reduced motion stops every animation and transition", () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\n\s*\*,\n\s*\*::before,\n\s*\*::after \{[\s\S]*?animation-duration: 0\.01ms !important;[\s\S]*?transition-duration: 0\.01ms !important;/);
 });
+
+test("enabled buttons keep a pointer cursor (Tailwind v4 preflight resets it to default)", () => {
+  assert.match(css, /@layer base \{\s*button:not\(:disabled\),\s*\[role="button"\]:not\(\[aria-disabled="true"\]\) \{\s*cursor: pointer;/);
+});

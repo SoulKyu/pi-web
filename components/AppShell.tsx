@@ -1724,7 +1724,7 @@ export function AppShell() {
         aria-hidden={covered ? true : undefined}
         active={activeTopPanel === "session"}
         edge="none"
-        className={cn("justify-end font-mono tabular-nums disabled:opacity-100", mobile ? "mobile-session-stats" : undefined)}
+        className={cn("min-w-0 shrink justify-end font-mono tabular-nums disabled:opacity-100", mobile ? "mobile-session-stats" : undefined)}
         data-mobile-toolbar-stats={mobile ? "true" : undefined}
         style={{
           marginLeft: mobile ? 0 : "auto",

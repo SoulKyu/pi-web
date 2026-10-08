@@ -42,3 +42,7 @@ test("the desktop top bar shows the session title, a running badge and a context
   // percent null keeps the "?" text and renders no gauge
   assert.match(shell, /contextUsage\?\.contextWindow && contextUsage\.percent !== null && \(\s*<Gauge/);
 });
+
+test("the desktop stats button can shrink so the file toggle stays on screen", () => {
+  assert.match(shell, /className=\{cn\("min-w-0 shrink justify-end font-mono tabular-nums/);
+});
