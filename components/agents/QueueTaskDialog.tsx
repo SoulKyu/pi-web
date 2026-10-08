@@ -9,7 +9,7 @@ import { clipQuote, type HandTarget, QUOTE_MAX, queueErrorKey, reviewExcerpt } f
 const REVIEW_TOOLS = ["read", "grep", "find", "ls", "memory_search"];
 // Mirrors PROMPT_MAX in app/api/agents/[name]/tasks/route.ts, counted the same way (prompt.length); the route stays authoritative.
 const PROMPT_MAX = 20_000;
-const ERROR_COLOR = "#e5484d";
+const ERROR_COLOR = "var(--color-tron-red)";
 
 /** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread.
  *  `purpose="review"` queues an isolated read-only review run instead of a thread task. `onQueued` receives the agent the task went to. */

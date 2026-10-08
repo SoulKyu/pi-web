@@ -35,7 +35,7 @@ test("the counter strings exist in all four locales", async () => {
 test("onQueued gets the target; errors are red and localized; the quote is clipped to the route cap with a note", () => {
   assert.match(dialog, /onQueued: \(target: string\) => void/);
   assert.match(dialog, /onQueued\(target\);/);
-  assert.match(dialog, /const ERROR_COLOR = "#e5484d";/);
+  assert.match(dialog, /const ERROR_COLOR = "var\(--color-tron-red\)";/);
   assert.match(dialog, /\{error && <span role="alert" style=\{\{ color: ERROR_COLOR \}\}>/);
   assert.doesNotMatch(dialog, /role="alert" style=\{\{ color: "var\(--text-muted\)" \}\}/);
   assert.match(dialog, /const errorKey = error \? queueErrorKey\(error\) : null;/);

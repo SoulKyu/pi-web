@@ -41,7 +41,7 @@
   width: min(var(--config-panel-width), calc(100vw - 16px));
   height: min(var(--config-panel-height), calc(100dvh - 16px));
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
 }
 
@@ -78,7 +78,7 @@
   margin-left: auto;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -176,7 +176,7 @@
 }
 
 .config-sidebar-group-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .config-sidebar-item {
@@ -188,7 +188,7 @@
   height: 30px;
   padding: 0 8px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   outline: none;
   background: transparent;
   color: var(--text);
@@ -211,7 +211,9 @@
 }
 
 .config-sidebar-item[aria-current="page"] {
-  background: var(--bg-selected);
+  background: linear-gradient(90deg, rgb(0 216 255 / 0.15), transparent);
+  box-shadow: inset 2px 0 0 var(--color-tron-cyan);
+  color: #fff;
   font-weight: 600;
 }
 
@@ -278,7 +280,7 @@
   min-width: 0;
   padding: 6px 9px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
@@ -290,7 +292,7 @@
   flex-shrink: 0;
   padding: 6px 12px;
   border: none;
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--accent);
   color: var(--accent-contrast);
   cursor: pointer;
@@ -356,7 +358,7 @@
 }
 
 .enabled-models-switch-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
   font-size: 11px;
 }
 
@@ -382,9 +384,9 @@
 
 .enabled-models-error {
   padding: 7px 9px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 5px;
-  color: #ef4444;
+  border: 1px solid color-mix(in srgb, var(--color-tron-red) 30%, transparent);
+  border-radius: 0;
+  color: var(--color-tron-red);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -402,7 +404,7 @@
   height: 30px;
   padding: 0 9px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   outline: none;
   background: var(--bg);
   color: var(--text);
@@ -413,7 +415,7 @@
 .enabled-models-list {
   max-height: 360px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--bg-panel);
   overflow-y: auto;
 }
@@ -457,9 +459,9 @@
 .enabled-models-pin {
   flex-shrink: 0;
   padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(99, 102, 241, 0.12);
-  color: rgba(99, 102, 241, 0.8);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--color-tron-cyan) 12%, transparent);
+  color: color-mix(in srgb, var(--color-tron-cyan) 80%, transparent);
   font-size: 9px;
 }
 
@@ -517,7 +519,7 @@
 }
 
 .agents-feature-copy > .agents-feature-reload-notice {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .agents-feature-actions {
@@ -541,7 +543,7 @@
   height: 28px;
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -555,7 +557,7 @@
 }
 
 .config-sidebar-message.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .config-sidebar-message.is-empty {
@@ -662,7 +664,7 @@
   background: var(--border);
   border: 5px solid transparent;
   background-clip: padding-box;
-  border-radius: 7px;
+  border-radius: 0;
 }
 
 .config-field-label {
@@ -697,15 +699,15 @@
 .config-scope-tag {
   flex-shrink: 0;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 0;
   background: rgba(120, 120, 120, 0.12);
   color: var(--text-dim);
   font-size: 10px;
 }
 
 .config-scope-tag.is-project {
-  background: rgba(99, 102, 241, 0.12);
-  color: rgba(99, 102, 241, 0.8);
+  background: color-mix(in srgb, var(--color-tron-cyan) 12%, transparent);
+  color: color-mix(in srgb, var(--color-tron-cyan) 80%, transparent);
 }
 
 .config-scope-switch-field {
@@ -730,7 +732,7 @@
   height: 30px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 0;
 }
 
 .config-scope-switch-option {
@@ -760,7 +762,7 @@
 .config-scope-switch.is-small {
   display: flex;
   height: auto;
-  border-radius: 5px;
+  border-radius: 0;
   font-size: 12px;
 }
 
@@ -830,7 +832,7 @@
 }
 
 .config-detail-grid-value.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .config-detail-grid-value.is-mono {
@@ -892,7 +894,7 @@
   height: 36px;
   padding: 0 11px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text);
   font-family: var(--font-mono);
@@ -935,7 +937,7 @@
   min-height: 30px;
   padding: 6px 9px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text-dim);
   cursor: pointer;
@@ -970,7 +972,7 @@
 }
 
 .config-add-source-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
   font-size: 12px;
   white-space: pre-wrap;
 }
@@ -1062,11 +1064,11 @@
 }
 
 .skill-update-status.is-success {
-  color: #16a34a;
+  color: var(--color-tron-cyan);
 }
 
 .skill-update-status.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .skill-description {
@@ -1100,11 +1102,11 @@
 }
 
 .config-footer-status-summary.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .config-footer-status-summary.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .config-footer-status-details summary {
@@ -1142,7 +1144,7 @@
   gap: 6px;
   border-width: 1px;
   border-style: solid;
-  border-radius: 5px;
+  border-radius: 0;
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0;
@@ -1177,9 +1179,9 @@
 }
 
 .config-button-danger {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.06);
-  color: #ef4444;
+  border-color: color-mix(in srgb, var(--color-tron-red) 35%, transparent);
+  background: color-mix(in srgb, var(--color-tron-red) 6%, transparent);
+  color: var(--color-tron-red);
 }
 
 .config-button-ghost {
@@ -1201,8 +1203,8 @@
 }
 
 .config-button-danger:not(:disabled):hover {
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.12);
+  border-color: color-mix(in srgb, var(--color-tron-red) 50%, transparent);
+  background: color-mix(in srgb, var(--color-tron-red) 12%, transparent);
 }
 
 .config-button:focus-visible {
@@ -1216,8 +1218,8 @@
 }
 
 .config-button-primary.is-success {
-  border-color: #16a34a;
-  background: #16a34a;
+  border-color: var(--color-tron-cyan);
+  background: var(--color-tron-cyan);
   animation: saved-pop 0.45s ease;
 }
 
@@ -1238,7 +1240,7 @@
   height: 18px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--bg-selected);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -1292,7 +1294,7 @@
 .config-switch.is-small {
   width: 24px;
   height: 14px;
-  border-radius: 7px;
+  border-radius: 0;
 }
 
 .config-switch.is-small .config-switch-knob {
@@ -1325,7 +1327,7 @@
   min-height: 30px;
   padding: 0 8px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
@@ -1372,7 +1374,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 /* Focus moves to the dialog itself when Settings opens (tabIndex -1); it is not a control, so no ring. */
@@ -1388,10 +1390,10 @@
   height: 84vh;
   max-height: calc(100dvh - 16px);
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--color-tron-line);
+  border-radius: 0;
   background: var(--bg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .settings-dialog-header {
@@ -1449,7 +1451,7 @@
   left: 50%;
   width: 24px;
   height: 2px;
-  border-radius: 2px 2px 0 0;
+  border-radius: 0;
   background: var(--accent);
   content: "";
   opacity: 0;
@@ -1477,7 +1479,7 @@
 }
 
 .settings-section-tab:focus-visible:not([aria-current="page"]) {
-  border-radius: 4px;
+  border-radius: 0;
   background: var(--bg-hover);
   color: var(--text);
 }
@@ -1530,9 +1532,12 @@
 
 .settings-general-title {
   margin: 0;
-  color: var(--text);
-  font-size: 18px;
+  color: var(--color-tron-cyan);
+  font-family: var(--font-hud);
+  font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .settings-general-section {
@@ -1546,8 +1551,11 @@
 .settings-general-heading {
   margin: 0 0 5px;
   color: var(--text);
-  font-size: 13px;
+  font-family: var(--font-hud);
+  font-size: 10px;
   font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .settings-general-description {
@@ -1608,7 +1616,7 @@
   gap: 3px;
   padding: 3px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 .settings-send-mode-option {
@@ -1620,7 +1628,7 @@
   min-height: 26px;
   padding: 0 10px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -1675,7 +1683,7 @@
   height: 44px;
   padding: 0 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -1733,7 +1741,7 @@
   max-width: 420px;
   min-height: 44px;
   padding: 0 10px;
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text);
   font-size: 12px;
@@ -1741,7 +1749,7 @@
 
 .settings-general-error {
   margin: 8px 0 0;
-  color: #ef4444;
+  color: var(--color-tron-red);
   font-size: 11px;
 }
 
@@ -1799,7 +1807,7 @@
     margin-left: 14px;
     padding: 0 9px;
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 0;
     background: var(--bg-panel);
     color: var(--text);
     font-size: 16px;
@@ -1807,9 +1815,9 @@
 }
 
 @keyframes saved-pop {
-  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); }
-  40%  { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.25); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-tron-cyan) 55%, transparent); }
+  40%  { transform: scale(1.08); box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-tron-cyan) 25%, transparent); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-tron-cyan) 0%, transparent); }
 }
 
 @keyframes saved-check-draw {
@@ -1835,11 +1843,11 @@
 }
 
 .mcp-sidebar-badge.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .mcp-sidebar-badge.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .mcp-sidebar-group-empty {
@@ -1896,7 +1904,7 @@
 }
 
 .mcp-config-line.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .mcp-config-line.is-dim {
@@ -1905,7 +1913,7 @@
 }
 
 .mcp-config-line.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .mcp-config-state {
@@ -1922,11 +1930,11 @@
 }
 
 .mcp-config-state.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .mcp-config-state.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .mcp-config-chips {
@@ -1940,7 +1948,7 @@
   max-width: 100%;
   padding: 0 5px;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text);
   font-family: var(--font-mono);
@@ -1959,7 +1967,7 @@
   padding: 6px 8px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -2040,7 +2048,7 @@
   height: 32px;
   padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--bg-panel);
   color: var(--text);
   font-family: var(--font-mono);
@@ -2077,11 +2085,11 @@
 }
 
 .mcp-add-note.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .mcp-add-note.is-error {
-  color: #ef4444;
+  color: var(--color-tron-red);
 }
 
 .mcp-add-field {
@@ -2121,7 +2129,7 @@
   max-height: 100%;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--bg-panel);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
 }
@@ -2169,7 +2177,7 @@
   margin-top: 10px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
@@ -2189,7 +2197,7 @@
   max-height: 30vh;
   padding: 0 18px 10px;
   overflow: auto;
-  color: #ef4444;
+  color: var(--color-tron-red);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -2215,7 +2223,7 @@
   height: 32px;
   padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -2270,7 +2278,7 @@
 }
 
 .project-trust-mcp-line.is-warning {
-  color: #d97706;
+  color: var(--color-tron-orange);
 }
 
 .project-trust-mcp-line.is-dim {
@@ -2304,7 +2312,7 @@
   min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg);
 }
 
@@ -2326,7 +2334,7 @@
 .project-trust-mcp-tag {
   flex-shrink: 0;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 0;
   background: rgba(120, 120, 120, 0.12);
   color: var(--text-dim);
   font-size: 10px;
@@ -2347,7 +2355,7 @@
   display: inline-block;
   margin: 2px 4px 0 0;
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: 0;
   background: var(--bg-hover);
   color: var(--text);
   font-family: var(--font-mono);

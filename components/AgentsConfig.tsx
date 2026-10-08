@@ -66,7 +66,7 @@ const inputStyle: CSSProperties = {
   height: 34,
   padding: "0 9px",
   border: "1px solid var(--border)",
-  borderRadius: 5,
+  borderRadius: 0,
   background: "var(--bg)",
   color: "var(--text)",
   fontSize: 12,
@@ -647,7 +647,7 @@ export function AgentsConfig({
                           variant="field"
                           placement="auto"
                         />
-                        {modelsError && <span style={{ color: "#ef4444", fontSize: 10 }}>{modelsError}</span>}
+                        {modelsError && <span style={{ color: "var(--color-tron-red)", fontSize: 10 }}>{modelsError}</span>}
                       </div>
                     </Field>
                     <Field label={t("agents.thinking")}>
@@ -669,7 +669,7 @@ export function AgentsConfig({
           </ConfigDetailStack>
         </ConfigDetail>
       </ConfigSplitView>
-      <ConfigFooter status={(settingsError || error) && <span role="alert" style={{ color: "#ef4444" }}>{settingsError || error}</span>}>
+      <ConfigFooter status={(settingsError || error) && <span role="alert" style={{ color: "var(--color-tron-red)" }}>{settingsError || error}</span>}>
         {editing && (
           <ConfigButton
             variant="primary"

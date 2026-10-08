@@ -6,7 +6,7 @@ import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import { formatRunUsage } from "@/lib/agents/format-usage";
 import { formatTaskDuration, requestTaskAction } from "./task-view";
 
-const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 6, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
+const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
 function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
   task: AgentTaskListItem;
@@ -34,7 +34,7 @@ function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
   const retry = () => void run({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "retry" }) });
 
   return (
-    <li style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
+    <li style={{ border: "1px solid var(--border)", borderRadius: 0, padding: 10, background: "var(--bg-panel)", display: "grid", gap: 6, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 }}>
         <strong style={{ flex: "1 1 12em", minWidth: 0, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
@@ -63,7 +63,7 @@ function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
       </div>
       {task.status === "running" && task.sessionId && (
         <form onSubmit={(event) => { event.preventDefault(); void steer(); }} style={{ display: "flex", gap: 6 }}>
-          <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={t("agentOps.steerPlaceholder")} style={{ flex: 1, minWidth: 0, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--bg)", color: "var(--text)", fontSize: 12 }} />
+          <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={t("agentOps.steerPlaceholder")} style={{ flex: 1, minWidth: 0, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 0, background: "var(--bg)", color: "var(--text)", fontSize: 12 }} />
           <button type="submit" disabled={!message.trim()} style={smallButton}>{t("agentOps.steer")}</button>
         </form>
       )}

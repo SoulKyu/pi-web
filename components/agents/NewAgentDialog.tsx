@@ -9,7 +9,7 @@ import type { ToolsPreset } from "@/lib/agents/registry";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 
 export const EMOJIS = ["🛠", "🤖", "📚", "🔍", "🧭", "🛰", "🧪", "📈"];
-export const COLORS = ["#e07a5f", "#3d9970", "#8e7cc3", "#6c8cff", "#f5a524", "#e5484d", "#30a46c", "#555555"];
+export const COLORS = ["#e07a5f", "#3d9970", "#8e7cc3", "#6c8cff", "#f5a524", "var(--color-tron-red)", "#30a46c", "#555555"];
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 export const TOOLS_PRESETS: ToolsPreset[] = ["read-only", "standard", "full"];
 
@@ -90,7 +90,7 @@ export function NewAgentDialog({ onClose, onCreated, agentsHomeDir }: { onClose:
   const toggleMcp = (server: string) => setMcpServers((current) => (current.includes(server) ? current.filter((name) => name !== server) : [...current, server]));
   const mcpNames = [...new Set([...fetchedMcp, ...mcpServers])].sort();
   const title = t("agents.new.title");
-  const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 6, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
+  const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 0, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>

@@ -86,7 +86,7 @@ export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSave
       <button
         type="button"
         onClick={() => setProfileOpen(true)}
-        style={{ marginTop: 8, padding: "6px 10px", border: "1px solid var(--border)", borderRadius: 6, background: "none", color: "var(--text)", cursor: "pointer", fontSize: 12 }}
+        style={{ marginTop: 8, padding: "6px 10px", border: "1px solid var(--border)", borderRadius: 0, background: "none", color: "var(--text)", cursor: "pointer", fontSize: 12 }}
       >
         {t("agents.space.profile")}
       </button>

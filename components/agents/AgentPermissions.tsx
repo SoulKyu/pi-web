@@ -51,11 +51,11 @@ export function AgentPermissions({ agentName }: { agentName: string }) {
       {t("agents.permissions.title")}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
         {LEGS.map((leg) => (
-          <span key={leg} title={permissions.trifectaReasons[leg].join(", ")} style={{ padding: "2px 8px", borderRadius: 10, fontSize: 11, border: `1px solid ${permissions.trifecta[leg] ? "#e5484d" : "var(--border)"}`, color: permissions.trifecta[leg] ? "#e5484d" : "var(--text-muted)" }}>{t(`agents.permissions.${leg}`)}</span>
+          <span key={leg} title={permissions.trifectaReasons[leg].join(", ")} style={{ padding: "2px 8px", borderRadius: 0, fontSize: 11, border: `1px solid ${permissions.trifecta[leg] ? "var(--color-tron-red)" : "var(--border)"}`, color: permissions.trifecta[leg] ? "var(--color-tron-red)" : "var(--text-muted)" }}>{t(`agents.permissions.${leg}`)}</span>
         ))}
         <span style={muted}>{count}/3</span>
       </div>
-      {count === 3 && <span role="alert" style={{ color: "#e5484d" }}>{t("agents.permissions.trifectaWarning")}</span>}
+      {count === 3 && <span role="alert" style={{ color: "var(--color-tron-red)" }}>{t("agents.permissions.trifectaWarning")}</span>}
       {LEGS.filter((leg) => permissions.trifectaReasons[leg].length > 0).map((leg) => (
         <span key={leg} style={muted}>{t(`agents.permissions.${leg}`)}: {permissions.trifectaReasons[leg].join(", ")}</span>
       ))}

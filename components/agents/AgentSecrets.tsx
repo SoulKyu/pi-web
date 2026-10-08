@@ -57,7 +57,7 @@ export function AgentSecrets({ agentName }: { agentName: string }) {
         <button type="button" disabled={!name || !value} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text)" }}
           onClick={async () => { if (await send("PUT", { name, value })) { setName(""); setValue(""); } }}>{t("agents.secrets.add")}</button>
       </div>
-      {error && <span role="alert" style={{ color: "#e5484d" }}>{error}</span>}
+      {error && <span role="alert" style={{ color: "var(--color-tron-red)" }}>{error}</span>}
     </div>
   );
 }

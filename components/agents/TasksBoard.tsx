@@ -58,7 +58,7 @@ export function TasksBoard({ agents, onClose, onSelectAgent, onOpenSession }: {
   const title = t("agents.board.title");
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
-      <div style={{ width: "min(760px, 100%)", display: "grid", gap: 12, padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxHeight: "100%", overflowY: "auto" }}>
+      <div style={{ width: "min(760px, 100%)", display: "grid", gap: 12, padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 0, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxHeight: "100%", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, marginLeft: "auto", border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.close")}</button>

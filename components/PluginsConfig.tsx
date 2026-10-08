@@ -151,9 +151,9 @@ function findInstalledPackage(
 
 function statusColor(status: PluginPackageInfo["status"]): string {
   if (status === "loaded") return "var(--accent)";
-  if (status === "installed") return "#f59e0b";
+  if (status === "installed") return "var(--color-tron-orange)";
   if (status === "disabled") return "var(--text-dim)";
-  return "#ef4444";
+  return "var(--color-tron-red)";
 }
 
 function ResourceList({ pkg }: { pkg: PluginPackageInfo }) {
@@ -370,7 +370,7 @@ function PackageDetail({
                 style={{
                   fontSize: 10,
                   padding: "1px 5px",
-                  borderRadius: 3,
+                  borderRadius: 0,
                   background: "rgba(120,120,120,0.12)",
                   color: "var(--text-dim)",
                 }}
@@ -382,9 +382,9 @@ function PackageDetail({
                 style={{
                   fontSize: 10,
                   padding: "1px 5px",
-                  borderRadius: 3,
-                  background: "rgba(245,158,11,0.12)",
-                  color: "#d97706",
+                  borderRadius: 0,
+                  background: "color-mix(in srgb, var(--color-tron-orange) 12%, transparent)",
+                  color: "var(--color-tron-orange)",
                 }}
               >
                 {t("i18n.filtered")}
@@ -499,7 +499,7 @@ function PackageDetail({
             )}
           </div>
           {updateError && (
-            <span style={{ fontSize: 12, color: "#ef4444" }}>{updateError}</span>
+            <span style={{ fontSize: 12, color: "var(--color-tron-red)" }}>{updateError}</span>
           )}
         </ConfigDetailGridRow>
         <ConfigDetailGridRow label={t("i18n.package")} mono>
@@ -522,12 +522,12 @@ function PackageDetail({
       </div>
 
       {actionMessage && (
-        <div style={{ fontSize: 12, color: "#16a34a" }}>
+        <div style={{ fontSize: 12, color: "var(--color-tron-cyan)" }}>
           {actionMessage}
         </div>
       )}
       {actionError && (
-        <div style={{ fontSize: 12, color: "#ef4444", whiteSpace: "pre-wrap" }}>
+        <div style={{ fontSize: 12, color: "var(--color-tron-red)", whiteSpace: "pre-wrap" }}>
           {actionError}
         </div>
       )}
