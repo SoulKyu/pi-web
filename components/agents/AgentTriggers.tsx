@@ -52,6 +52,7 @@ function TriggerJournal({ triggerId }: { triggerId: string }) {
   );
 }
 
+interface DryRunFeed { status: string; count: number; titles: string[]; error?: string }
 interface DryRunPlan { verdict: "accepted" | "refused"; reason?: string; prompt?: string; tokenFree: boolean; tools: string[]; pinStatus: string; target: "thread" | "isolated" }
 const PROMPT_LINES = 40;
 
@@ -91,6 +92,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [plan, setPlan] = useState<DryRunPlan | null>(null);
+  const [feed, setFeed] = useState<DryRunFeed | null>(null);
   const [fired, setFired] = useState<string | null>(null);
   const url = `/api/agent-ops/triggers/${trigger.id}`;
   const history = tasksOfTrigger(tasks, trigger.id);
@@ -98,6 +100,7 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
   const runsToday = runsTodayOf(tasks, trigger.id);
   const schedule = [
     trigger.everyMinutes ? t("agentOps.trigger.every", { minutes: trigger.everyMinutes }) : null,
+    trigger.source ? t("agentOps.trigger.feed") : null,
     trigger.hasWebhookSecret ? t("agentOps.trigger.webhook") : null,
   ].filter(Boolean).join(" · ") || t("agentOps.trigger.noSchedule");
 
@@ -123,6 +126,11 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
     const data = await run({ method: "POST" }, `${url}/dry-run`, false);
     const dryRun = (data as { plan?: DryRunPlan } | null)?.plan;
     if (dryRun) setPlan(dryRun);
+  };
+  const testFeed = async () => {
+    const data = await run({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: { feed: true } }) }, `${url}/dry-run`, false);
+    const result = (data as { feed?: DryRunFeed } | null)?.feed;
+    if (result) setFeed(result);
   };
   const runNow = async () => {
     if (!window.confirm(t("agentOps.trigger.runNowConfirm", { name: trigger.name }))) return;
@@ -158,12 +166,23 @@ function TriggerRow({ trigger, tasks, onEdit, onReveal, onOpenSession, onChanged
       )}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <button type="button" onClick={() => void test()} style={smallButton}>{t("agentOps.trigger.test")}</button>
+        {trigger.source && <button type="button" onClick={() => void testFeed()} style={smallButton}>{t("agentOps.trigger.testFeed")}</button>}
         <button type="button" onClick={() => void runNow()} style={smallButton}>{t("agentOps.trigger.runNow")}</button>
         <button type="button" onClick={onEdit} style={smallButton}>{t("agentOps.trigger.edit")}</button>
-        <button type="button" onClick={() => void rotate()} style={smallButton}>{trigger.hasWebhookSecret ? t("agentOps.trigger.rotate") : t("agentOps.trigger.generate")}</button>
+        {!trigger.source && <button type="button" onClick={() => void rotate()} style={smallButton}>{trigger.hasWebhookSecret ? t("agentOps.trigger.rotate") : t("agentOps.trigger.generate")}</button>}
         <button type="button" onClick={remove} style={smallButton}>{t("agentOps.trigger.delete")}</button>
       </div>
       {plan && <TriggerTestPanel plan={plan} template={trigger.promptTemplate} onClose={() => setPlan(null)} />}
+      {feed && (
+        <div role="status" style={{ display: "grid", gap: 2, fontSize: 11, color: "var(--text-muted)" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <span>{t("agentOps.trigger.testFeedResult", { status: feed.status, count: feed.count })}</span>
+            <button type="button" onClick={() => setFeed(null)} style={{ ...smallButton, marginLeft: "auto" }}>{t("agentOps.trigger.testClose")}</button>
+          </div>
+          {feed.error && <div>{feed.error}</div>}
+          {feed.titles.map((title, index) => <div key={index} style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>)}
+        </div>
+      )}
       {fired && <div role="status" style={{ fontSize: 11, color: "var(--text-muted)" }}>{fired}</div>}
       {history.length > 0 && (
         <details onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>

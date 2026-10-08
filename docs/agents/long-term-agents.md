@@ -27,7 +27,7 @@
 ## Threat model
 - **Scope.** One operator on a trusted LAN, headless host. The web password and its global throttle (`lib/auth-throttle.ts`) guard the UI; TLS is the reverse proxy's job.
 - **In scope.**
-  - (a) The model tricked by fetched content: web pages, MCP results, webhook payloads.
+  - (a) The model tricked by fetched content: web pages, MCP results, webhook payloads, feed entries. A feed trigger (`source`, see agent-ops.md) is fetched by the SERVER (`feed-source.ts`), so the agent's `web_allow_hosts` egress policy does not apply to it: the operator who sets the URL is the trust boundary (https only, redirects re-checked, 1 MiB, 10 s; no private-address filter). Entry text reaches the model only inside `fenceExternal(…, "feed")` in an isolated run that has no network tool by default.
   - (b) A destructive command run by mistake (`terraform apply`, `kubectl delete`, `rm -rf`, `git push --force`).
   - (c) Secrets leaking to the model provider (environment, files under `~`).
 - **Out of scope.** An attacker on the LAN, multi-tenant use, root escalation.

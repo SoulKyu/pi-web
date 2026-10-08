@@ -48,6 +48,27 @@ test("dry-run: empty body allowed, bad JSON 400, unknown trigger 404", async () 
   assert.equal((await call(dryRun, trigger.id, "{ nope")).status, 400);
   assert.equal((await call(dryRun, "00000000-0000-4000-8000-0000000000ff", {})).status, 404);
 });
+test("dry-run { feed: true } fetches the feed now: count and up to 5 titles, no state, no token, no task", async () => {
+  const feedTrigger = { ...trigger, id: "00000000-0000-4000-8000-000000000002", webhookSecretSha256: undefined, everyMinutes: 30, source: { kind: "feed", url: "https://blog.example/feed.xml" } };
+  triggers.saveTrigger(feedTrigger);
+  const xml = `<rss><channel>${Array.from({ length: 7 }, (_, i) => `<item><title>P${i}</title><link>https://b/${i}</link></item>`).join("")}</channel></rss>`;
+  const realFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async (url) => { urls.push(String(url)); return new Response(xml); };
+  try {
+    const before = readdirSync(triggers.triggersDir()).sort();
+    const { plan, feed } = await (await call(dryRun, feedTrigger.id, { payload: { feed: true } })).json();
+    assert.deepEqual(urls, ["https://blog.example/feed.xml"]);
+    assert.deepEqual(feed, { status: "ok", count: 7, titles: ["P0", "P1", "P2", "P3", "P4"] });
+    assert.equal(plan.target, "thread");
+    assert.deepEqual(readdirSync(triggers.triggersDir()).sort(), before);
+    globalThis.fetch = async () => new Response("no", { status: 500 });
+    assert.deepEqual((await (await call(dryRun, feedTrigger.id, { payload: { feed: true } })).json()).feed, { status: "error", count: 0, titles: [], error: "HTTP 500" });
+    assert.equal((await (await call(dryRun, feedTrigger.id, { payload: { text: "x" } })).json()).feed, undefined); // no fetch without the flag
+    assert.equal((await (await call(dryRun, trigger.id, { payload: { feed: true } })).json()).feed, undefined); // not a feed trigger
+  } finally { globalThis.fetch = realFetch; }
+  assert.equal(tasks.listTasks().length, 0);
+});
 test("fire answers 202 with a task, then 409 at the cap", async () => {
   const res = await call(fire, trigger.id, { payload: { text: "go" } });
   assert.equal(res.status, 202);

@@ -182,6 +182,9 @@ lib/
   agent-ops/kick.ts         kickRunner (single entry point), recoverOnce
   agent-ops/trigger-store.ts trigger configs (CRUD), closed tool allowlist, profile pin, triggerRunPin
   agent-ops/scheduler.ts    60 s tick: scheduled fires, payload ingestion, fire-token purge, task retention
+  agent-ops/feed.ts         parseFeed(): pure RSS 2.0 / Atom reader, no DTD, clipped fields, max 200 entries
+  agent-ops/feed-source.ts  fetchFeed (https only, redirects checked, 10 s, 1 MiB), <id>.feed.json state, newEntries, feedToken
+  agent-ops/feed-poll.ts    pollFeedTriggers(): one isolated task per due bucket with up to 10 fenced new entries
   agent-ops/webhook.ts      handleHook: fail-closed webhook (secret digest, dedicated throttle, 64 KB stream cap)
   agent-ops/hook-path.ts    exact hook path and GET /api/metrics (isMetricsRequest) the proxy lets through without a session + the secret header name (client-safe)
   agent-ops/metrics.ts      recordRunMetrics (called by appendRunRecord) / renderPrometheus: in-memory run counters, reset on restart

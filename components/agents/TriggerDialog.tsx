@@ -12,6 +12,7 @@ import { requestTrigger, type TriggerResponse } from "./trigger-view";
 
 const labelStyle: CSSProperties = { display: "grid", gap: 4, fontSize: 12, color: "var(--text-muted)" };
 const MS_PER_MINUTE = 60_000;
+const isHttpsUrl = (value: string): boolean => { try { return new URL(value).protocol === "https:"; } catch { return false; } };
 
 /** Creates a trigger of `agentName`, or edits `trigger`. The run happens in the agent home. */
 export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }: {
@@ -27,6 +28,7 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
   const [promptTemplate, setPromptTemplate] = useState(trigger?.promptTemplate ?? prefill?.promptTemplate ?? "");
   const [everyMinutes, setEveryMinutes] = useState((trigger?.everyMinutes ?? prefill?.everyMinutes)?.toString() ?? "");
   const [at, setAt] = useState(trigger?.at ?? "");
+  const [feedUrl, setFeedUrl] = useState(trigger?.source?.url ?? "");
   const [critical, setCritical] = useState(trigger?.critical ?? false);
   const [webhook, setWebhook] = useState(false);
   const [payloadFormat, setPayloadFormat] = useState<PayloadFormat>(trigger?.payloadFormat ?? "raw");
@@ -62,7 +64,9 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
     return () => controller.abort();
   }, [agentName]);
 
-  const isWebhook = trigger ? trigger.hasWebhookSecret : webhook;
+  const isFeed = feedUrl.trim() !== "";
+  const feedUrlValid = !isFeed || isHttpsUrl(feedUrl.trim());
+  const isWebhook = trigger ? trigger.hasWebhookSecret : webhook && !isFeed;
   const isScheduled = (everyMinutes.trim() !== "" || at.trim() !== "") && !isWebhook;
   const isolated = isWebhook || (isScheduled && runTarget === "isolated");
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
@@ -82,6 +86,7 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
       at: at.trim() || unset,
       critical: critical ? true : unset,
       maxRunsPerDay: maxRunsPerDay.trim() ? Number(maxRunsPerDay) : unset,
+      source: isFeed ? { kind: "feed" as const, url: feedUrl.trim() } : unset,
       payloadFormat: isWebhook && payloadFormat !== "raw" ? payloadFormat : unset,
       runTarget: isScheduled && runTarget === "isolated" ? "isolated" : unset,
       model: isolated && model ? model : unset,
@@ -91,7 +96,7 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
     const result = await requestTrigger(trigger ? `/api/agent-ops/triggers/${trigger.id}` : "/api/agent-ops/triggers", {
       method: trigger ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(trigger ? { ...fields, ...run, everyMinutes: every ?? null } : { ...fields, ...run, everyMinutes: every, webhook }),
+      body: JSON.stringify(trigger ? { ...fields, ...run, everyMinutes: every ?? null } : { ...fields, ...run, everyMinutes: every, webhook: webhook && !isFeed }),
     });
     setBusy(false);
     if ("error" in result) { setError(result.error); return; }
@@ -137,10 +142,16 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
             </label>
           </fieldset>
         )}
+        <label style={labelStyle}>
+          {t("agentOps.trigger.feedUrl")}
+          <input type="url" value={feedUrl} onChange={(event) => setFeedUrl(event.target.value)} disabled={Boolean(trigger?.hasWebhookSecret)} placeholder="https://example.com/feed.xml" style={fieldStyle} />
+          {!feedUrlValid && <span role="alert">{t("agentOps.trigger.feedUrlInvalid")}</span>}
+        </label>
         {!trigger && (
           <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" checked={webhook} onChange={(event) => setWebhook(event.target.checked)} />
+            <input type="checkbox" checked={webhook && !isFeed} disabled={isFeed} onChange={(event) => setWebhook(event.target.checked)} />
             {t("agentOps.trigger.webhookField")}
+            {isFeed && <span>{t("agentOps.trigger.feedNoWebhook")}</span>}
           </label>
         )}
         {isWebhook && (
@@ -193,7 +204,7 @@ export function TriggerDialog({ trigger, prefill, agentName, onClose, onSaved }:
         {error && <div role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{t("agentOps.actionFailed", { error })}</div>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !promptTemplate.trim() || (isolated && tools.length === 0)} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
+          <button type="submit" disabled={busy || !feedUrlValid || !name.trim() || !promptTemplate.trim() || (isolated && tools.length === 0)} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
             {busy ? t("agentOps.trigger.saving") : trigger ? t("agentOps.trigger.save") : t("agentOps.trigger.create")}
           </button>
         </div>

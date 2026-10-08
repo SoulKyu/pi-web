@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { activeTaskCount, budgetRefusalFor, planIngestion, runsTodayCount } from "@/lib/agent-ops/scheduler";
 import { inQuietHours, quietHoursEnd } from "@/lib/agent-ops/quiet-hours";
 import { readAgentOpsSettings, isPausedFor } from "@/lib/agent-ops/settings";
+import { fetchFeed } from "@/lib/agent-ops/feed-source";
 import { getTrigger, triggerPinStatus, triggersDir, TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const shown = plan.verdict === "accepted" && isPausedFor(settings, trigger.profile) ? { ...plan, verdict: "refused" as const, reason: "agent paused" } : plan;
   const now = new Date();
   const deferredUntil = shown.verdict === "accepted" && !trigger.critical && plan.severity !== "critical" && settings.quietHours && inQuietHours(settings.quietHours, now) ? quietHoursEnd(settings.quietHours, now).toISOString() : undefined;
+  // `{ payload: { feed: true } }` on a feed trigger: fetch it now with the live caps, without validators, state, token or task.
+  const probeFeed = trigger.source && typeof payload === "object" && payload !== null && (payload as { feed?: unknown }).feed === true;
+  const fetched = probeFeed ? await fetchFeed(trigger.source!.url, { seen: [] }) : null;
+  const feed = fetched && {
+    status: fetched.status,
+    count: fetched.status === "ok" ? fetched.entries.length : 0,
+    titles: fetched.status === "ok" ? fetched.entries.slice(0, 5).map((entry) => entry.title) : [],
+    ...(fetched.status === "error" ? { error: fetched.reason } : {}),
+  };
   return Response.json({
+    ...(feed ? { feed } : {}),
     plan: {
       ...shown, // carries the mapped text and its severity
       ...(prompt !== undefined ? { prompt } : {}),

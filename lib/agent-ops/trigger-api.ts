@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { resolveLongTermProfile } from "../agents/registry";
 import {
-  buildTriggerConfig, deleteTrigger, getTrigger, hashWebhookSecret, listTriggers, saveTrigger, validateTriggerFields,
+  buildTriggerConfig, clearFeedState, deleteTrigger, getTrigger, hashWebhookSecret, listTriggers, saveTrigger, validateTriggerFields,
   triggerPinStatus, type TriggerConfig, type TriggerInput, type TriggerPinStatus,
 } from "./trigger-store";
 
@@ -12,9 +12,9 @@ export type TriggerApiResult<T> = ({ ok: true } & T) | { ok: false; status: 400 
 
 /** Not a stored field: `repin: true` re-resolves the profile and renews the pin. */
 const PATCH_ONLY_FIELDS = ["repin"] as const;
-const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "at", "critical", "dedupWindowMs", "maxActiveTasks", "maxRunsPerDay", "runTarget", "model", "tools", "maxRunMs", "payloadFormat"] as const;
+const EDITABLE_FIELDS = ["name", "profile", "promptTemplate", "enabled", "everyMinutes", "at", "critical", "dedupWindowMs", "maxActiveTasks", "maxRunsPerDay", "runTarget", "model", "tools", "maxRunMs", "payloadFormat", "source"] as const;
 /** Optional fields a PATCH clears with an explicit null. */
-const CLEARABLE_FIELDS = ["at", "critical", "maxRunsPerDay", "runTarget", "model", "tools", "maxRunMs", "payloadFormat"] as const;
+const CLEARABLE_FIELDS = ["at", "critical", "maxRunsPerDay", "runTarget", "model", "tools", "maxRunMs", "payloadFormat", "source"] as const;
 const NOT_FOUND = { ok: false, status: 404, error: "Trigger not found" } as const;
 const refuse = (error: string) => ({ ok: false, status: 400, error }) as const;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,6 +46,7 @@ export function createTriggerFromInput(body: unknown): TriggerApiResult<{ trigge
   if (invalid) return refuse(invalid);
   const built = buildTriggerConfig(input as unknown as TriggerInput, resolveIn);
   if (!built.ok) return refuse(built.error);
+  if (body.webhook && input.source !== undefined) return refuse("a feed trigger cannot accept webhooks");
   const webhookSecret = body.webhook ? generateWebhookSecret() : undefined;
   const trigger = webhookSecret ? { ...built.trigger, webhookSecretSha256: hashWebhookSecret(webhookSecret) } : built.trigger;
   saveTrigger(trigger);
@@ -70,6 +71,7 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
   for (const field of cleared) delete merged[field];
   const invalid = validateTriggerFields(merged as unknown as TriggerInput);
   if (invalid) return refuse(invalid);
+  if (merged.source !== undefined && existing.webhookSecretSha256) return refuse("a feed trigger cannot accept webhooks");
   const updated: TriggerConfig = { ...existing, ...(merged as unknown as Omit<TriggerInput, "webhookSecret">) };
   if (clearSchedule) delete updated.everyMinutes;
   for (const field of cleared) delete updated[field];
@@ -80,6 +82,7 @@ export function patchTrigger(id: string, body: unknown): TriggerApiResult<{ trig
     updated.pinnedProfile = built.trigger.pinnedProfile;
   }
   saveTrigger(updated);
+  if (existing.source?.url !== updated.source?.url) clearFeedState(id); // another feed: its validators and seen hashes do not apply
   return { ok: true, trigger: toPublicTrigger(updated) };
 }
 
@@ -103,6 +106,7 @@ export function deleteTriggersOfAgent(name: string): number {
 export function rotateSecret(id: string): TriggerApiResult<{ trigger: PublicTrigger; webhookSecret: string }> {
   const existing = getTrigger(id);
   if (!existing) return NOT_FOUND;
+  if (existing.source) return refuse("a feed trigger cannot accept webhooks");
   const webhookSecret = generateWebhookSecret();
   const trigger: TriggerConfig & { webhookSecret?: unknown } = { ...existing, webhookSecretSha256: hashWebhookSecret(webhookSecret) };
   delete trigger.webhookSecret; // a rotation also drops a legacy plaintext

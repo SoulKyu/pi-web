@@ -5,6 +5,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { writePrivateFileAtomicSync } from "../atomic-file";
 import { agentHome, resolveLongTermProfile } from "../agents/registry";
 import { TRIGGER_TOOL_NAMES } from "./trigger-tools";
+import { feedUrlError } from "./feed";
 import { PAYLOAD_FORMATS, type PayloadFormat } from "./payload-formats";
 import { splitModel } from "../agents/agent-view";
 import type { SubagentProfile, SubagentScope } from "../subagents";
@@ -20,6 +21,8 @@ export interface TriggerConfig {
   critical?: boolean;
   /** How a webhook body is read: `raw` (default), or an alerts[] mapper that dedups on fingerprints and reports severity. */
   payloadFormat?: PayloadFormat;
+  /** Polled every `everyMinutes`: new entries of the feed become one isolated task per poll. The server fetches it; the agent's egress policy does not apply. */
+  source?: { kind: "feed"; url: string };
   promptTemplate: string;
   /** Hex sha256 of the webhook secret: the plaintext is shown once at creation or rotation and never stored.
    *  A trigger file still holding a plaintext `webhookSecret` has no digest, so its webhook is refused until rotated. */
@@ -101,7 +104,7 @@ export function triggerRunPin(task: { origin: string; pinnedProfileSha256?: stri
 }
 
 export type TriggerInput = Pick<TriggerConfig, "name" | "profile" | "promptTemplate">
-  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "maxRunsPerDay" | "runTarget" | "model" | "tools" | "maxRunMs" | "payloadFormat">>;
+  & Partial<Pick<TriggerConfig, "enabled" | "everyMinutes" | "at" | "critical" | "dedupWindowMs" | "maxActiveTasks" | "maxRunsPerDay" | "runTarget" | "model" | "tools" | "maxRunMs" | "payloadFormat" | "source">>;
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MIN_RUN_MS = 60_000;
@@ -129,6 +132,13 @@ export function validateTriggerFields(input: TriggerInput): string | null {
   }
   if (input.maxRunMs !== undefined && (!Number.isInteger(input.maxRunMs) || input.maxRunMs < MIN_RUN_MS || input.maxRunMs > MAX_RUN_MS)) {
     return `maxRunMs must be an integer between ${MIN_RUN_MS} and ${MAX_RUN_MS}`;
+  }
+  if (input.source !== undefined) {
+    const source = input.source as { kind?: unknown; url?: unknown } | null;
+    if (typeof source !== "object" || source === null || Array.isArray(source) || source.kind !== "feed") return "source.kind must be feed";
+    const urlError = feedUrlError(source.url);
+    if (urlError) return urlError;
+    if (input.everyMinutes === undefined) return "a feed source needs everyMinutes";
   }
   const dedupWindowMs = input.dedupWindowMs ?? 15 * 60_000;
   if (!(dedupWindowMs > 0) || !Number.isFinite(dedupWindowMs)) return "dedupWindowMs must be greater than 0";
@@ -162,6 +172,7 @@ export function buildTriggerConfig(
       ...(input.at !== undefined ? { at: input.at } : {}),
       ...(input.critical !== undefined ? { critical: input.critical } : {}),
       ...(input.payloadFormat !== undefined ? { payloadFormat: input.payloadFormat } : {}),
+      ...(input.source !== undefined ? { source: { kind: "feed" as const, url: input.source.url } } : {}),
       ...(input.runTarget !== undefined ? { runTarget: input.runTarget } : {}),
       ...(input.model !== undefined ? { model: input.model } : {}),
       ...(input.tools !== undefined ? { tools: [...new Set(input.tools)] } : {}),
@@ -194,11 +205,16 @@ export function saveTrigger(trigger: TriggerConfig): void {
   mkdirSync(triggersDir(), { recursive: true, mode: 0o700 });
   writePrivateFileAtomicSync(triggerPath(trigger.id), JSON.stringify(trigger, null, 2));
 }
+/** The feed poll state (`<id>.feed.json`: validators and seen hashes); gone with the trigger or when its URL changes. */
+export function clearFeedState(id: string): void {
+  try { unlinkSync(join(triggersDir(), `${id}.feed.json`)); } catch { /* absent */ }
+}
 export function deleteTrigger(id: string): boolean {
   if (!VALID_ID.test(id)) return false;
   let deleted = false;
   try { unlinkSync(triggerPath(id)); deleted = true; } catch { /* deleted stays false */ }
   // Also remove the trigger's journal: absent is normal, failures are silent.
   try { unlinkSync(join(triggersDir(), `${id}.log.jsonl`)); } catch { /* absent */ }
+  clearFeedState(id);
   return deleted;
 }
