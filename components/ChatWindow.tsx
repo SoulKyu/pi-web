@@ -1649,7 +1649,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
         {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} /> : null}
         {chatInputElement}
         {handQuote !== null && trustedAgentName && handTargets.length > 0 ? (
-          <QueueTaskDialog agentName={handTargets[0].name} targetAgents={handTargets} quote={handQuote.text} purpose={handQuote.purpose} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={(name) => { addNotice({ type: "success", message: t("agents.mention.queued", { name }) }); setHandQuote(null); setPendingRefresh((tick) => tick + 1); }} />
+          <QueueTaskDialog agentName={(handTargets.find((agent) => !agent.paused) ?? handTargets[0]).name} targetAgents={handTargets} quote={handQuote.text} purpose={handQuote.purpose} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={(name) => { addNotice({ type: "success", message: t("agents.mention.queued", { name }) }); setHandQuote(null); setPendingRefresh((tick) => tick + 1); }} />
         ) : null}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>

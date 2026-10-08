@@ -196,7 +196,7 @@ export function AppShell() {
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
   const healthState = useHealthPoll();
-  const handToAgents = useMemo(() => agents.map(({ name, paused, running }) => ({ name, paused, running })), [agents]);
+  const handToAgents = useMemo(() => agents.map(({ name, paused, running }) => ({ name, paused: paused || allPaused, running })), [agents, allPaused]);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
