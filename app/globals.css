@@ -141,6 +141,64 @@ html[data-theme="pine"],
   --diff-removed-bg: color-mix(in srgb, var(--diff-removed) 14%, transparent);
 }
 
+[data-theme="cyberpunk"] {
+  color-scheme: dark;
+  --bg: #0a0e1a;
+  --bg-panel: #101627;
+  --bg-hover: #182036;
+  --bg-selected: #1f2a45;
+  --border: #2a3a5e;
+  --text: #d8e6ff;
+  --text-muted: #8fa3c8;
+  --text-dim: #6d81a6;
+  --accent: #00f0ff;
+  --accent-hover: #4df5ff;
+  --accent-contrast: #041018;
+  --user-bg: #14203a;
+  --assistant-bg: #0a0e1a;
+  --tool-bg: #0f1626;
+  --bg-subtle: rgba(0,240,255,0.05);
+  --cyber-glow: 0 0 8px rgba(0,240,255,0.35), 0 0 2px rgba(0,240,255,0.6);
+  --cyber-magenta: #ff2d95;
+}
+
+/* Cyberpunk-only effects: neon glows and scanlines. Every rule is scoped to
+   [data-theme="cyberpunk"] so the other palettes stay untouched. */
+[data-theme="cyberpunk"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 240, 255, 0.012) 3px
+  );
+}
+[data-theme="cyberpunk"] button[class*="primary"],
+[data-theme="cyberpunk"] .chat-send-button {
+  box-shadow: var(--cyber-glow);
+}
+[data-theme="cyberpunk"] input:focus-visible,
+[data-theme="cyberpunk"] textarea:focus-visible,
+[data-theme="cyberpunk"] select:focus-visible {
+  box-shadow: 0 0 0 1px var(--accent), var(--cyber-glow);
+}
+[data-theme="cyberpunk"] ::selection {
+  background: var(--cyber-magenta);
+  color: #fff;
+}
+[data-theme="cyberpunk"] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 35%, var(--bg-selected));
+  box-shadow: var(--cyber-glow);
+}
+[data-theme="cyberpunk"] [class*="selected"],
+[data-theme="cyberpunk"] [aria-selected="true"] {
+  box-shadow: inset 2px 0 0 var(--accent), var(--cyber-glow);
+}
+
 /* WebKit reports dvh/innerHeight without the status-bar strip for installed
    home-screen apps even though the layout still starts at the screen's top.
    In standalone mode there is no browser toolbar to make vh unstable, and vh
