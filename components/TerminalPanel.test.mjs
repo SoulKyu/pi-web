@@ -85,3 +85,23 @@ test("failed or stopped delivery discards queued input without retrying commands
   await setImmediate();
   assert.equal(fetch.mock.callCount(), 1);
 });
+
+test("the terminal uses the Tron palette with readable ANSI colors on black", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { TRON_TERMINAL_THEME: theme } = await import("../lib/terminal-theme.ts");
+  const panel = await readFile(new URL("./TerminalPanel.tsx", import.meta.url), "utf8");
+  assert.match(panel, /theme: TRON_TERMINAL_THEME,/);
+  assert.equal(theme.background, "#000000");
+  assert.equal(theme.cursor, "#00d8ff");
+  assert.equal(theme.red, "#ff4d5e");
+  assert.equal(theme.yellow, "#ff9a00");
+  assert.equal(theme.cyan, "#00d8ff");
+  const luminance = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  for (const name of ["red", "green", "yellow", "blue", "magenta", "cyan", "white", "foreground"]) {
+    const ratio = (luminance(theme[name]) + 0.05) / 0.05;
+    assert.ok(ratio >= 4.5, `${name} ${theme[name]} ${ratio.toFixed(2)}:1`);
+  }
+});
