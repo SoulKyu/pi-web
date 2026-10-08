@@ -7,7 +7,9 @@ import {
 import { isAgentOpsHookRequest } from "@/lib/agent-ops/hook-path";
 import {
   isApiRequestAllowed,
+  hasBrowserOriginHeaders,
   isApiRequestHostAllowed,
+  isApiRequestOriginAllowed,
 } from "@/lib/request-security";
 import {
   isValidWebSessionToken,
@@ -29,9 +31,11 @@ function tooManyAttempts(retryAfterMs: number): NextResponse {
 export function proxy(request: NextRequest) {
   const isApiRequest = request.nextUrl.pathname === "/api"
     || request.nextUrl.pathname.startsWith("/api/");
-  const isTrustedRequest = isApiRequest
+  // A webhook sender (Alertmanager, curl) is no browser and sends no Origin: the secret authenticates it, so it skips the origin requirement of mutating calls.
+  const isHookRequest = isAgentOpsHookRequest(request.nextUrl.pathname, request.method);
+  const isTrustedRequest = isApiRequest && !isHookRequest
     ? isApiRequestAllowed(request)
-    : isApiRequestHostAllowed(request);
+    : isApiRequestHostAllowed(request) && (!isHookRequest || !hasBrowserOriginHeaders(request) || isApiRequestOriginAllowed(request));
 
   if (!isTrustedRequest) {
     if (!isApiRequest) {
@@ -42,7 +46,7 @@ export function proxy(request: NextRequest) {
 
   // Authenticated by the trigger's shared secret and a dedicated throttle (lib/agent-ops/webhook.ts), not by
   // the browser session. Before any Authorization handling, so a wrong header here never feeds the login throttle.
-  if (isAgentOpsHookRequest(request.nextUrl.pathname, request.method)) return NextResponse.next();
+  if (isHookRequest) return NextResponse.next();
 
   const password = process.env.PI_WEB_PASSWORD;
   if (!isWebPasswordEnabled(password)) {

@@ -57,7 +57,7 @@ beforeEach(async () => {
 async function post(body, headers = {}) {
   const response = await POST(new Request("http://localhost/api/mcp", {
     method: "POST",
-    headers: { host: "localhost", "Content-Type": "application/json", ...headers },
+    headers: { host: "localhost", origin: "http://localhost", "Content-Type": "application/json", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   }));
   return { status: response.status, body: await response.json() };
@@ -160,7 +160,7 @@ test("a project server goes only to a folder a decision trusts, and the answer c
 });
 
 test("a fresh folder is trusted and written in one step, only when asked to", async () => {
-  const overview = (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost" } })));
+  const overview = (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost", origin: "http://localhost" } })));
   const listed = await overview.json();
   assert.deepEqual(listed.project.trustFolder, { allowed: true }, "GET offers the step for a fresh folder");
   assert.deepEqual(listed.project.trust, { requiresTrust: false, trusted: true, decision: null, inherited: false });
@@ -194,7 +194,7 @@ test("a fresh folder with a link to nothing under .pi is not offered the step, a
   // The SDK's existsSync sees nothing that needs trust yet; the link would need it once its target appears.
   await mkdir(join(fresh, ".pi"));
   await symlink(join(root, "not-there-yet"), join(fresh, ".pi", "extensions"));
-  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost" } }))).json();
+  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost", origin: "http://localhost" } }))).json();
   assert.deepEqual(listed.project.trust, { requiresTrust: false, trusted: true, decision: null, inherited: false });
   assert.deepEqual(listed.project.trustFolder, { allowed: false, reason: "folder-not-fresh" }, "GET and POST share one freshness rule");
   const { status, body } = await add({ text: "npx -y @scope/lint-mcp", scope: "project", cwd: fresh, trustFolder: true });
@@ -207,7 +207,7 @@ test("a fresh folder holding a project Pi Web never opened is not offered the st
   // A repository cloned into the folder: trusting the folder would load its extensions with no dialog.
   const cloned = join(fresh, "cloned-repo");
   await mkdir(join(cloned, ".pi", "extensions"), { recursive: true });
-  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost" } }))).json();
+  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(fresh)}`, { headers: { host: "localhost", origin: "http://localhost" } }))).json();
   assert.deepEqual(listed.project.trustFolder, { allowed: false, reason: "trust-too-broad", breadth: { kind: "contains-project", path: cloned } });
   const { status, body } = await add({ text: "npx -y @scope/lint-mcp", scope: "project", cwd: fresh, trustFolder: true });
   assert.deepEqual([status, body.reason], [409, "trust-too-broad"]);
@@ -221,7 +221,7 @@ test("a folder whose trust would reach other folders is never trusted by the ste
   let response = await add({ text: "npx -y @scope/lint-mcp", scope: "project", cwd: outer, trustFolder: true });
   assert.deepEqual([response.status, response.body.reason], [409, "trust-too-broad"]);
   assert.deepEqual(response.body.breadth, { kind: "contains-folder", path: inner });
-  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(outer)}`, { headers: { host: "localhost" } }))).json();
+  const listed = await (await GET(new Request(`http://localhost/api/mcp?cwd=${encodeURIComponent(outer)}`, { headers: { host: "localhost", origin: "http://localhost" } }))).json();
   assert.deepEqual(
     listed.project.trustFolder,
     { allowed: false, reason: "trust-too-broad", breadth: { kind: "contains-folder", path: inner } },

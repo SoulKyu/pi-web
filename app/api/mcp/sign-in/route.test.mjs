@@ -73,7 +73,7 @@ beforeEach(async () => {
   store.set(cwd, null);
 });
 
-const json = { host: "localhost", "Content-Type": "application/json" };
+const json = { host: "localhost", origin: "http://localhost", "Content-Type": "application/json" };
 
 async function answer(response) {
   return { status: response.status, body: await response.json() };
@@ -90,7 +90,7 @@ function start(body, headers = {}) {
 const context = (flowId) => ({ params: Promise.resolve({ flowId }) });
 
 function poll(flowId, headers = {}) {
-  return flowRoute.GET(new Request(`http://localhost/api/mcp/sign-in/${flowId}`, { headers: { host: "localhost", ...headers } }), context(flowId)).then(answer);
+  return flowRoute.GET(new Request(`http://localhost/api/mcp/sign-in/${flowId}`, { headers: { host: "localhost", origin: "http://localhost", ...headers } }), context(flowId)).then(answer);
 }
 
 function paste(flowId, body, headers = {}) {
@@ -102,7 +102,7 @@ function paste(flowId, body, headers = {}) {
 }
 
 function cancel(flowId, headers = {}) {
-  return flowRoute.DELETE(new Request(`http://localhost/api/mcp/sign-in/${flowId}`, { method: "DELETE", headers: { host: "localhost", ...headers } }), context(flowId)).then(answer);
+  return flowRoute.DELETE(new Request(`http://localhost/api/mcp/sign-in/${flowId}`, { method: "DELETE", headers: { host: "localhost", origin: "http://localhost", ...headers } }), context(flowId)).then(answer);
 }
 
 function action(body) {
@@ -110,7 +110,7 @@ function action(body) {
 }
 
 async function listed(query = "") {
-  const response = await mcpRoute.GET(new Request(`http://localhost/api/mcp${query}`, { headers: { host: "localhost" } }));
+  const response = await mcpRoute.GET(new Request(`http://localhost/api/mcp${query}`, { headers: { host: "localhost", origin: "http://localhost" } }));
   return (await response.json()).servers;
 }
 

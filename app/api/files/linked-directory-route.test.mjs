@@ -36,7 +36,7 @@ function request(method, filePath, type, body, contentType = "application/json")
   const handler = method === "GET" ? GET : POST;
   const init = body === undefined
     ? { method, headers: { host: "localhost" } }
-    : { method, headers: { host: "localhost", "content-type": contentType }, body: JSON.stringify(body) };
+    : { method, headers: { host: "localhost", origin: "http://localhost", "content-type": contentType }, body: JSON.stringify(body) };
   return handler(new NextRequest(url, init), context);
 }
 

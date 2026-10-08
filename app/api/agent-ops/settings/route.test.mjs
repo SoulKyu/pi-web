@@ -19,7 +19,7 @@ const { PUT } = await jiti.import("./route.ts");
 
 const put = (body) => PUT(new Request("http://localhost/api/agent-ops/settings", {
   method: "PUT",
-  headers: { host: "localhost", "Content-Type": "application/json" },
+  headers: { host: "localhost", origin: "http://localhost", "Content-Type": "application/json" },
   body: typeof body === "string" ? body : JSON.stringify(body),
 }));
 

@@ -60,7 +60,7 @@ beforeEach(async () => {
 async function post(body, headers = {}) {
   const response = await POST(new Request("http://localhost/api/mcp", {
     method: "POST",
-    headers: { host: "localhost", "Content-Type": "application/json", ...headers },
+    headers: { host: "localhost", origin: "http://localhost", "Content-Type": "application/json", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   }));
   return { status: response.status, body: await response.json() };

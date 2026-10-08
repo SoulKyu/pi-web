@@ -24,7 +24,7 @@ const { GET, PUT } = await jiti.import("./route.ts");
 const settingsPath = path.join(agentDir, "settings.json");
 const isWindows = process.platform === "win32";
 
-function put(body, headers = { host: "localhost", "Content-Type": "application/json" }) {
+function put(body, headers = { host: "localhost", origin: "http://localhost", "Content-Type": "application/json" }) {
   return PUT(new Request("http://localhost/api/tools/settings", {
     method: "PUT",
     headers,
@@ -121,7 +121,7 @@ test("rejects requests that do not name exactly one valid change, with a reason 
     assert.equal(response.status, 400, JSON.stringify(body));
     assert.equal((await response.json()).reason, "invalid-request", JSON.stringify(body));
   }
-  const plain = await put({ codemode: "always" }, { host: "localhost", "Content-Type": "text/plain" });
+  const plain = await put({ codemode: "always" }, { host: "localhost", origin: "http://localhost", "Content-Type": "text/plain" });
   assert.deepEqual([plain.status, await plain.json()], [415, { error: "Content-Type must be application/json", reason: "content-type" }]);
   const foreign = await put({ codemode: "always" }, { host: "localhost", origin: "https://evil.example", "Content-Type": "application/json" });
   assert.deepEqual([foreign.status, await foreign.json()], [403, { error: "Untrusted API request", reason: "request-denied" }]);

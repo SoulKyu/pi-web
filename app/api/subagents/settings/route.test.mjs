@@ -25,7 +25,7 @@ after(async () => {
 function request(body, contentType = "application/json") {
   return new Request("http://localhost/api/subagents/settings", {
     method: "PUT",
-    headers: { "Content-Type": contentType, Host: "localhost" },
+    headers: { "Content-Type": contentType, Host: "localhost", origin: "http://localhost" },
     body: JSON.stringify(body),
   });
 }

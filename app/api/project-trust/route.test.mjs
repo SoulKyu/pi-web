@@ -64,7 +64,7 @@ await writeFile(projectPath, projectConfig);
 
 async function get(path) {
   const query = path === undefined ? "" : `?cwd=${encodeURIComponent(path)}`;
-  const response = await GET(new Request(`http://localhost/api/project-trust${query}`, { headers: { host: "localhost" } }));
+  const response = await GET(new Request(`http://localhost/api/project-trust${query}`, { headers: { host: "localhost", origin: "http://localhost" } }));
   return { status: response.status, body: await response.json() };
 }
 
@@ -165,7 +165,7 @@ test("a cwd that is missing, not a folder, or outside the allowed folders is ref
 
   const response = await POST(new Request("http://localhost/api/project-trust", {
     method: "POST",
-    headers: { "Content-Type": "application/json", host: "localhost" },
+    headers: { "Content-Type": "application/json", host: "localhost", origin: "http://localhost" },
     body: JSON.stringify({ cwd: outside }),
   }));
   assert.equal(response.status, 403);
@@ -205,7 +205,7 @@ test("a trust store locked by another process still lets the servers be listed",
 function post(body, headers = {}) {
   return POST(new Request("http://localhost/api/project-trust", {
     method: "POST",
-    headers: { "Content-Type": "application/json", host: "localhost", ...headers },
+    headers: { "Content-Type": "application/json", host: "localhost", origin: "http://localhost", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   }));
 }

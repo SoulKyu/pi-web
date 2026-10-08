@@ -80,7 +80,7 @@ async function readPackages() {
 function postPlugins(body, projectCwd = cwd) {
   return POST(new Request("http://localhost/api/plugins", {
     method: "POST",
-    headers: { host: "localhost", "content-type": "application/json" },
+    headers: { host: "localhost", origin: "http://localhost", "content-type": "application/json" },
     body: JSON.stringify({ cwd: projectCwd, ...body }),
   }));
 }

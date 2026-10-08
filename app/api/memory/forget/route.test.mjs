@@ -20,7 +20,7 @@ const jiti = createJiti(import.meta.url, { alias: { "@": process.cwd() }, intero
 const { POST } = await jiti.import("./route.ts");
 const post = (body, headers = {}) => POST(new Request("http://localhost/api/memory/forget", {
   method: "POST",
-  headers: { host: "localhost", "Content-Type": "application/json", ...headers },
+  headers: { host: "localhost", origin: "http://localhost", "Content-Type": "application/json", ...headers },
   body: typeof body === "string" ? body : JSON.stringify(body),
 }));
 
