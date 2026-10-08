@@ -36,7 +36,7 @@ function isThreadBusy(agentName: string): boolean {
   return Boolean(live?.isAlive() && live.isRunning());
 }
 
-/** After a terminal write: a finished isolated run posts its summary card, a failed run of a long-term agent pushes (after the card, so the push can open its entry). Never blocks the runner, never throws. */
+/** After a terminal write: a finished isolated run posts its summary card; a task delivered to another agent posts its delegation card there and pushes that requester (completed or failed); otherwise a failed run of a long-term agent pushes (after the card, so the push can open its entry). Never blocks the runner, never throws. */
 export function handleTaskEnd(task: AgentTask): void {
   if (!task.agent) return;
   const agentName = task.agent;
@@ -53,14 +53,26 @@ export function handleTaskEnd(task: AgentTask): void {
         log(error);
       }
     }
+    let delivered: { to: string; entryId: string } | undefined;
     if (task.deliverTo) {
       try {
         const recipient = getLongTermAgent(task.deliverTo);
         const delegation = recipient && delegationEventOfTask({ ...task, result: task.result && redactSecrets(task.result), error: task.error && redactSecrets(task.error) });
-        if (recipient && delegation) await appendThreadEvent(recipient, delegation); // a card only: the recipient's model never sees it
+        if (recipient && delegation) delivered = { to: recipient.name, entryId: await appendThreadEvent(recipient, delegation) }; // a card only: the recipient's model never sees it
       } catch (error) {
         log(error);
       }
+    }
+    if (delivered) {
+      // The requester's thread holds the card: its push replaces the executing agent's failure push. No card, no requester push: the failure push below still fires.
+      const { to, entryId: cardId } = delivered;
+      await notifyAgent((locale) => ({
+        title: to,
+        body: localeText(locale, task.status === "failed" ? "agentDelegationFailed" : "agentDelegationDone").replace("{name}", agentName).replace("{title}", task.title),
+        url: `/?agent=${encodeURIComponent(to)}&entry=${encodeURIComponent(cardId)}`,
+        tag: `pi-agent:${to}`,
+      }));
+      return;
     }
     if (task.status !== "failed") return;
     await notifyAgent((locale) => ({

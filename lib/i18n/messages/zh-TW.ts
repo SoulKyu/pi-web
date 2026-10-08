@@ -1685,6 +1685,8 @@ export const zhTWLocale: LocalePlugin = {
     "agents.push.approve": "{name} 請求核准：{title}",
     "agents.push.budget": "{name}：已達每日預算（{kind}）",
     "agents.push.needsInput": "{name} 需要你的回答",
+    "agents.push.delegationDone": "{name} 已回覆：{title}",
+    "agents.push.delegationFailed": "{name}：你的請求失敗（{title}）",
     "agents.approve.label": "請求核准",
     "agents.approve.approved": "已核准",
     "agents.approve.denied": "已拒絕",

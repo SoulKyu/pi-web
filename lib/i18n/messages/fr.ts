@@ -1685,6 +1685,8 @@ export const frLocale: LocalePlugin = {
     "agents.push.approve": "{name} demande une approbation : {title}",
     "agents.push.budget": "{name} : budget du jour atteint ({kind})",
     "agents.push.needsInput": "{name} attend votre réponse",
+    "agents.push.delegationDone": "{name} a répondu : {title}",
+    "agents.push.delegationFailed": "{name} : votre demande a échoué ({title})",
     "agents.approve.label": "Approbation demandée",
     "agents.approve.approved": "approuvé",
     "agents.approve.denied": "refusé",

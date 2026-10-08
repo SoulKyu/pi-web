@@ -1685,6 +1685,8 @@ export const enLocale: LocalePlugin = {
     "agents.push.approve": "{name} asks for approval: {title}",
     "agents.push.budget": "{name}: daily budget reached ({kind})",
     "agents.push.needsInput": "{name} needs your answer",
+    "agents.push.delegationDone": "{name} answered: {title}",
+    "agents.push.delegationFailed": "{name}: your request failed ({title})",
     "agents.approve.label": "Approval requested",
     "agents.approve.approved": "approved",
     "agents.approve.denied": "denied",
