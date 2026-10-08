@@ -1153,29 +1153,6 @@ export function AppShell() {
     }
   }, [invalidateWorkspaceRestore, router]);
 
-  const handleAgentDeleted = useCallback(() => {
-    invalidateWorkspaceRestore();
-    setActiveAgent(null);
-    setAgentDetail(null);
-    setAgentUnreadMarker(null);
-    pendingAgentRef.current = null;
-    reloadAgents();
-    setRefreshKey((k) => k + 1);
-    if (selectedSession) clearTabOpenSession(selectedSession.id);
-    activeNewSessionDraftKeyRef.current = null;
-    setSelectedSession(null);
-    setNewSessionCwd(null);
-    setSessionKey((k) => k + 1);
-    setBranchTree([]);
-    setBranchActiveLeafId(null);
-    setBranchSwitchLocked(false);
-    setSystemPrompt(null);
-    setSystemTools(null);
-    setSystemInfoLoading(false);
-    setActiveTopPanel(null);
-    router.replace("/", { scroll: false });
-  }, [invalidateWorkspaceRestore, reloadAgents, selectedSession, router]);
-
   const handleOpenFile = useCallback((
     filePath: string,
     fileName: string,
@@ -1198,6 +1175,29 @@ export function AppShell() {
     // On mobile the file panel is full-screen; close the drawer so it shows.
     if (isMobile) setSidebarOpen(false);
   }, [isMobile]);
+
+  const handleAgentDeleted = useCallback(() => {
+    invalidateWorkspaceRestore();
+    setActiveAgent(null);
+    setAgentDetail(null);
+    setAgentUnreadMarker(null);
+    pendingAgentRef.current = null;
+    reloadAgents();
+    setRefreshKey((k) => k + 1);
+    if (selectedSession) clearTabOpenSession(selectedSession.id);
+    activeNewSessionDraftKeyRef.current = null;
+    setSelectedSession(null);
+    setNewSessionCwd(null);
+    setSessionKey((k) => k + 1);
+    setBranchTree([]);
+    setBranchActiveLeafId(null);
+    setBranchSwitchLocked(false);
+    setSystemPrompt(null);
+    setSystemTools(null);
+    setSystemInfoLoading(false);
+    setActiveTopPanel(null);
+    router.replace("/", { scroll: false });
+  }, [invalidateWorkspaceRestore, reloadAgents, selectedSession, router]);
 
   const handleOpenLinkedFile = useCallback((filePath: string, page?: number) => {
     handleOpenFile(filePath, getFileName(filePath), { sourceSessionId: selectedSession?.id ?? null, page });

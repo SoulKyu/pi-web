@@ -34,7 +34,7 @@ async function upload(directory, strategy = "overwrite", names = ["important.txt
   const form = new FormData();
   for (const name of names) form.append("files", new File(["replacement"], name));
   return POST(new NextRequest(`http://localhost/api/files/${encoded}?type=upload&conflict=${strategy}`, {
-    method: "POST", headers: { host: "localhost" }, body: form,
+    method: "POST", headers: { host: "localhost", origin: "http://localhost" }, body: form,
   }), { params: Promise.resolve({ path: encoded.split("/").map(decodeURIComponent) }) });
 }
 
