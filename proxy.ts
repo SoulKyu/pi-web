@@ -100,4 +100,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/login", "/api/:path*"] };
+export const config = { matcher: ["/", "/login", "/api/:path*", "/dev/:path*"] };

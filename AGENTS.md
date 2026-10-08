@@ -140,6 +140,7 @@ lib/
   enabled-models.ts         pure minimal-edit engine for the enabledModels pattern list
   enabled-models-runtime.ts SDK adapter for enabledModels: pattern resolution, provider kinds, settings IO
   subagent-settings.ts      read/write ~/.pi/agent/agents/settings.json
+  cn.ts                     clsx + tailwind-merge class joiner
   agent-profile-extensions.ts extensions of every agent-profile session: sanitized bash, read-only MCP policy, agent_notify (trusted thread)
   agents/registry.ts        long-term agent files: profile, space state, home, trash; AGENT_NAME_RE
   agents/mcp-access.ts      per-agent MCP allowlist: lists global adapter servers, writes <home>/.pi/mcp-adapter.json
@@ -290,6 +291,8 @@ components/
   FileIcons.tsx            file icon helpers
   FileViewer.tsx           file content in a tab
   TabBar.tsx               file panel tab bar (file and terminal tabs)
+  ui/                      Tron primitives (Button, Input, Dialog/sheets, menus, Tabs, Switch, Led, Gauge…)
+  tron/                    Tron identity pieces (PerspectiveGrid, ScanBar, StreamCursor, HexAvatar, Chamfer)
 
 hooks/
   useAgentSession.ts       messages, streaming, SSE, fork/navigate, reconciliation; built-in slash commands (/session, bare /mcp)
@@ -320,6 +323,7 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [finops.md](docs/agents/finops.md): `runs.jsonl` fields, promtail / Alloy ingestion into Loki, Grafana alert rules, troubleshooting. Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/metrics.ts`, `app/api/metrics/route.ts`; also the optional Prometheus endpoint.
 - [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation, event cards, the per-agent queue, trigger binding, `agent_notify`. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/*`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `components/MessageView.tsx`, `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/web-push.ts`, `lib/initial-navigation.ts`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
+- [ui.md](docs/agents/ui.md): the Tron design system: single palette and tokens, color meaning, components/ui primitives, Chamfer/clip-path trap, reduced motion, /dev/ui. Files: `app/globals.css`, `app/layout.tsx`, `lib/cn.ts`, `components/ui/**`, `components/tron/**`, `app/dev/ui/**`.
 
 ---
 
