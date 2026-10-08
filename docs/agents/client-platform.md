@@ -24,3 +24,7 @@
 ## Agent drawer tabs (mobile)
 
 On mobile, the agent view's drawer shows a two-tab header (`role="tablist"`, `agents.drawer.home` / `agents.drawer.status`): tab 1 is `AgentSpaceLeft` (home files, triggers), tab 2 is `AgentSpaceRight` (status, usage, memory to approve, tasks). The rail stays on top. The last tab is kept in `localStorage["pi-agent-drawer-tab"]`; it is read in an effect (never during SSR render) through `readDrawerTab()` in `lib/agents/drawer-tab.ts`, and any value other than `status` falls back to `home`. Desktop keeps the left and right panels. Styles: `.agent-drawer-tabs` / `.agent-drawer-tab` / `.is-active` under `@media (max-width: 640px)`.
+
+## Keyboard-open height budget (phones)
+
+With the software keyboard open on a small iPhone, the page keeps a horizontal agent rail with names (~56 px), the find bar when open (~60 px) and the composer. The message area shrinks (about 130 px) but stays usable; close the find bar to regain the space.
