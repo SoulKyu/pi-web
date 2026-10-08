@@ -109,13 +109,14 @@
 
 ## Known gaps
 
-- A thread's bash can read `/proc/$PPID/environ`, which holds `PI_WEB_PASSWORD` when set, so neither the `Origin` requirement nor the password is a cage against the agent's own bash. The cage is network and user separation (Task 44, bubblewrap `--unshare-net`); the origin rule stops accidental and prompt-injected `curl`, nothing more.- A global MCP server that only a host import or a plugin provides is neither listed nor blocked for agents (`mcp-access.ts` reads the adapter's user-global files only).
+- A thread's bash can read `/proc/$PPID/environ`, which holds `PI_WEB_PASSWORD` when set, so neither the `Origin` requirement nor the password is a cage against the agent's own bash. The cage is network and user separation (Task 44, bubblewrap `--unshare-net`); the origin rule stops accidental and prompt-injected `curl`, nothing more.
+- A global MCP server that only a host import or a plugin provides is neither listed nor blocked for agents (`mcp-access.ts` reads the adapter's user-global files only).
 - PATCH gates on `threadRunning` after the body parse and re-reads the agent first; nothing awaits between the gate and the write, so a turn cannot start in between. DELETE answers 409 `agent_running` for a running or starting thread (`isRpcSessionStarting`); an idle live wrapper is shut down first, then the checks run again before the move.
 - The tab bar is hidden while the agent panel shows.
 - A task lock whose pid was reused by another process after a restart looks alive (`isAlive` in `task-store.ts`), so recovery keeps it: cancel the task to free the agent's queue.
 - `PATCH /api/agents/[name]` with an unknown model answers 500.
 - `AgentSpaceLeft` and `AgentSpaceRight` both poll the tasks (duplicated requests).
-- Closed by the origin requirement: a mutating API call must carry `Origin` or `Sec-Fetch-Site` (`files-and-access.md`), so a plain `curl -X POST localhost:<port>/api/agents/<x>/tasks` from an agent's bash is refused. A script that forges `Origin` still passes without `PI_WEB_PASSWORD`; add a `command_deny` pattern for loopback calls, or set the password.
+- Closed by the origin requirement: a mutating API call must carry `Origin` (`files-and-access.md`), so a plain `curl -X POST localhost:<port>/api/agents/<x>/tasks` from an agent's bash is refused. A script that forges `Origin` still passes without `PI_WEB_PASSWORD`; add a `command_deny` pattern for loopback calls, or set the password.
 
 ## Events (`lib/agents/{events,queue,thread-run,agent-notify}.ts`, `components/agents/{AgentEventCard,QueueTaskDialog}.tsx`)
 - **Entry.** An event is a `type: "custom"` entry, `customType: "pi-web:agent-event"` (`AGENT_EVENT_ENTRY_TYPE`), written by `appendDisplayEntry` on the wrapper. Display only: custom entries never reach the model context, so a card costs no tokens and the agent never sees it. `AgentEventData` (`version: 1`) has three kinds: `schedule` (`taskId`, `triggerId`, `title`), `task` (`taskId`, `title`) and `webhook` (adds `status`, `summary`, optional `runSessionId`). Titles are clipped to 80 chars including the `…`, a webhook summary to 2000 + `…`. `isAgentEventData` guards every read (reader, SSE, unread): a malformed entry is ignored, never rendered.

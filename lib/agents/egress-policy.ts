@@ -45,7 +45,10 @@ const SCRIPT_TOOL_RE = /Script$/;
 
 /** Every string value that starts with a scheme, at any depth: the adapter's tool arguments have no fixed URL field. */
 function deepUrls(value: unknown, depth = 0): string[] {
-  if (typeof value === "string") return URL_START_RE.test(value) ? [value] : [];
+  if (typeof value === "string") {
+    const normalized = value.replace(/[\t\n\r]/g, "").replace(/^[\x00-\x20]+/, "");
+    return URL_START_RE.test(normalized) ? [normalized] : [];
+  }
   if (depth >= DEEP_SCAN_MAX_DEPTH) throw new Error("input too deep");
   if (Array.isArray(value)) return value.flatMap((item) => deepUrls(item, depth + 1));
   if (value && typeof value === "object") return Object.values(value).flatMap((item) => deepUrls(item, depth + 1));
