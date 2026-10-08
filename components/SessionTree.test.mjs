@@ -597,7 +597,11 @@ test("arrow keys move focus between rows, mounting the next row before focusing 
   assert.match(handler, /if \(\(event\.key !== "ArrowDown" && event\.key !== "ArrowUp"\) \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.shiftKey \|\| isImeKey\(event\)\) return;/);
   assert.match(handler, /if \(!\(event\.target instanceof HTMLElement\) \|\| !event\.target\.matches\(ROW_MAIN_SELECTOR\)\) return;/);
   assert.match(handler, /neighborFocusableRow\(rows, index, event\.key === "ArrowDown" \? 1 : -1\)/);
-  assert.match(handler, /pendingFocusRef\.current = \{ rowKey: rows\[next\]\.key, fallbackKey: rows\[next\]\.key, tries: 0, takeFocusFrom: \(\) => true \};/);
+  // A mounted row in delete-confirm or rename has no main button: focus lands on Cancel or the input,
+  // never on the confirm's Delete; a queued focus only takes it back from the key's own target.
+  assert.match(handler, /const target = rowElement\?\.querySelector<HTMLElement>\(ROW_MAIN_SELECTOR\) \?\? rowElement\?\.querySelector<HTMLElement>\("\.session-tree-confirm-cancel, \.session-tree-rename"\);/);
+  assert.match(handler, /if \(rowElement\) \{\s*target\?\.focus\(\{ preventScroll: true \}\);\s*return;\s*\}/);
+  assert.match(handler, /const origin = event\.target;\s*pendingFocusRef\.current = \{ rowKey: rows\[next\]\.key, fallbackKey: rows\[next\]\.key, tries: 0, takeFocusFrom: \(active\) => active === origin \};/);
 });
 
 test("F2 renames a focused session row; Delete or Backspace opens its confirmation, Shift included", () => {

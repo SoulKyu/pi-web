@@ -392,16 +392,20 @@ export function SessionTree(props: SessionTreeProps): ReactNode {
     const next = neighborFocusableRow(rows, index, event.key === "ArrowDown" ? 1 : -1);
     if (next < 0) return;
     const element = scrollRef.current;
-    const mounted = element?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(rows[next].key)}"]`)?.querySelector<HTMLElement>(ROW_MAIN_SELECTOR);
+    const rowElement = element?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(rows[next].key)}"]`);
+    // A row in delete-confirm or rename has no main button: Cancel or the input, never Delete.
+    const target = rowElement?.querySelector<HTMLElement>(ROW_MAIN_SELECTOR) ?? rowElement?.querySelector<HTMLElement>(".session-tree-confirm-cancel, .session-tree-rename");
     if (element) {
       const top = revealScrollTop(offsets, next, element.scrollTop, element.clientHeight);
       if (top !== null) element.scrollTop = top;
     }
-    if (mounted) {
-      mounted.focus({ preventScroll: true });
+    if (rowElement) {
+      target?.focus({ preventScroll: true });
       return;
     }
-    pendingFocusRef.current = { rowKey: rows[next].key, fallbackKey: rows[next].key, tries: 0, takeFocusFrom: () => true };
+    // Queued until the row mounts; it only takes focus back from the row the key was pressed on.
+    const origin = event.target;
+    pendingFocusRef.current = { rowKey: rows[next].key, fallbackKey: rows[next].key, tries: 0, takeFocusFrom: (active) => active === origin };
     if (element) setScrollTop(element.scrollTop);
   }, [rows, offsets]);
 
