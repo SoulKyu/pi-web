@@ -55,10 +55,42 @@ test("persists and exposes a vertical session/explorer resize handle", () => {
   assert.match(source, /minHeight: explorerOpen \? EXPLORER_PANE_MIN_HEIGHT : 0/);
 });
 
-test("does not register row-level session deletion shortcuts", () => {
-  assert.doesNotMatch(sessionItemSource, /const handleKeyDown/);
-  assert.doesNotMatch(sessionItemSource, /onKeyDown=\{handleKeyDown\}/);
-  assert.doesNotMatch(sessionItemSource, /tabIndex=\{0\}/);
+test("session rows are keyboard reachable; Delete only opens the inline confirmation, Shift included", () => {
+  assert.match(sessionItemSource, /tabIndex=\{0\}\s*role="button"/);
+  assert.match(sessionItemSource, /aria-current=\{isSelected \? "true" : undefined\}/);
+  assert.match(sessionItemSource, /aria-label=\{rowLabel\}/);
+  assert.match(sessionItemSource, /onKeyDown=\{handleRowKeyDown\}/);
+  const keyHandler = sessionItemSource.slice(sessionItemSource.indexOf("const handleRowKeyDown"), sessionItemSource.indexOf("// Fixed-height outer wrapper"));
+  assert.match(keyHandler, /if \(e\.target !== e\.currentTarget \|\| confirmDelete \|\| renaming\) return;/);
+  assert.match(keyHandler, /if \(e\.key === "Delete"\) \{ e\.preventDefault\(\); setConfirmDelete\(true\); \}/);
+  assert.match(keyHandler, /if \(confirmDelete && e\.key === "Escape"\) \{\s*e\.preventDefault\(\);/);
+  assert.doesNotMatch(keyHandler, /performDelete/);
+  assert.doesNotMatch(keyHandler, /shiftKey/);
+});
+
+test("arrow keys move focus to the neighbouring row, mounting it before focusing it", () => {
+  assert.match(source, /onMoveFocus=\{\(direction\) => focusSessionRow\(index \+ direction\)\}/);
+  assert.match(source, /setFocusedSessionId\(family\.root\.id\);\s*requestAnimationFrame\(\(\) => \{/);
+  assert.match(source, /row\?\.scrollIntoView\(\{ block: "nearest" \}\);\s*row\?\.focus\(\{ preventScroll: true \}\);/);
+  assert.match(sessionItemSource, /data-session-row=\{session\.id\}/);
+  assert.match(globalStyles, /\.session-row:focus-visible \{ outline: 2px solid var\(--accent\); outline-offset: -2px; \}/);
+});
+
+test("row actions show on hover, focus within or behind ⋯ on a coarse pointer; failures are shown for 4 s", async () => {
+  assert.match(sessionItemSource, /\{!session\.transient && isCoarsePointer && \(/);
+  assert.match(sessionItemSource, /aria-label=\{t\("sidebar\.moreActions"\)\}/);
+  assert.match(sessionItemSource, /aria-expanded=\{actionsOpen\}/);
+  assert.match(sessionItemSource, /aria-label=\{t\("sidebar\.rename"\)\}/);
+  assert.match(sessionItemSource, /aria-label=\{t\("sidebar\.delete"\)\}/);
+  assert.doesNotMatch(sessionItemSource, /\/\/ ignore/);
+  assert.match(sessionItemSource, /setActionError\(t\("sidebar\.renameFailed"\)\)/);
+  assert.match(sessionItemSource, /setActionError\(t\("sidebar\.deleteFailed"\)\)/);
+  assert.match(sessionItemSource, /setTimeout\(\(\) => setActionError\(null\), 4000\)/);
+  assert.match(sessionItemSource, /<span role="status"/);
+  for (const locale of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const messages = await readFile(new URL(`../lib/i18n/messages/${locale}.ts`, import.meta.url), "utf8");
+    for (const key of ["sidebar.moreActions", "sidebar.renameFailed", "sidebar.deleteFailed", "sidebar.sessionRowLabel"]) assert.ok(messages.includes(`"${key}"`), `${locale} ${key}`);
+  }
 });
 
 test("polls running sessions only while the tab is visible", () => {
@@ -139,7 +171,7 @@ test("lifecycle refreshes bypass the cache while cross-window polling reuses it"
 
 test("does not expose disk-backed actions for transient sessions", () => {
   assert.match(sessionItemSource, /if \(session\.transient\) return;/);
-  assert.match(sessionItemSource, /\{hovered && !session\.transient && \(/);
+  assert.match(sessionItemSource, /\{!session\.transient && !isCoarsePointer && \(hovered \|\| focusWithin\) && \(/);
 });
 
 test("hides subagent rows and aggregates their state into the main session row", () => {

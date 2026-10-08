@@ -10,6 +10,7 @@ import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
+import { useIsCoarsePointer } from "@/hooks/useIsMobile";
 import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
 import { formatShortcut } from "@/lib/shortcut-label";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
@@ -1164,6 +1165,18 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     sessionFamilies.findIndex((family) => family.root.id === focusedSessionId),
   ), [focusedSessionId, listScrollTop, listViewportH, sessionFamilies]);
 
+  // Pin the target row (getSessionListIndices keeps the focused index mounted), then scroll and focus it once rendered.
+  const focusSessionRow = useCallback((index: number) => {
+    const family = sessionFamilies[index];
+    if (!family) return;
+    setFocusedSessionId(family.root.id);
+    requestAnimationFrame(() => {
+      const row = listScrollRef.current?.querySelector<HTMLElement>(`[data-session-row="${CSS.escape(family.root.id)}"]`);
+      row?.scrollIntoView({ block: "nearest" });
+      row?.focus({ preventScroll: true });
+    });
+  }, [sessionFamilies]);
+
   return (
     <div
       ref={sessionPaneResizer.panelRef}
@@ -1908,6 +1921,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                     isRunning={familySessions.some((session) => runningSessionIds.has(session.id))}
                     isUnread={familySessions.some((session) => unreadSessionIds.has(session.id))}
                     onClick={() => handleSelectSessionFromList(family.root)}
+                    onMoveFocus={(direction) => focusSessionRow(index + direction)}
                     onRenamed={loadSessions}
                     onDeleted={(id) => {
                       onSessionDeleted?.(id);
@@ -2217,6 +2231,9 @@ function showProjectActivity(
   );
 }
 
+const sessionStripButtonStyle: CSSProperties = { height: 30, padding: "0 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 };
+const sessionMoreButtonStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, flexShrink: 0, border: "1px solid var(--border)", borderRadius: 7, background: "var(--bg-hover)", color: "var(--text-muted)", cursor: "pointer", fontSize: 16 };
+
 function SessionItem({
   session,
   isSelected,
@@ -2229,6 +2246,7 @@ function SessionItem({
   hasChildren = false,
   collapsed = false,
   onToggleCollapse,
+  onMoveFocus,
 }: {
   session: SessionInfo;
   isSelected: boolean;
@@ -2241,6 +2259,7 @@ function SessionItem({
   hasChildren?: boolean;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  onMoveFocus?: (direction: 1 | -1) => void;
 }) {
   const { locale, t } = useI18n();
   const [hovered, setHovered] = useState(false);
@@ -2249,6 +2268,17 @@ function SessionItem({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const isCoarsePointer = useIsCoarsePointer();
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!actionError) return;
+    const id = setTimeout(() => setActionError(null), 4000);
+    return () => clearTimeout(id);
+  }, [actionError]);
 
   // Select the whole name once the rename input is mounted (startRename's
   // immediate setTimeout can fire before the input exists).
@@ -2265,7 +2295,7 @@ function SessionItem({
   const displayFirstMessage = skillExpansionToCommand(session.firstMessage) ?? session.firstMessage;
   const title = session.name || displayFirstMessage.slice(0, 50) || session.id.slice(0, 12);
 
-  const startRename = useCallback((e: React.MouseEvent) => {
+  const startRename = useCallback((e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (session.transient) return;
     setRenameValue(session.name || displayFirstMessage.slice(0, 50) || session.id.slice(0, 12));
@@ -2281,28 +2311,31 @@ function SessionItem({
     // a skill-invoked session stays a no-op instead of persisting raw XML.)
     if (renameValue === title || name === (session.name ?? "")) return;
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
+      const response = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       onRenamed?.();
     } catch {
-      // ignore
+      setActionError(t("sidebar.renameFailed"));
     }
-  }, [renameValue, session.id, session.name, onRenamed, title]);
+  }, [renameValue, session.id, session.name, onRenamed, title, t]);
 
   const performDelete = useCallback(async () => {
     if (session.transient) return;
     setConfirmDelete(false);
     setDeleting(true);
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       onDeleted?.(session.id);
     } catch {
       setDeleting(false);
+      setActionError(t("sidebar.deleteFailed"));
     }
-  }, [session.id, session.transient, onDeleted]);
+  }, [session.id, session.transient, onDeleted, t]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -2338,9 +2371,43 @@ function SessionItem({
     e.stopPropagation();
   }, [onRenamed, session.cwd, session.id, session.name, session.path]);
 
+  const rowLabel = [
+    t("sidebar.sessionRowLabel", { title, time: formatRelativeTime(session.modified, locale) }),
+    isRunning ? t("sidebar.agentRunning") : isUnread ? t("sidebar.newSessionActivity") : null,
+  ].filter(Boolean).join(", ");
+
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (confirmDelete && e.key === "Escape") {
+      e.preventDefault();
+      setConfirmDelete(false);
+      rowRef.current?.focus();
+      return;
+    }
+    if (e.target !== e.currentTarget || confirmDelete || renaming) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); onMoveFocus?.(e.key === "ArrowDown" ? 1 : -1); return; }
+    if (session.transient) return;
+    if (e.key === "F2") { e.preventDefault(); startRename(e); return; }
+    if (e.key === "Delete") { e.preventDefault(); setConfirmDelete(true); }
+  };
+
   // Fixed-height outer wrapper — content swaps in place so the list never reflows
   return (
     <div
+      ref={rowRef}
+      className="session-row"
+      data-session-row={session.id}
+      tabIndex={0}
+      role="button"
+      aria-current={isSelected ? "true" : undefined}
+      aria-label={rowLabel}
+      onKeyDown={handleRowKeyDown}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        setFocusWithin(false);
+        setActionsOpen(false);
+      }}
       onClick={confirmDelete || renaming ? undefined : onClick}
       onContextMenu={confirmDelete || renaming ? undefined : handleContextMenu}
       onMouseEnter={() => setHovered(true)}
@@ -2413,8 +2480,15 @@ function SessionItem({
           onChange={(e) => setRenameValue(e.target.value)}
           onBlur={commitRename}
           onKeyDown={(e) => {
-            if (e.key === "Enter") commitRename();
-            if (e.key === "Escape") setRenaming(false);
+            if (e.key === "Enter") {
+              commitRename();
+              requestAnimationFrame(() => rowRef.current?.focus());
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setRenaming(false);
+              requestAnimationFrame(() => rowRef.current?.focus());
+            }
           }}
           autoFocus
           style={{
@@ -2458,29 +2532,35 @@ function SessionItem({
               </span>
             </div>
             <div style={{ marginTop: 2, display: "flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 11, minWidth: 0 }}>
-              {isRunning ? (
-                <RunningSessionIndicator />
-              ) : isUnread ? (
-                <UnreadSessionIndicator />
+              {actionError ? (
+                <span role="status" style={{ color: "#f87171", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{actionError}</span>
               ) : (
-                <span title={session.modified}>{formatRelativeTime(session.modified, locale)}</span>
-              )}
-              <span>
-                {session.detailsPending ? "…" : t("sidebar.messagesCount", { count: session.messageCount })}
-              </span>
-              {session.isWorktree && session.branch && (
-                <span
-                  title={`Worktree: ${session.cwd}`}
-                  style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--accent)", minWidth: 0, overflow: "hidden" }}
-                >
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <line x1="6" y1="3" x2="6" y2="15" />
-                    <circle cx="18" cy="6" r="3" />
-                    <circle cx="6" cy="18" r="3" />
-                    <path d="M18 9a9 9 0 0 1-9 9" />
-                  </svg>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.branch}</span>
-                </span>
+                <>
+                  {isRunning ? (
+                    <RunningSessionIndicator />
+                  ) : isUnread ? (
+                    <UnreadSessionIndicator />
+                  ) : (
+                    <span title={session.modified}>{formatRelativeTime(session.modified, locale)}</span>
+                  )}
+                  <span>
+                    {session.detailsPending ? "…" : t("sidebar.messagesCount", { count: session.messageCount })}
+                  </span>
+                  {session.isWorktree && session.branch && (
+                    <span
+                      title={`Worktree: ${session.cwd}`}
+                      style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--accent)", minWidth: 0, overflow: "hidden" }}
+                    >
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <line x1="6" y1="3" x2="6" y2="15" />
+                        <circle cx="18" cy="6" r="3" />
+                        <circle cx="6" cy="18" r="3" />
+                        <path d="M18 9a9 9 0 0 1-9 9" />
+                      </svg>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.branch}</span>
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -2490,6 +2570,7 @@ function SessionItem({
             <button
               onClick={(e) => { e.stopPropagation(); onToggleCollapse?.(); }}
               title={t(collapsed ? "sidebar.expandSubagents" : "sidebar.collapseSubagents")}
+              aria-label={t(collapsed ? "sidebar.expandSubagents" : "sidebar.collapseSubagents")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 20, height: 20, padding: 0, flexShrink: 0,
@@ -2505,11 +2586,33 @@ function SessionItem({
             </button>
           )}
 
-          {/* Action buttons — shown on hover */}
-          {hovered && !session.transient && (
+          {/* Coarse pointer: one ⋯ button toggling a Rename / Delete strip in the same row */}
+          {!session.transient && isCoarsePointer && (
+            <>
+              {actionsOpen && (
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <button type="button" onClick={(e) => { setActionsOpen(false); startRename(e); }} style={sessionStripButtonStyle}>{t("sidebar.rename")}</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setActionsOpen(false); setConfirmDelete(true); }} style={{ ...sessionStripButtonStyle, color: "#ef4444" }}>{t("sidebar.delete")}</button>
+                </div>
+              )}
+              <button
+                type="button"
+                aria-label={t("sidebar.moreActions")}
+                title={t("sidebar.moreActions")}
+                aria-expanded={actionsOpen}
+                onClick={(e) => { e.stopPropagation(); setActionsOpen((open) => !open); }}
+                style={sessionMoreButtonStyle}
+              >⋯</button>
+            </>
+          )}
+
+          {/* Fine pointer: action buttons on hover or keyboard focus */}
+          {!session.transient && !isCoarsePointer && (hovered || focusWithin) && (
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
               <button
+                type="button"
                 onClick={startRename}
+                aria-label={t("sidebar.rename")}
                 title={t("sidebar.rename")}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -2535,7 +2638,9 @@ function SessionItem({
                 </svg>
               </button>
               <button
+                type="button"
                 onClick={handleDeleteClick}
+                aria-label={t("sidebar.delete")}
                 title={t("sidebar.deleteWithShiftClick")}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",

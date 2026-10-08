@@ -1772,6 +1772,8 @@ span.token.table {
 .sidebar-section-resize-handle.is-resizing::after {
   background: color-mix(in srgb, var(--text-muted) 70%, var(--border));
 }
+.session-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
 .right-panel-overlay-backdrop {
   display: none;
 }

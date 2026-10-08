@@ -23,6 +23,9 @@ const subscribeMobile = (cb: () => void) => subscribeToQuery(MOBILE_QUERY, cb);
 const getMobileSnapshot = () => queryMatches(MOBILE_QUERY);
 const subscribeNarrowMobile = (cb: () => void) => subscribeToQuery(NARROW_MOBILE_QUERY, cb);
 const getNarrowMobileSnapshot = () => queryMatches(NARROW_MOBILE_QUERY);
+const COARSE_POINTER_QUERY = "(pointer: coarse)";
+const subscribeCoarsePointer = (cb: () => void) => subscribeToQuery(COARSE_POINTER_QUERY, cb);
+const getCoarsePointerSnapshot = () => queryMatches(COARSE_POINTER_QUERY);
 
 function getServerSnapshot(): boolean {
   return false;
@@ -40,4 +43,9 @@ export function useIsMobile(): boolean {
 /** Returns true when the compact mobile toolbar should collapse extra actions. */
 export function useIsNarrowMobile(): boolean {
   return useSyncExternalStore(subscribeNarrowMobile, getNarrowMobileSnapshot, getServerSnapshot);
+}
+
+/** Returns true on a touch-first device, where hover never reveals row actions. */
+export function useIsCoarsePointer(): boolean {
+  return useSyncExternalStore(subscribeCoarsePointer, getCoarsePointerSnapshot, getServerSnapshot);
 }
