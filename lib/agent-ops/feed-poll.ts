@@ -1,11 +1,16 @@
+import { unlinkSync } from "node:fs";
+import { join } from "node:path";
 import { fenceExternal } from "../agents/fence";
 import { entryHash, feedToken, fetchFeed, hash16, markSeen, newEntries, readFeedState, writeFeedState } from "./feed-source";
 import type { FeedEntry } from "./feed";
 import { appendTriggerLog } from "./trigger-log";
-import type { TriggerConfig } from "./trigger-store";
+import { triggersDir, type TriggerConfig } from "./trigger-store";
 
 /** Entries per task; the rest wait for the next poll. */
 export const FEED_BATCH = 10;
+
+const FAIL_LOG_EVERY_MS = 3_600_000;
+const failLogged = new Map<string, number>(); // ponytail: one entry per trigger and reason, never pruned
 
 export interface FeedPollDeps {
   /** Admission, budget, quiet hours and caps exactly as a scheduled fire: false (and journaled by the caller) = skip this bucket's poll. */
@@ -23,7 +28,13 @@ export function buildFeedPrompt(template: string, entries: readonly FeedEntry[])
 }
 
 async function pollOne(trigger: TriggerConfig & { source: { kind: "feed"; url: string } }, bucket: number, deps: FeedPollDeps): Promise<void> {
-  const fail = (reason: string) => appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "schedule", verdict: "refused", reason: `feed: ${reason}`, bucket });
+  const fail = (reason: string) => {
+    const key = `${trigger.id}:${reason}`;
+    const last = failLogged.get(key);
+    if (last !== undefined && Date.now() - last < FAIL_LOG_EVERY_MS) return; // a dead feed is retried every bucket: one line per reason and hour
+    failLogged.set(key, Date.now());
+    appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "schedule", verdict: "refused", reason: `feed: ${reason}`, bucket });
+  };
   if (!deps.admit(trigger, bucket)) return;
   if (!deps.claim(`${trigger.id}.sched.${bucket}`)) return; // one poll per bucket, across ticks and processes
   const state = readFeedState(trigger.id);
@@ -35,8 +46,15 @@ async function pollOne(trigger: TriggerConfig & { source: { kind: "feed"; url: s
   const hashes = batch.map(entryHash);
   // Validators are kept only when nothing is left over: a 304 must not hide the entries waiting for the next poll.
   const validators = fresh.length > batch.length ? {} : { ...(result.state.etag ? { etag: result.state.etag } : {}), ...(result.state.lastModified ? { lastModified: result.state.lastModified } : {}) };
-  if (batch.length && deps.claim(feedToken(trigger.id, hash16(hashes.join())))) { // a held token means a dead process already fired this batch
-    const taskId = deps.createTask(trigger, buildFeedPrompt(trigger.promptTemplate, batch), bucket);
+  const token = feedToken(trigger.id, hash16(hashes.join()));
+  if (batch.length && deps.claim(token)) { // a held token means a dead process already fired this batch
+    let taskId: string;
+    try {
+      taskId = deps.createTask(trigger, buildFeedPrompt(trigger.promptTemplate, batch), bucket);
+    } catch (error) { // no task: free the batch for the next poll (the entries are not marked seen)
+      try { unlinkSync(join(triggersDir(), token)); } catch { /* absent */ }
+      throw error;
+    }
     appendTriggerLog(trigger.id, { at: new Date().toISOString(), source: "schedule", verdict: "accepted", bucket, taskId, reason: `${batch.length} new feed entries` });
   }
   writeFeedState(trigger.id, { ...validators, seen: markSeen(state.seen, hashes) });

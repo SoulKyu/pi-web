@@ -5,6 +5,8 @@ export interface FeedEntry { id: string; title: string; link: string; published?
 export const FEED_URL_MAX = 2048;
 const MAX_ENTRIES = 200;
 const TITLE_MAX = 300;
+const LINK_MAX = 2048;
+const ID_MAX = 500;
 const SUMMARY_MAX = 2000;
 const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 const CDATA_OPEN = "<![CDATA[";
@@ -75,14 +77,13 @@ function attribute(attrs: string, name: string): string | undefined {
 function linkOf(block: string): string {
   const links = elements(block, "link");
   const atom = links.find((link) => attribute(link.attrs, "href") && ["alternate", undefined].includes(attribute(link.attrs, "rel")));
-  if (atom) return attribute(atom.attrs, "href")!;
-  return links.map((link) => text(link.inner).trim()).find(Boolean) ?? "";
+  return (atom ? attribute(atom.attrs, "href")! : links.map((link) => text(link.inner).trim()).find(Boolean) ?? "").slice(0, LINK_MAX);
 }
 
 function toEntry(block: string, atom: boolean): FeedEntry | null {
   const title = squash(childText(block, "title") ?? "").slice(0, TITLE_MAX);
   const link = linkOf(block);
-  const id = atom ? childText(block, "id") ?? link : childText(block, "guid") ?? link;
+  const id = (atom ? childText(block, "id") ?? link : childText(block, "guid") ?? link).slice(0, ID_MAX); // entryHash hashes the clipped id: seen stays stable
   if (!id) return null;
   const published = childText(block, ...(atom ? ["updated", "published"] : ["pubDate"]));
   const summary = plain(childText(block, ...(atom ? ["summary", "content"] : ["description"])) ?? "").slice(0, SUMMARY_MAX);
@@ -107,11 +108,46 @@ export function parseFeed(xml: string): FeedEntry[] {
   }
 }
 
-/** `null` when valid: https only, no userinfo. */
+const privateV4 = ([a, b]: number[]): boolean =>
+  a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+
+/** IPv6 groups of a URL-normalised literal (`::` expanded, an embedded dotted v4 converted); null when not parseable. */
+function v6Groups(host: string): number[] | null {
+  let text = host;
+  const dotted = /(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(text);
+  if (dotted) text = text.slice(0, dotted.index) + ((+dotted[1] << 8) | +dotted[2]).toString(16) + ":" + ((+dotted[3] << 8) | +dotted[4]).toString(16);
+  const [head, tail, extra] = text.split("::");
+  if (extra !== undefined) return null;
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const fill = tail === undefined ? 0 : 8 - left.length - right.length;
+  const groups = [...left, ...Array<string>(Math.max(fill, 0)).fill("0"), ...right].map((group) => parseInt(group, 16));
+  return groups.length === 8 && groups.every((group) => group >= 0 && group <= 0xffff) ? groups : null;
+}
+
+/** Loopback, private, link-local (cloud metadata), CGNAT and internal names. `new URL` has already normalised decimal/hex/short IPv4 into dotted form.
+ *  ponytail: DNS rebinding (a public name resolving to a private IP at fetch time) is not covered. */
+export function privateHostError(hostname: string): string | null {
+  const refuse = "source.url must not point to a private or internal host";
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return refuse;
+  if (host.startsWith("[")) {
+    const groups = v6Groups(host.slice(1, -1));
+    if (!groups) return refuse; // fail closed
+    if (groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff) return privateV4([groups[6] >> 8, groups[6] & 255]) ? refuse : null; // ::ffff:a.b.c.d
+    if (groups.slice(0, 7).every((group) => group === 0)) return groups[7] <= 1 ? refuse : null; // :: and ::1
+    return (groups[0] & 0xfe00) === 0xfc00 || (groups[0] & 0xffc0) === 0xfe80 ? refuse : null;
+  }
+  const v4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
+  return v4 && privateV4(v4.slice(1).map(Number)) ? refuse : null;
+}
+
+/** `null` when valid: https only, no userinfo, no private host. */
 export function feedUrlError(value: unknown): string | null {
   if (typeof value !== "string" || value.length > FEED_URL_MAX) return `source.url must be a string of at most ${FEED_URL_MAX} characters`;
   let url: URL;
   try { url = new URL(value); } catch { return "source.url must be a valid URL"; }
   if (url.protocol !== "https:") return "source.url must use https";
-  return url.username || url.password ? "source.url must not contain credentials" : null;
+  if (url.username || url.password) return "source.url must not contain credentials";
+  return privateHostError(url.hostname);
 }
