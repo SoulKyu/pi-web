@@ -1584,6 +1584,7 @@ export const frLocale: LocalePlugin = {
     "agents.profile.quarantineConfirm": "Mettre {name} en quarantaine ? L'agent est mis en pause, ses tâches en cours et en file sont annulées, son fil part à la corbeille, ses mémoires en attente sont mises à l'écart et ses secrets de webhook sont renouvelés.",
     "agents.profile.quarantineConfirmSecrets": "Cela renouvelle {count} secrets de webhook et met l'agent en pause. Continuer ?",
     "agents.profile.quarantinePartial": "Mis en quarantaine, avec des problèmes : {errors}",
+    "agents.profile.quarantineVault": "Renouvelez ces secrets du coffre en amont : {names}",
     "agents.profile.running": "L'agent est en cours d'exécution : réessayez lorsqu'il sera inactif.",
     "agents.thread.unread": "{count} nouveaux messages",
     "agents.thread.jumpUnread": "↑ {count} nouveaux",

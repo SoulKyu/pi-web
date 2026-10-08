@@ -1584,6 +1584,7 @@ export const enLocale: LocalePlugin = {
     "agents.profile.quarantineConfirm": "Quarantine {name}? It is paused, its running and queued tasks are cancelled, its thread moves to the trash, its staged memories are set aside and its webhook secrets are rotated.",
     "agents.profile.quarantineConfirmSecrets": "This rotates {count} webhook secrets and pauses the agent. Continue?",
     "agents.profile.quarantinePartial": "Quarantined, with problems: {errors}",
+    "agents.profile.quarantineVault": "Rotate these vault secrets upstream: {names}",
     "agents.profile.running": "The agent is running: try again when it is idle.",
     "agents.thread.unread": "{count} new messages",
     "agents.thread.jumpUnread": "↑ {count} new",

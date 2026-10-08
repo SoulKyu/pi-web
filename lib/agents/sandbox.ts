@@ -33,6 +33,7 @@ export function sandboxArgs(
     "--dev", "/dev",
     "--unshare-ipc",
     "--tmpfs", "/run",
+    ...(network ? ["--ro-bind-try", "/run/systemd/resolve", "/run/systemd/resolve"] : []), // Ubuntu's /etc/resolv.conf points into it
     "--tmpfs", "/tmp",
     "--tmpfs", homeDir,
     "--tmpfs", agentDir, // redundant when the agent dir sits under the home, needed when PI_CODING_AGENT_DIR points elsewhere

@@ -1584,6 +1584,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.profile.quarantineConfirm": "隔离 {name}？它将被暂停，其运行中和排队的任务将被取消，对话线程移入回收站，待审记忆被移开，webhook 密钥将被轮换。",
     "agents.profile.quarantineConfirmSecrets": "这将轮换 {count} 个 webhook 密钥并暂停该智能体。继续？",
     "agents.profile.quarantinePartial": "已隔离，但有问题：{errors}",
+    "agents.profile.quarantineVault": "请在上游轮换这些保险库密钥：{names}",
     "agents.profile.running": "智能体正在运行：请在其空闲时重试。",
     "agents.thread.unread": "{count} 条新消息",
     "agents.thread.jumpUnread": "↑ {count} 条新消息",
