@@ -15,6 +15,7 @@ import { AgentRail, useAgentsPoll, useHealthPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { InboxPanel } from "./agents/InboxPanel";
 import { TasksBoard } from "./agents/TasksBoard";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { AgentAvatar } from "./agents/AgentAvatar";
 import { DRAWER_TAB_KEY, readDrawerTab, type DrawerTab } from "@/lib/agents/drawer-tab";
 import { AgentSpaceLeft } from "./agents/AgentSpaceLeft";
@@ -188,6 +189,8 @@ export function AppShell() {
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [tasksBoardOpen, setTasksBoardOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
   const pendingAgentRef = useRef<{ sessionId: string; agentName: string } | null>(null);
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
@@ -871,6 +874,7 @@ export function AppShell() {
   useGlobalKeyboardShortcuts({
     onNewSession: (cwd: string) => handleNewSession(`kb-${Date.now()}`, cwd),
     activeCwd,
+    onShowShortcuts: openShortcuts,
   });
 
   const handleOpenSession = useCallback(async (sessionId: string) => {
@@ -1804,6 +1808,28 @@ export function AppShell() {
           </svg>
           {!mobile && <span>{translate("tools.label")}</span>}
         </button>
+        {mobile && (
+          <button
+            type="button"
+            onClick={() => { setMobileToolbarMoreOpen(false); setShortcutsOpen(true); }}
+            title={translate("shortcuts.open")}
+            aria-label={translate("shortcuts.open")}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: TOP_BAR_ICON_BUTTON_SIZE, height: "100%", padding: 0,
+              background: "none", border: "none",
+              borderTop: "2px solid transparent",
+              borderRight: "1px solid var(--border)",
+              color: "var(--text-muted)", cursor: "pointer", flexShrink: 0,
+            }}
+            data-mobile-toolbar-action="shortcuts"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
+          </button>
+        )}
       </div>
     );
   };
@@ -2804,6 +2830,7 @@ export function AppShell() {
         projectTrust={projectTrust}
         onOpenTrustDialog={openProjectTrustDialog}
         onProjectTrustChanged={handleProjectTrustChanged}
+        onShowShortcuts={openShortcuts}
       />
     )}
     {newAgentOpen && (
@@ -2827,6 +2854,7 @@ export function AppShell() {
         onOpen={(name, entryId) => { setInboxOpen(false); void openAgent(name, entryId); }}
       />
     )}
+    {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
     {/* After Settings, so it opens above it (z-index 1100 over 1000) when Settings › MCP asks for it. */}
     {projectTrustDialogOpen && projectTrustCwd && (
       <ProjectTrustDialog

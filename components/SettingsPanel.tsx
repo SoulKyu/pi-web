@@ -50,6 +50,8 @@ interface Props {
   onOpenTrustDialog?: () => void;
   /** Settings › MCP added a project server, which changed `cwd`'s trust (and may have trusted a fresh folder). */
   onProjectTrustChanged?: (cwd: string, status: ProjectTrustStatus) => void;
+  /** Opens the keyboard shortcuts dialog above Settings (Settings › General offers it). */
+  onShowShortcuts?: () => void;
 }
 
 export function SettingsSectionIcon({ section, size = 16, strokeWidth = 1.8 }: { section: SettingsSection; size?: number; strokeWidth?: number }) {
@@ -75,7 +77,7 @@ export function SettingsSectionIcon({ section, size = 16, strokeWidth = 1.8 }: {
   return <svg {...common}><path d="M9 7V2M15 7V2M6 13V8a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v5a6 6 0 0 1-12 0ZM12 19v3" /></svg>;
 }
 
-function GeneralSettings({ sessionId, onSessionReloaded, quoteSelectionEnabled, onQuoteSelectionChange }: Pick<Props, "sessionId" | "onSessionReloaded" | "quoteSelectionEnabled" | "onQuoteSelectionChange">) {
+function GeneralSettings({ sessionId, onSessionReloaded, quoteSelectionEnabled, onQuoteSelectionChange, onShowShortcuts }: Pick<Props, "sessionId" | "onSessionReloaded" | "quoteSelectionEnabled" | "onQuoteSelectionChange" | "onShowShortcuts">) {
   const { locale, setLocale, supportedLocales, t } = useI18n();
   const { preference, setThemePreference } = useTheme();
   const { width: chatContentWidth, setWidth: setChatContentWidth, fontSize, setFontSize } = useChatAppearance();
@@ -309,6 +311,13 @@ function GeneralSettings({ sessionId, onSessionReloaded, quoteSelectionEnabled, 
         </div>
       </section>
 
+      {onShowShortcuts && (
+        <section className="settings-general-section">
+          <h3 className="settings-general-heading">{t("shortcuts.title")}</h3>
+          <ConfigButton variant="secondary" onClick={onShowShortcuts}>{t("shortcuts.open")}</ConfigButton>
+        </section>
+      )}
+
       {shellSettings?.isWindows && (
         <section className="settings-general-section">
           <h3 className="settings-general-heading">{t("settings.shellTool")}</h3>
@@ -402,6 +411,7 @@ export function SettingsPanel({
   projectTrust,
   onOpenTrustDialog,
   onProjectTrustChanged,
+  onShowShortcuts,
 }: Props) {
   const { t } = useI18n();
   const [section, setSection] = useState<SettingsSection>(initialSection);
@@ -508,7 +518,7 @@ export function SettingsPanel({
         </div>
 
         <main className="settings-dialog-main">
-          {sectionHost("general", <GeneralSettings sessionId={sessionId} onSessionReloaded={onSessionReloaded} quoteSelectionEnabled={quoteSelectionEnabled} onQuoteSelectionChange={onQuoteSelectionChange} />)}
+          {sectionHost("general", <GeneralSettings sessionId={sessionId} onSessionReloaded={onSessionReloaded} quoteSelectionEnabled={quoteSelectionEnabled} onQuoteSelectionChange={onQuoteSelectionChange} onShowShortcuts={onShowShortcuts} />)}
           {sectionHost("models", <ModelsConfig embedded cwd={cwd} onClose={onClose} />)}
           {/* Visited sections stay mounted, so the ones whose answer depends on trust take the page's
               status and load again in place when trusting from Settings › MCP changes it. */}

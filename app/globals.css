@@ -2068,3 +2068,8 @@ span.token.table {
 .recall-card-hits li { display: flex; gap: 8px; align-items: baseline; }
 .recall-card-text { white-space: pre-wrap; word-break: break-word; flex: 1; }
 .recall-card-hits button { font-size: 11px; }
+
+/* Keyboard shortcuts dialog (components/ShortcutsDialog.tsx) */
+.shortcuts-dialog { outline: none; }
+.shortcuts-dialog:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shortcuts-dialog kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--bg-panel); color: var(--text); font-family: var(--font-mono); font-size: 12px; line-height: 18px; }

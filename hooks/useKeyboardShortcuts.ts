@@ -37,6 +37,18 @@ export function handleGlobalEscape(event: KeyboardEvent): boolean {
   return true;
 }
 
+/**
+ * `?` opens the keyboard shortcuts dialog, unless it is typed into a field (input, textarea,
+ * select, contenteditable: the composer, the terminal, a rename box), an input method is
+ * composing, a dialog is open already, or something nearer took the key.
+ */
+export function isShortcutsHelpKey(event: KeyboardEvent, dialogOpen: boolean): boolean {
+  if (event.key !== "?" || event.defaultPrevented || event.isComposing || dialogOpen) return false;
+  const target = event.target as HTMLElement | null;
+  const tag = target?.tagName;
+  return tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !target?.isContentEditable;
+}
+
 // ---------------------------------------------------------------------------
 // Hook: global keyboard shortcuts
 // ---------------------------------------------------------------------------
@@ -46,6 +58,8 @@ interface UseGlobalKeyboardShortcutsOptions {
   onNewSession?: (cwd: string) => void;
   /** The currently selected project directory (sidebar cwd). */
   activeCwd?: string | null;
+  /** Called when `?` is pressed outside a field with no dialog open (see `isShortcutsHelpKey()`). */
+  onShowShortcuts?: () => void;
 }
 
 /**
@@ -54,6 +68,7 @@ interface UseGlobalKeyboardShortcutsOptions {
  * Shortcuts handled here:
  *   Esc          – stop the running agent (via module-level abort handler)
  *   Ctrl+Alt+N   – create a new session in the active project directory
+ *   ?            – open the keyboard shortcuts dialog
  *
  * Note: Esc inside <textarea> or <input> is deliberately NOT handled here.
  * ChatInput manages its own Esc logic (closing slash / @ file menus, stopping
@@ -64,13 +79,20 @@ interface UseGlobalKeyboardShortcutsOptions {
 export function useGlobalKeyboardShortcuts(
   options: UseGlobalKeyboardShortcutsOptions,
 ): void {
-  const { onNewSession, activeCwd } = options;
+  const { onNewSession, activeCwd, onShowShortcuts } = options;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       // ---- Esc: stop agent ----
       if (e.key === "Escape") {
         handleGlobalEscape(e);
+        return;
+      }
+
+      // ---- ?: keyboard shortcuts dialog ----
+      if (onShowShortcuts && isShortcutsHelpKey(e, document.querySelector('[role="dialog"]') !== null)) {
+        e.preventDefault();
+        onShowShortcuts();
         return;
       }
 
@@ -84,5 +106,5 @@ export function useGlobalKeyboardShortcuts(
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeCwd, onNewSession]);
+  }, [activeCwd, onNewSession, onShowShortcuts]);
 }

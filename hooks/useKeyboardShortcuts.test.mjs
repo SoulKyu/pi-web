@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { handleGlobalEscape, registerAbortHandler } from "./useKeyboardShortcuts.ts";
+import { handleGlobalEscape, isShortcutsHelpKey, registerAbortHandler } from "./useKeyboardShortcuts.ts";
 
 function keydown(key, { tagName = "BUTTON", defaultPrevented = false } = {}) {
   return {
@@ -45,4 +45,20 @@ test("with no run to stop, Escape is left alone", () => {
   const event = keydown("Escape");
   assert.equal(handleGlobalEscape(event), false);
   assert.equal(event.defaultPrevented, false);
+});
+
+function questionMark({ tagName = "BODY", isContentEditable = false, defaultPrevented = false, isComposing = false } = {}) {
+  return { key: "?", target: { tagName, isContentEditable }, defaultPrevented, isComposing };
+}
+
+test("? opens the shortcuts dialog from the page, never from a field, an open dialog or an IME", () => {
+  assert.equal(isShortcutsHelpKey(questionMark(), false), true);
+  assert.equal(isShortcutsHelpKey(questionMark({ tagName: "BUTTON" }), false), true);
+  // The composer, the terminal's hidden textarea, a rename box, a select: the key types there.
+  for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.equal(isShortcutsHelpKey(questionMark({ tagName }), false), false, tagName);
+  assert.equal(isShortcutsHelpKey(questionMark({ tagName: "DIV", isContentEditable: true }), false), false);
+  assert.equal(isShortcutsHelpKey(questionMark(), true), false);
+  assert.equal(isShortcutsHelpKey(questionMark({ defaultPrevented: true }), false), false);
+  assert.equal(isShortcutsHelpKey(questionMark({ isComposing: true }), false), false);
+  assert.equal(isShortcutsHelpKey({ ...questionMark(), key: "/" }, false), false);
 });
