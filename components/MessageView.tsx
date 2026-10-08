@@ -10,6 +10,7 @@ import { ImagePreview } from "./ImagePreview";
 import { ThinkingIcon } from "./ThinkingIcon";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
+import { useIsCoarsePointer, useIsMobile } from "@/hooks/useIsMobile";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantErrorMessage, getThinkingPreview, hasAssistantAnswer, isAssistantTruncated, isEmptyThinkingBlock } from "@/lib/message-display";
 import { parseUnifiedPatch, type SplitDiffCell, type SplitDiffFile } from "@/lib/patch";
@@ -751,6 +752,11 @@ function AssistantMessageView({
   const truncated = isAssistantTruncated(message, { isStreaming });
   const unansweredTruncation = truncated && !hasAssistantAnswer(message);
   const [hovered, setHovered] = useState(false);
+  const [focusInside, setFocusInside] = useState(false);
+  const touchFirst = useIsCoarsePointer();
+  const isMobile = useIsMobile();
+  // Touch screens never hover, and a keyboard user must see the button Tab reached.
+  const actionsVisible = hovered || focusInside || touchFirst || isMobile;
   const [copied, setCopied] = useState(false);
   const streamStartRef = useRef<number | null>(null);
   const [tps, setTps] = useState<number | null>(null);
@@ -876,6 +882,8 @@ function AssistantMessageView({
       style={{ marginBottom: 16 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocusInside(true)}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusInside(false); }}
     >
       {/* Model label */}
       <div
@@ -1015,8 +1023,8 @@ function AssistantMessageView({
               cursor: "pointer",
               fontSize: 11, fontWeight: 400,
               whiteSpace: "nowrap",
-              opacity: hovered ? 1 : 0,
-              pointerEvents: hovered ? "auto" : "none",
+              opacity: actionsVisible ? 1 : 0,
+              pointerEvents: actionsVisible ? "auto" : "none",
               transition: "opacity 0.12s, color 0.12s",
             }}
             onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = "var(--accent)"; }}
@@ -1044,8 +1052,8 @@ function AssistantMessageView({
               background: "none", border: "none", borderRadius: 5,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
-              opacity: hovered ? 1 : 0,
-              pointerEvents: hovered ? "auto" : "none",
+              opacity: actionsVisible ? 1 : 0,
+              pointerEvents: actionsVisible ? "auto" : "none",
               transition: "opacity 0.12s, color 0.12s",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
@@ -1063,8 +1071,8 @@ function AssistantMessageView({
               background: "none", border: "none", borderRadius: 5,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
-              opacity: hovered ? 1 : 0,
-              pointerEvents: hovered ? "auto" : "none",
+              opacity: actionsVisible ? 1 : 0,
+              pointerEvents: actionsVisible ? "auto" : "none",
               transition: "opacity 0.12s, color 0.12s",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}

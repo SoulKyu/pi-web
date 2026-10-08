@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createJiti } from "jiti";
+import { readFileSync } from "node:fs";
 
 const jiti = createJiti(import.meta.url, {
   jsx: { runtime: "automatic" },
@@ -672,4 +673,21 @@ test("the memo re-renders a message only when one of its own tool calls starts o
   assert.equal(MessageView.compare(props, { ...props, runningToolIds: new Set(["unrelated"]) }), true);
   assert.equal(MessageView.compare(props, { ...props, runningToolIds: new Set([statusBlock.toolCallId]) }), false);
   assert.equal(MessageView.compare(props, { ...props, runActive: true }), false);
+});
+
+test("assistant actions show on hover, focus inside the message, touch screens and phones; no new MessageView prop", () => {
+  const source = readFileSync(new URL("./MessageView.tsx", import.meta.url), "utf8");
+  const assistant = source.slice(source.indexOf("function AssistantMessageView"), source.indexOf("function BlockView"));
+  assert.match(assistant, /const actionsVisible = hovered \|\| focusInside \|\| touchFirst \|\| isMobile;/);
+  assert.match(assistant, /onFocus=\{\(\) => setFocusInside\(true\)\}/);
+  assert.match(assistant, /onBlur=\{\(event\) => \{ if \(!event\.currentTarget\.contains\(event\.relatedTarget as Node \| null\)\) setFocusInside\(false\); \}\}/);
+  assert.equal(assistant.match(/opacity: actionsVisible \? 1 : 0,\s*pointerEvents: actionsVisible \? "auto" : "none",/g)?.length, 3);
+  assert.doesNotMatch(assistant, /opacity: hovered \? 1 : 0/);
+});
+
+test("a finished assistant message renders Copy, Hand to and Ask a review buttons", () => {
+  const html = renderMessage({ role: "assistant", provider: "openai", model: "gpt-test", content: [{ type: "text", text: "Plan" }] }, { onHandTo: () => {}, onAskReview: () => {} });
+  assert.match(html, />Hand to…</);
+  assert.match(html, />Ask a review by…</);
+  assert.match(html, /title="Copy message"/);
 });
