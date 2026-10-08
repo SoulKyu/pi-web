@@ -18,8 +18,8 @@ export function ComposerChip({ active = false, tone = "default", iconOnly = fals
       className={cn(
         "flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap bg-transparent font-mono text-xs outline-none transition-colors enabled:hover:bg-bg-hover focus-visible:shadow-glow-cyan disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-3 [&_svg]:shrink-0",
         iconOnly ? "w-8 p-0" : "px-3",
+        active && "bg-bg-hover",
         TONES[tone],
-        active && "bg-bg-hover text-text",
         className,
       )}
       {...props}

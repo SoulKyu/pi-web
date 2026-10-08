@@ -27,7 +27,7 @@ test("the control bar has no JS hover handlers", () => {
 });
 
 test("composer menus share the Tron menu class", () => {
-  assert.ok((input.match(/composerMenuClass/g) ?? []).length >= 5, "import + thinking, tools, history, mobile panel");
+  assert.ok((input.match(/composerMenuClass/g) ?? []).length >= 4, "import + thinking, tools, history");
 });
 
 const { ChatInput } = await jiti.import("../ChatInput.tsx");
@@ -59,4 +59,16 @@ test("no off-palette colors remain in the composer and selectors", async () => {
     assert.doesNotMatch(src, /#ef4444|rgba\((239,68,68|234,179,8|180,130,0|129,140,248|99,102,241|16,185,129|5,150,105|59,130,246|37,99,235)/, file);
     assert.doesNotMatch(src, /rgba\(\$\{color\}/, file);
   }
+});
+
+test("the mobile controls panel does not clip the dropdowns opening above it", () => {
+  assert.doesNotMatch(input, /className=\{isMobile \? composerMenuClass : undefined\}/);
+  assert.match(input, /className=\{isMobile \? "border border-tron-line bg-black shadow-glow-cyan" : undefined\}/);
+});
+
+test("an active accent chip stays cyan; active only adds the hover background", () => {
+  const out = renderToStaticMarkup(h(ComposerChip, { active: true, tone: "accent" }, "x"));
+  assert.match(out, /(^|\s|")text-tron-cyan(\s|")/);
+  assert.doesNotMatch(out, /(\s|")text-text(\s|")/);
+  assert.match(out, /bg-bg-hover/);
 });

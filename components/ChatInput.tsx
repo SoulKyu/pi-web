@@ -2458,7 +2458,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               </ComposerChip>
             )}
             <div
-              className={isMobile ? composerMenuClass : undefined}
+              className={isMobile ? "border border-tron-line bg-black shadow-glow-cyan" : undefined}
               style={{
                 display: isMobile ? (controlsMenuOpen ? "flex" : "none") : "flex",
                 alignItems: "center",
