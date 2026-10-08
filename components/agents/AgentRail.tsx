@@ -129,15 +129,15 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
     } finally { onPauseChanged(); }
   };
   return (
-    <nav aria-label={t("agents.rail")} className={vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
-      {agents.map((agent) => (
+    <nav aria-label={t("agents.rail.shortcutsHint")} className={vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
+      {agents.map((agent, index) => (
         <button
           key={agent.name}
           type="button"
           onClick={() => onSelectAgent(agent.name)}
           aria-current={agent.name === activeAgent ? "true" : undefined}
           aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.state === "needs_input" ? t("agents.rail.needsInput") : agent.running ? t("agents.rail.running") : agent.state === "failed" ? t("agents.rail.failed") : ""].filter(Boolean).join(", ")}
-          title={[agent.name, [agent.lastPreview, agent.lastActivityAt && formatRelativeTime(agent.lastActivityAt, locale)].filter(Boolean).join(" · ")].filter(Boolean).join("\n")}
+          title={[agent.name + (index < 9 ? ` · Ctrl+Alt+${index + 1}` : ""), [agent.lastPreview, agent.lastActivityAt && formatRelativeTime(agent.lastActivityAt, locale)].filter(Boolean).join(" · ")].filter(Boolean).join("\n")}
           style={{ ...railButtonStyle, borderRadius: "50%" }}
         >
           <AgentAvatar avatar={agent.avatar} running={agent.running} state={agent.state} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />

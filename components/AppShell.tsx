@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useRailShortcuts } from "@/hooks/useRailShortcuts";
 import { SessionSidebar } from "./SessionSidebar";
 import { ChatWindow } from "./ChatWindow";
 import type { ChatScrollPosition } from "@/lib/chat-scroll-position";
@@ -844,12 +845,6 @@ export function AppShell() {
     router.replace(`?cwd=${encodeURIComponent(cwd)}`, { scroll: false });
   }, [invalidateWorkspaceRestore, router, isMobile]);
 
-  // Global keyboard shortcuts (handles Esc, Ctrl+Alt+N etc.)
-  useGlobalKeyboardShortcuts({
-    onNewSession: (cwd: string) => handleNewSession(`kb-${Date.now()}`, cwd),
-    activeCwd,
-  });
-
   // Client-built transient SessionInfo (new session / fork) lacks the
   // server-computed projectKey, which the same-project check in
   // handleCwdChange relies on. Hydrate it from the session list so switching
@@ -868,6 +863,12 @@ export function AppShell() {
       })
       .catch(() => {});
   }, []);
+
+  // Global keyboard shortcuts (handles Esc, Ctrl+Alt+N etc.)
+  useGlobalKeyboardShortcuts({
+    onNewSession: (cwd: string) => handleNewSession(`kb-${Date.now()}`, cwd),
+    activeCwd,
+  });
 
   const handleOpenSession = useCallback(async (sessionId: string) => {
     // Prefer the catalogue the sidebar already delivered: selecting from it
@@ -915,6 +916,9 @@ export function AppShell() {
     if (entryId) setSearchTarget({ sessionId: data.sessionId, entryId });
     if (!isMobile) setRightPanelOpen(true);
   }, [handleOpenSession, isMobile, translate]);
+
+  const openAgentByShortcut = useCallback((name: string) => void openAgent(name), [openAgent]);
+  useRailShortcuts(agents, activeAgent, openAgentByShortcut);
 
   // The one place that POSTs a reset: the profile dialog and /new, /clear both land here (the confirm is here too).
   const resetAgentThread = useCallback(async (name: string) => {

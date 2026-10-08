@@ -1451,6 +1451,7 @@ export const enLocale: LocalePlugin = {
     "i18n.attentionNeeded": "Pi needs your attention",
     "i18n.extensionInputNeeded": "An extension is waiting for your input.",
     "agents.rail": "Agents",
+    "agents.rail.shortcutsHint": "Agents (Alt+↑/↓: next/previous unread)",
     "agents.rail.new": "New agent",
     "agents.rail.sessions": "Sessions",
     "agents.rail.tasks": "Tasks",

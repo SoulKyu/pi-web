@@ -143,6 +143,7 @@ lib/
   agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
   agents/visit-digest.ts    digestSince / digestLine: deterministic counts of what happened after the unread marker (client-safe)
   agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)
+  agents/rail-shortcuts.ts  nextUnreadAgent / nthAgent / railShortcutTarget: Alt+Up/Down unread agents, Ctrl+Alt+1..9 n-th agent (client-safe)
   agents/mention.ts         parseAgentMention / agentMentionMatches: `@Name task` at the start of a composer message queues a task (client-safe)
   agents/events.ts          pi-web:agent-event entries: builders, guard, UI mapping, folded-prompt indexes (client-safe)
   agents/queue.ts           isolated / thread task selectors for the two runners
@@ -281,6 +282,7 @@ hooks/
   useDragDrop.ts           shared drag/drop state (accept predicate, default image-only; skips dropped folders)
   useIsMobile.ts           responsive breakpoint
   useKeyboardShortcuts.ts  Esc stops the running agent unless a field or nearer handler took it; Ctrl+Alt+N
+  useRailShortcuts.ts      rail Alt+Up/Down (unread agents), Ctrl+Alt+1..9 (n-th agent)
   useTheme.ts              theme state
 ```
 

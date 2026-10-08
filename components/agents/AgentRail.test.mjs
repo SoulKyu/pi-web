@@ -64,3 +64,7 @@ test("the global tasks board: rail button, 5 s refresh cleared on close, grouped
     for (const key of ["agents.rail.tasks", "agents.board.title", "agents.board.openAgent", "agents.board.other", "agents.board.truncated"]) assert.ok(messages.includes(`"${key}"`), `${locale} ${key}`);
   }
 });
+test("rail tooltips carry Ctrl+Alt+<n> up to 9 and the nav label mentions Alt+arrows", () => {
+  assert.match(rail, /index < 9 \? ` · Ctrl\+Alt\+\$\{index \+ 1\}` : ""/);
+  assert.match(rail, /<nav aria-label=\{t\("agents\.rail\.shortcutsHint"\)\}/);
+});

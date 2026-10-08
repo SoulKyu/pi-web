@@ -1451,6 +1451,7 @@ export const zhCNLocale: LocalePlugin = {
     "i18n.attentionNeeded": "Pi 需要你的操作",
     "i18n.extensionInputNeeded": "扩展正在等待你的输入。",
     "agents.rail": "智能体",
+    "agents.rail.shortcutsHint": "智能体（Alt+↑/↓：下一个/上一个未读）",
     "agents.rail.new": "新建智能体",
     "agents.rail.sessions": "会话",
     "agents.rail.tasks": "任务",

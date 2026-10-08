@@ -1451,6 +1451,7 @@ export const frLocale: LocalePlugin = {
     "i18n.attentionNeeded": "Pi a besoin de votre attention",
     "i18n.extensionInputNeeded": "Une extension attend votre saisie.",
     "agents.rail": "Agents",
+    "agents.rail.shortcutsHint": "Agents (Alt+↑/↓ : non lu suivant/précédent)",
     "agents.rail.new": "Nouvel agent",
     "agents.rail.sessions": "Sessions",
     "agents.rail.tasks": "Tâches",

@@ -1451,6 +1451,7 @@ export const zhTWLocale: LocalePlugin = {
     "i18n.attentionNeeded": "Pi 需要你處理",
     "i18n.extensionInputNeeded": "擴充功能正在等待你的輸入。",
     "agents.rail": "智慧代理",
+    "agents.rail.shortcutsHint": "智慧代理（Alt+↑/↓：下一個/上一個未讀）",
     "agents.rail.new": "新建智慧代理",
     "agents.rail.sessions": "會話",
     "agents.rail.tasks": "任務",
