@@ -22,6 +22,7 @@ import {
   buildEntriesFromFiles, buildAtInsertText, extractAtQuery, filterFileEntries,
   type AtQueryMatch, type FileIndexEntry,
 } from "@/lib/file-fuzzy";
+import { agentMentionMatches, parseAgentMention } from "@/lib/agents/mention";
 import { getMarkdownListContinuation } from "@/lib/markdown-list-continuation";
 import { isBareMcpCommand, isBuiltinMcpCommand } from "@/lib/mcp-command";
 import { FolderIcon, getFileIcon } from "./FileIcons";
@@ -42,6 +43,8 @@ export interface AttachedImage {
   mimeType: string;
   previewUrl: string; // object URL for display
 }
+
+type AtEntry = FileIndexEntry & { agent?: true };
 
 interface Props {
   onSend: (message: string, images?: AttachedImage[]) => void;
@@ -100,6 +103,10 @@ interface Props {
   draftKey?: string;
   /** Session working directory — enables the @ file autocomplete menu */
   cwd?: string | null;
+  /** Other agents' names in a trusted agent thread: `@Name task` at the start of a message queues a task instead of prompting */
+  mentionAgents?: string[];
+  /** Queue the task; resolves true when it was queued (the composer is then cleared) */
+  onQueueMention?: (agent: string, prompt: string) => Promise<boolean>;
 }
 
 export interface ChatInputHandle {
@@ -604,6 +611,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   onPromptWithStreamingBehavior,
   draftKey,
   cwd,
+  mentionAgents,
+  onQueueMention,
   compact = false,
 }: Props, ref) {
   const { t } = useI18n();
@@ -1012,10 +1021,15 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     onAudioUnlock?.();
     const builtinAllowed = !isStreaming || offersBuiltinSlashCommandWhileStreaming(msg);
     if (builtinAllowed && await runBuiltinCommand(msg)) return;
+    const mention = mentionAgents && onQueueMention && !attachedImages.length ? parseAgentMention(msg, mentionAgents) : null;
+    if (mention && onQueueMention) {
+      if (await onQueueMention(mention.agent, mention.prompt) && valueRef.current.trim() === msg) clearInput();
+      return;
+    }
     if (isStreaming) return;
     clearInput();
     onSend(msg, attachedImages.length ? attachedImages : undefined);
-  }, [value, attachedImages, isStreaming, runBuiltinCommand, onSend, clearInput, onAudioUnlock]);
+  }, [value, attachedImages, isStreaming, runBuiltinCommand, mentionAgents, onQueueMention, onSend, clearInput, onAudioUnlock]);
 
   const slashQuery = !compact && value.startsWith("/") && !/\s/.test(value.slice(1))
     ? value.slice(1).toLowerCase()
@@ -1109,7 +1123,14 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     && atServerResult !== null
     && atServerResult.cwd === cwd
     && atServerResult.query === atQueryText;
-  const atMatches: FileIndexEntry[] = serverResultInUse ? atServerResult.matches : atLocalMatches;
+  const atFileMatches: FileIndexEntry[] = serverResultInUse ? atServerResult.matches : atLocalMatches;
+  // Agent names come first, only while the caret is in the message's first word
+  const atMatches: AtEntry[] = React.useMemo(() => {
+    const agentEntries: AtEntry[] = mentionAgents && atQuery && !atQuery.quoted && atQuery.start === 0
+      ? agentMentionMatches(atQuery.query, mentionAgents).map((name) => ({ path: name, isDir: false, agent: true }))
+      : [];
+    return agentEntries.length ? [...agentEntries, ...atFileMatches] : atFileMatches;
+  }, [mentionAgents, atQuery, atFileMatches]);
 
   // Open/reset the menu whenever the @token appears or changes (mirrors the
   // slash menu: Escape closes it, the next keystroke re-opens it).
@@ -1154,7 +1175,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
       });
   }, [atTokenActive, cwd]);
 
-  const applyAtCompletion = useCallback((entry: FileIndexEntry) => {
+  const applyAtCompletion = useCallback((entry: AtEntry) => {
     if (!atQuery) return;
     const ta = textareaRef.current;
     const cursor = ta?.selectionStart ?? value.length;
@@ -1166,7 +1187,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     if (atQuery.quoted && after.startsWith('"')) {
       after = after.slice(1);
     }
-    const insert = buildAtInsertText(entry.path, entry.isDir, atQuery.quoted);
+    const insert = entry.agent
+      ? { text: `@${entry.path} `, cursorOffset: entry.path.length + 2 }
+      : buildAtInsertText(entry.path, entry.isDir, atQuery.quoted);
     const newValue = before + insert.text + after;
     const newPos = before.length + insert.cursorOffset;
     setValue(newValue);
@@ -2148,7 +2171,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                       const dirPrefix = entry.path.slice(0, entry.path.length - name.length);
                       return (
                         <button
-                          key={`${entry.isDir ? "d" : "f"}:${entry.path}`}
+                          key={`${entry.agent ? "a" : entry.isDir ? "d" : "f"}:${entry.path}`}
                           ref={(node) => {
                             atItemRefs.current[index] = node;
                           }}
@@ -2175,12 +2198,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                           }}
                         >
                           <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
-                            {entry.isDir ? <FolderIcon size={14} /> : getFileIcon(name, 14)}
+                            {entry.agent ? "⧉" : entry.isDir ? <FolderIcon size={14} /> : getFileIcon(name, 14)}
                           </span>
                           <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {dirPrefix && <span style={{ color: "var(--text-dim)" }}>{dirPrefix}</span>}
+                            {dirPrefix && !entry.agent && <span style={{ color: "var(--text-dim)" }}>{dirPrefix}</span>}
                             {name}
-                            {entry.isDir && <span style={{ color: "var(--text-dim)" }}>/</span>}
+                            {entry.isDir && !entry.agent && <span style={{ color: "var(--text-dim)" }}>/</span>}
                           </span>
                         </button>
                       );

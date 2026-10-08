@@ -282,6 +282,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     isCompacting, compactError, compactResult, displayModel: displayModelValue, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
     notices, extensionDialog, waitingExtensionDialogCount, extensionCustomUi, waitingExtensionCustomUiCount, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput, setNoticePaused,
+    addNotice,
     isAutoModelSelection,
     isAutoThinkingSelection,
     defaultModel,
@@ -445,6 +446,18 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
   }, [quotedSelection, quoteInputOpen, quoteSubmitting, closeQuotedSelection]);
 
   const trustedAgentName = session?.agentProfile && session.agentProfile.trust !== "untrusted" ? session.agentProfile.name : undefined;
+  const queueMention = useCallback(async (agent: string, prompt: string) => {
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, requestedBy: "user", deliverTo: trustedAgentName }) });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) { addNotice({ type: "error", message: t("agents.error", { error: data.error ?? `HTTP ${response.status}` }) }); return false; }
+      addNotice({ type: "success", message: t("agents.mention.queued", { name: agent }) });
+      return true;
+    } catch (cause) {
+      addNotice({ type: "error", message: t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }) });
+      return false;
+    }
+  }, [addNotice, trustedAgentName, t]);
   const handTargets = useMemo(() => (trustedAgentName ? (handToAgents ?? []).filter((name) => name !== trustedAgentName) : []), [trustedAgentName, handToAgents]);
   const [handQuote, setHandQuote] = useState<{ text: string; purpose: "handoff" | "review" } | null>(null);
   const handTo = useCallback((text: string) => setHandQuote({ text, purpose: "handoff" }), []);
@@ -951,6 +964,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
     <ChatInput
       ref={chatInputRef}
       onSend={handleSend}
+      mentionAgents={handTargets.length > 0 ? handTargets : undefined}
+      onQueueMention={handTargets.length > 0 ? queueMention : undefined}
       onAbort={handleAbort}
       onSteer={agentRunning ? handleSteer : undefined}
       onFollowUp={agentRunning ? handleFollowUp : undefined}

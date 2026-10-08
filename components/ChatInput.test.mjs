@@ -11,6 +11,7 @@ const jiti = createJiti(import.meta.url, {
 });
 const React = await jiti.import("react");
 const { renderToStaticMarkup } = await jiti.import("react-dom/server");
+const { parseAgentMention } = await jiti.import("../lib/agents/mention.ts");
 const { ChatInput, ModelErrorBanner, ModelScopeWarningBanner, canClearBuiltinCommandInput, canRestoreUserMessage, canRunBuiltinSlashCommandWhileStreaming, compressImageFile, cycleListIndex, filterModelOptions, getUpwardMenuMaxHeight, getUserMessageText, getUserMessageDraftImages, isExactSlashCommand, modelSupportsImageInput, offersBuiltinSlashCommandWhileStreaming, replaceLinksWithMarkdown, shouldCompressImageFile, submitsSlashCommandOnEnter } = await jiti.import("./ChatInput.tsx");
 const { isBareMcpCommand } = await jiti.import("@/lib/mcp-command.ts");
 const { ModelSelector } = await jiti.import("./ModelSelector.tsx");
@@ -598,6 +599,9 @@ test("handleSend lets a handled /mcp through while streaming and sends an unowne
       runBuiltinCommand: async (message) => { calls.builtin.push(message); return handled; },
       clearInput() {},
       onSend: (message) => calls.sent.push(message),
+      mentionAgents: undefined,
+      onQueueMention: undefined,
+      parseAgentMention,
     });
     await handleSend();
     return calls;
@@ -607,6 +611,32 @@ test("handleSend lets a handled /mcp through while streaming and sends an unowne
   assert.deepEqual(await run("/mcp", { isStreaming: false, handled: false }), { builtin: ["/mcp"], sent: ["/mcp"] });
   // Streaming without steer handlers keeps any other message in the composer, as before.
   assert.deepEqual(await run("/mcp login", { isStreaming: true, handled: false }), { builtin: [], sent: [] });
+});
+
+test("handleSend queues @Agent at the start instead of prompting; a failed queue keeps the text", async () => {
+  const run = async (value, queued) => {
+    const calls = { queued: [], sent: [], cleared: 0 };
+    const handleSend = chatInputCallback("handleSend", {
+      value,
+      valueRef: { current: value },
+      attachedImages: [],
+      onAudioUnlock() {},
+      isStreaming: false,
+      offersBuiltinSlashCommandWhileStreaming,
+      runBuiltinCommand: async () => false,
+      clearInput() { calls.cleared += 1; },
+      onSend: (message) => calls.sent.push(message),
+      mentionAgents: ["Scout"],
+      onQueueMention: async (agent, prompt) => { calls.queued.push([agent, prompt]); return queued; },
+      parseAgentMention,
+    });
+    await handleSend();
+    return calls;
+  };
+  assert.deepEqual(await run("@Scout look", true), { queued: [["Scout", "look"]], sent: [], cleared: 1 });
+  assert.deepEqual(await run("@Scout look", false), { queued: [["Scout", "look"]], sent: [], cleared: 0 });
+  assert.deepEqual(await run("look @Scout", true), { queued: [], sent: ["look @Scout"], cleared: 1 });
+  assert.deepEqual(await run("@Me look", true), { queued: [], sent: ["@Me look"], cleared: 1 });
 });
 
 test("restores text and base64 images when editing a user message", () => {
