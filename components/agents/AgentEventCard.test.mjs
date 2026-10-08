@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createJiti } from "jiti";
+import { readFileSync } from "node:fs";
+
+const source = readFileSync(new URL("./AgentEventCard.tsx", import.meta.url), "utf8");
 
 const jiti = createJiti(import.meta.url, { jsx: { runtime: "automatic" }, tsconfigPaths: true });
 const React = await jiti.import("react");
@@ -41,8 +44,9 @@ test("a delegation summary renders as markdown; a long one folds behind an Expan
   assert.match(short, /<strong>bold<\/strong>/);
   assert.doesNotMatch(short, /aria-expanded/);
   const long = render(ev.delegationEventOfTask({ ...done, result: Array.from({ length: 40 }, (_, i) => `- finding ${i}`).join("\n") }));
-  assert.match(long, /class="agent-event-summary is-collapsed" inert=""/);
-  assert.doesNotMatch(short, /inert/);
+  assert.match(long, /class="agent-event-summary is-collapsed"/);
+  assert.doesNotMatch(long, /inert/); // the visible part stays selectable and its links clickable
+  assert.match(source, /onFocus=\{foldable && !expanded \? \(\) => setExpanded\(true\) : undefined\}/);
   assert.match(long, /aria-expanded="false"/);
   assert.match(long, />Expand</);
 });
