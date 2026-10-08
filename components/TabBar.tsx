@@ -88,7 +88,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               if (!tab.closing && tab.closable !== false) onCloseTab(tab.id);
             }}
             className={isActive
-              ? "bg-bg text-white shadow-[inset_0_-2px_0_var(--color-tron-cyan)] outline-none focus-visible:shadow-glow-cyan"
+              ? "bg-bg text-text shadow-[inset_0_-2px_0_var(--color-tron-cyan)] outline-none focus-visible:shadow-[inset_0_-2px_0_var(--color-tron-cyan),var(--shadow-glow-cyan)]"
               : "bg-bg-panel text-text-muted outline-none hover:bg-bg-hover hover:text-text focus-visible:shadow-glow-cyan"}
             style={{
               display: "flex",

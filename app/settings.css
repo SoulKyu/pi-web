@@ -1281,7 +1281,7 @@
   left: 2px;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--text-muted);
   transition: transform 0.15s, background 0.15s;
 }

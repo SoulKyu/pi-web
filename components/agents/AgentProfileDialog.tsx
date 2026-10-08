@@ -291,7 +291,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid var(--color-tron-red)", background: "none", color: "var(--color-tron-red)" }}>{t("agents.profile.delete")}</button>
-            <button type="button" disabled={busy} onClick={() => void quarantine()} style={{ ...buttonStyle, border: 0, background: "var(--color-tron-red)", color: "#fff", fontWeight: 600 }}>{t("agents.profile.quarantine")}</button>
+            <button type="button" disabled={busy} onClick={() => void quarantine()} style={{ ...buttonStyle, border: 0, background: "var(--color-tron-red)", color: "var(--accent-contrast)", fontWeight: 600 }}>{t("agents.profile.quarantine")}</button>
             <button type="button" disabled={busy} onClick={() => { onThreadReset(); onClose(); }} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>

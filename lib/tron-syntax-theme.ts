@@ -22,7 +22,7 @@ const COLORS: Record<string, string> = {
   ".language-html .language-javascript .token.punctuation": "#7fa6b5",
   ".language-html .token.punctuation": "#7fa6b5", "punctuation.interpolation-punctuation": "#ff9a00",
   variable: "#dff6ff", parameter: "#dff6ff", interpolation: "#dff6ff",
-  deleted: "#ff4d5e", inserted: "#2ef2b0",
+  deleted: "#ff4d5e", inserted: "#00d8ff",
 };
 
 const SELECTION = "rgb(0 216 255 / 0.3)";

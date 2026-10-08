@@ -561,11 +561,11 @@ type ThinkingLevel = typeof THINKING_LEVELS[number];
 
 const LEVEL_COLORS: Record<ThinkingLevel, string> = {
   off:     "var(--text-dim)",
-  minimal: "#6b7280",
+  minimal: "#5b8a9a",
   low:     "var(--color-tron-cyan)",
-  medium:  "#a78bfa",
-  high:    "#f472b6",
-  xhigh:   "#fb923c",
+  medium:  "#8cc0ff",
+  high:    "var(--color-tron-orange)",
+  xhigh:   "#ff7a87",
   max:     "var(--color-tron-red)",
 };
 
@@ -615,7 +615,7 @@ function ThinkingLevelMapEditor({
         };
         const btnActiveDisabled: React.CSSProperties = {
           background: "var(--color-tron-red)",
-          color: "#fff",
+          color: "var(--accent-contrast)",
           fontWeight: 600,
         };
 
