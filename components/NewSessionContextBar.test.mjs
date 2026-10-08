@@ -86,7 +86,8 @@ test("the control a move came from takes focus in the bar of the new composer", 
 test("the bar sits in the empty page's header row, after the brand, only while it is empty", () => {
   const start = chatWindowSource.indexOf("{isEmptyNew && (\n          <div className=\"new-session-hero\"");
   assert.ok(start > 0);
-  const hero = chatWindowSource.slice(start, chatWindowSource.indexOf("{chatInputElement}", start));
+  // The fork's find bar (only for an open session) sits between the header and the composer.
+  const hero = chatWindowSource.slice(start, chatWindowSource.indexOf("{findOpen && (", start));
   // The versions first (floated right of the first line), then the brand and the bar.
   assert.match(
     hero,
