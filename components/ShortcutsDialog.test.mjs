@@ -23,7 +23,7 @@ test("the dialog is modal, above Settings, traps Tab, and Escape closes it alone
 test("?, Settings › General and the mobile toolbar open it", () => {
   assert.match(hook, /if \(onShowShortcuts && isShortcutsHelpKey\(e, document\.querySelector\('\[role="dialog"\]'\) !== null\)\) \{/);
   assert.match(shell, /useGlobalKeyboardShortcuts\(\{[\s\S]*?onShowShortcuts: openShortcuts,/);
-  assert.match(shell, /\{shortcutsOpen && <ShortcutsDialog onClose=\{\(\) => setShortcutsOpen\(false\)\} \/>\}/);
+  assert.match(shell, /\{shortcutsOpen && <ShortcutsDialog onClose=\{\(\) => \{\s*setShortcutsOpen\(false\);/);
   assert.match(shell, /onShowShortcuts=\{openShortcuts\}/);
   assert.match(shell, /data-mobile-toolbar-action="shortcuts"/);
   assert.match(settings, /onClick=\{onShowShortcuts\}/);
