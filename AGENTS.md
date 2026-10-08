@@ -147,6 +147,7 @@ lib/
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/agent-delegate.ts  agent_delegate: delegationRefusal() + queue a thread task for an opted-in agent (D14), trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
+  agents/command-policy.ts  COMMAND_DENY_PRESETS, commandDenyReason, createCommandPolicyExtension: per-agent command_deny regexes on bash/powershell, top-level and nested calls, fail closed
   agents/permissions.ts     buildAgentPermissions / assessTrifecta / explainTrifecta: what an agent can do, privateData + untrustedContent + exfiltration legs
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)

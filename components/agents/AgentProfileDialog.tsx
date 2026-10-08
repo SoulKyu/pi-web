@@ -6,6 +6,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
+import { COMMAND_DENY_PRESETS } from "@/lib/agents/command-policy";
 import { curationPrompt } from "@/lib/agents/curation-prompt";
 import { AgentPermissions } from "./AgentPermissions";
 import { TriggerDialog } from "./TriggerDialog";
@@ -26,6 +27,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [memoryHint, setMemoryHint] = useState(agent.memoryHint ?? "");
   const [memoryRecallLimit, setMemoryRecallLimit] = useState(agent.memoryRecallLimit === undefined ? "" : String(agent.memoryRecallLimit));
   const [memoryRecallThreshold, setMemoryRecallThreshold] = useState(agent.memoryRecallThreshold === undefined ? "" : String(agent.memoryRecallThreshold));
+  const [commandDeny, setCommandDeny] = useState((agent.commandDeny ?? []).join("\n"));
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -65,6 +67,11 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
     return () => controller.abort();
   }, []);
 
+  const appendDenyPreset = (preset: keyof typeof COMMAND_DENY_PRESETS) => {
+    const current = commandDeny.split("\n").map((line) => line.trim()).filter(Boolean);
+    setCommandDeny([...current, ...COMMAND_DENY_PRESETS[preset].filter((line) => !current.includes(line))].join("\n"));
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -83,6 +90,10 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (memoryCapture !== (agent.memoryCapture ?? "auto")) patch.memoryCapture = memoryCapture === "auto" ? null : memoryCapture;
       if (memorySave !== (agent.memorySave ?? "direct")) patch.memorySave = memorySave === "direct" ? null : memorySave;
       if ((memoryHint.trim() || undefined) !== agent.memoryHint) patch.memoryHint = memoryHint.trim() || null;
+      const denyLines = commandDeny.split("\n").map((line) => line.trim()).filter(Boolean);
+      const invalidDeny = denyLines.find((line) => { try { new RegExp(line); return false; } catch { return true; } });
+      if (invalidDeny !== undefined) { setError(t("agents.profile.commandDenyInvalid", { pattern: invalidDeny })); return; }
+      if (denyLines.join("\n") !== (agent.commandDeny ?? []).join("\n")) patch.commandDeny = denyLines.length ? denyLines : null;
       const recallLimit = memoryRecallLimit === "" ? undefined : Number(memoryRecallLimit);
       const recallThreshold = memoryRecallThreshold === "" ? undefined : Number(memoryRecallThreshold);
       if (recallLimit !== agent.memoryRecallLimit) patch.memoryRecallLimit = recallLimit ?? null;
@@ -189,6 +200,14 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
           <textarea aria-label={t("agents.new.memoryHint")} placeholder={t("agents.new.memoryHint")} maxLength={500} rows={2} value={memoryHint} onChange={(event) => setMemoryHint(event.target.value)} style={fieldStyle} />
           <input type="number" aria-label={t("agents.new.memoryRecallLimit")} placeholder={t("agents.new.memoryRecallLimit")} min={0} max={20} step={1} value={memoryRecallLimit} onChange={(event) => setMemoryRecallLimit(event.target.value)} style={fieldStyle} />
           <input type="number" aria-label={t("agents.new.memoryRecallThreshold")} placeholder={t("agents.new.memoryRecallThreshold")} min={0} max={1} step={0.05} value={memoryRecallThreshold} onChange={(event) => setMemoryRecallThreshold(event.target.value)} style={fieldStyle} />
+        </div>
+        <div style={labelStyle}>
+          {t("agents.profile.commandDeny")}
+          <textarea aria-label={t("agents.profile.commandDeny")} placeholder={t("agents.profile.commandDeny")} rows={4} value={commandDeny} onChange={(event) => setCommandDeny(event.target.value)} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="button" onClick={() => appendDenyPreset("cautious-sre")} style={buttonStyle}>{t("agents.profile.denyPresetCautious")}</button>
+            <button type="button" onClick={() => appendDenyPreset("reports-only")} style={buttonStyle}>{t("agents.profile.denyPresetReports")}</button>
+          </div>
         </div>
         <div style={labelStyle}>
           {t("agents.new.tools")}
