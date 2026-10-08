@@ -757,3 +757,13 @@ test("a project moves next to another of its band, its band's unsaved projects f
   assert.doesNotMatch(source, /viewMenuItems|kind: "view"|sidebar\.viewOptions/);
   assert.match(source, /menuItems = groupMenuItems\(projectByKey\.get\(menu\.project\.key\) \?\? menu\.project, menu\.olderCount\);/);
 });
+
+// Fork (5dff310): Escape empties the session search first, then closes it and returns focus to its toggle.
+test("Escape clears a session search query first, then closes the search and refocuses its toggle", () => {
+  assert.match(source, /const searchToggleRef = useRef<HTMLButtonElement>\(null\);/);
+  assert.match(source, /<button\s+ref=\{searchToggleRef\}\s+type="button"\s+onClick=\{\(\) => \{\s*\/\/ The search of the tab in view/);
+  assert.match(
+    source,
+    /if \(event\.key !== "Escape" \|\| event\.nativeEvent\.isComposing \|\| event\.keyCode === 229\) return;\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*if \(sessionSearchQuery\) \{\s*setSessionSearchQuery\(""\);\s*return;\s*\}\s*setSessionSearchOpen\(false\);\s*searchToggleRef\.current\?\.focus\(\);/,
+  );
+});

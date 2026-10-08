@@ -415,6 +415,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [explorerUploadBusy, setExplorerUploadBusy] = useState(false);
   const [fileSearchOpen, setFileSearchOpen] = useState(false);
   const [sessionSearchOpen, setSessionSearchOpen] = useState(false);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const [sessionSearchQuery, setSessionSearchQuery] = useState("");
   const [changesCount, setChangesCount] = useState(0);
   const [changesCollapsed, setChangesCollapsed] = useState(true);
@@ -2045,6 +2046,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
           <span className="sidebar-new-label">{t("sidebar.new")}</span>
         </button>
         <button
+          ref={searchToggleRef}
           type="button"
           onClick={() => {
             // The search of the tab in view: the files tab's searches its
@@ -2092,10 +2094,15 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
               placeholder={t("sidebar.searchSessions")}
               onChange={(event) => setSessionSearchQuery(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Escape" && !event.nativeEvent.isComposing && event.keyCode !== 229) {
-                  event.stopPropagation();
+                if (event.key !== "Escape" || event.nativeEvent.isComposing || event.keyCode === 229) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (sessionSearchQuery) {
                   setSessionSearchQuery("");
+                  return;
                 }
+                setSessionSearchOpen(false);
+                searchToggleRef.current?.focus();
               }}
               className="sidebar-search-input"
             />
