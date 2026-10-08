@@ -2325,8 +2325,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <button
                   onClick={() => sendQueued("followup")}
                   disabled={!canQueueStreamingMessage}
-                  title={`${t("chat.followUpHint")} (${isMobile ? "Ctrl/Cmd+" : ""}Alt/Option+Enter)`}
-                  aria-keyshortcuts={isMobile ? "Control+Alt+Enter Meta+Alt+Enter" : "Alt+Enter"}
+                  title={`${t("chat.followUpHint")} (${isMobile || enterSendMode === "ctrlEnter" ? "Ctrl/Cmd+" : ""}Alt/Option+Enter)`}
+                  aria-keyshortcuts={isMobile ? "Control+Alt+Enter Meta+Alt+Enter" : enterSendMode === "ctrlEnter" ? (shortcutPlatform === "mac" ? "Meta+Alt+Enter" : "Control+Alt+Enter") : "Alt+Enter"}
                   style={{
                     display: "flex", alignItems: "center", gap: 5,
                     padding: "7px 12px",
@@ -2344,7 +2344,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                     <line x1="2" y1="9" x2="8" y2="9" />
                   </svg>
                   {t("chat.followUp")}
-                  {!isMobile && <kbd className="shortcut-kbd" aria-hidden="true">{formatShortcut(["Alt", "Enter"], shortcutPlatform)}</kbd>}
+                  {!isMobile && <kbd className="shortcut-kbd" aria-hidden="true">{formatShortcut(enterSendMode === "ctrlEnter" ? [shortcutPlatform === "mac" ? "Meta" : "Ctrl", "Alt", "Enter"] : ["Alt", "Enter"], shortcutPlatform)}</kbd>}
                 </button>
               )}
             </div>

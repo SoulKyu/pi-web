@@ -92,10 +92,14 @@ test("pausing all agents asks inline; Escape cancels without reaching the global
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url);
   assert.doesNotMatch(rail, /window\.confirm/);
-  assert.match(rail, /onClick=\{\(\) => \(paused \? void togglePause\(\) : setConfirmingPause\(true\)\)\}/);
+  assert.match(rail, /onClick=\{\(\) => \(paused \? void setPausedAll\(false\) : setConfirmingPause\(true\)\)\}/);
   assert.match(rail, /role="group"\s+aria-label=\{t\("agentOps\.pause\.confirm"\)\}/);
   assert.match(rail, /if \(event\.key !== "Escape"\) return;\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*closePauseConfirm\(\);/);
-  assert.match(rail, /onClick=\{\(\) => \{ closePauseConfirm\(\); void togglePause\(\); \}\}/);
+  assert.match(rail, /onClick=\{\(\) => \{ closePauseConfirm\(\); void setPausedAll\(true\); \}\}/);
+  assert.match(rail, /JSON\.stringify\(\{ paused: next \}\)/);
+  assert.match(rail, /useEffect\(\(\) => \{ if \(paused\) setConfirmingPause\(false\); \}, \[paused\]\);/);
+  assert.match(rail, /aria-label=\{t\("agentOps\.pause\.confirmYes"\)\} title=\{t\("agentOps\.pause\.confirm"\)\}/);
+  assert.doesNotMatch(rail, /togglePause/);
   assert.match(rail, /aria-label=\{t\("agentOps\.pause\.confirmYes"\)\}/);
   assert.match(rail, /ref=\{pauseCancelRef\}/);
   assert.match(rail, /useEffect\(\(\) => \{ if \(confirmingPause\) pauseCancelRef\.current\?\.focus\(\); \}, \[confirmingPause\]\);/);

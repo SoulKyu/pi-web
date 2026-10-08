@@ -27,3 +27,11 @@ export function phaseLabel(phase: AgentPhase, t: Translate, isCompacting?: boole
   if (phase?.kind === "running_command") return t("chat.runningCommand");
   return null;
 }
+
+/** The screen-reader text for the status region: the phase without live tool output. */
+export function phaseAnnouncement(phase: AgentPhase, t: Translate, isCompacting?: boolean): string | null {
+  if (phase?.kind === "running_tools") {
+    return phaseLabel({ ...phase, tools: phase.tools.map(({ progress: _progress, ...tool }) => tool) }, t, isCompacting);
+  }
+  return phaseLabel(phase, t, isCompacting);
+}

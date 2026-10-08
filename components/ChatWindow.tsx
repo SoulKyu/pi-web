@@ -24,7 +24,7 @@ import { ExtensionStatusBar } from "./ExtensionStatusBar";
 import { AnsiText } from "./AnsiText";
 import { useI18n } from "@/hooks/useI18n";
 import { isNewDay } from "@/lib/day-separators";
-import { phaseLabel } from "@/lib/chat-phase-label";
+import { phaseAnnouncement, phaseLabel } from "@/lib/chat-phase-label";
 import { useAgentSession, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -1360,7 +1360,15 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
               <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} />
             )}
 
-            <div role="status" aria-live="polite">
+            <div
+              role="status"
+              aria-live="polite"
+              style={{ position: "absolute", width: 1, height: 1, margin: -1, padding: 0, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}
+            >
+              {agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && phaseAnnouncement(agentPhase, t, isCompacting)}
+              {bashRunning && !pendingBash && t("chat.runningCommand")}
+            </div>
+            <div>
               {agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && (
                 <div className="break-words py-2 text-[13px] text-text-muted">
                   <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t, isCompacting)}</span>

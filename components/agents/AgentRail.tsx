@@ -130,13 +130,14 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   const pauseButtonRef = useRef<HTMLButtonElement>(null);
   const pauseCancelRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (confirmingPause) pauseCancelRef.current?.focus(); }, [confirmingPause]);
+  useEffect(() => { if (paused) setConfirmingPause(false); }, [paused]);
   const closePauseConfirm = () => {
     setConfirmingPause(false);
     requestAnimationFrame(() => pauseButtonRef.current?.focus());
   };
-  const togglePause = async () => {
+  const setPausedAll = async (next: boolean) => {
     try {
-      const response = await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: !paused }) });
+      const response = await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: next }) });
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? `HTTP ${response.status}`);
       setPauseError(null);
     } catch (cause) {
@@ -174,11 +175,11 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
           }}
           style={{ display: "flex", flexDirection: vertical ? "column" : "row", alignItems: "center", gap: 4, flexShrink: 0 }}
         >
-          <button type="button" onClick={() => { closePauseConfirm(); void togglePause(); }} aria-label={t("agentOps.pause.confirmYes")} title={t("agentOps.pause.confirmYes")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 6 }}>✓{!vertical && <span>{t("agentOps.pause.confirmYes")}</span>}</button>
+          <button type="button" onClick={() => { closePauseConfirm(); void setPausedAll(true); }} aria-label={t("agentOps.pause.confirmYes")} title={t("agentOps.pause.confirm")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 6 }}>✓{!vertical && <span>{t("agentOps.pause.confirmYes")}</span>}</button>
           <button ref={pauseCancelRef} type="button" onClick={closePauseConfirm} aria-label={t("i18n.cancel")} title={t("i18n.cancel")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), border: "1px solid var(--border)", borderRadius: 6 }}>✕{!vertical && <span>{t("i18n.cancel")}</span>}</button>
         </div>
       ) : (
-        <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void togglePause() : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
+        <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void setPausedAll(false) : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
       )}
       {pauseError && <span role="alert" title={t("agents.error", { error: pauseError })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span>}
       {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}

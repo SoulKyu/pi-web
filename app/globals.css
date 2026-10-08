@@ -1912,7 +1912,7 @@ span.token.table {
 @keyframes agent-dot-pulse { 50% { opacity: 0.35; } }
 
 /* Daily budget bars (AgentSpaceRight): native <progress>, themed through the vendor pseudo-elements; accent-color is not enough in Safari. */
-.agent-budget-row { display: flex; align-items: center; gap: 6px; }
+.agent-budget-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; row-gap: 2px; }
 .agent-budget-progress { appearance: none; -webkit-appearance: none; flex: 0 1 96px; min-width: 48px; height: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-hover); overflow: hidden; }
 .agent-budget-progress::-webkit-progress-bar { background: var(--bg-hover); }
 .agent-budget-progress::-webkit-progress-value { background: var(--accent); }
