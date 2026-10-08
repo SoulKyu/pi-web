@@ -2107,6 +2107,60 @@ span.token.table {
 
 .mobile-toolbar-actions-scroll::-webkit-scrollbar { display: none; }
 
+/* Tron identity (components/tron). clip-path clips box-shadow, so chamfered
+   and hex shapes draw their border as an outer clipped layer and get their
+   glow from a drop-shadow filter on a wrapper. */
+.tron-chamfer {
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+
+.tron-hex {
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.tron-grid {
+  background-image:
+    linear-gradient(rgb(0 216 255 / 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 216 255 / 0.22) 1px, transparent 1px);
+  background-size: 34px 34px;
+  transform: perspective(260px) rotateX(62deg);
+  transform-origin: bottom;
+  -webkit-mask-image: linear-gradient(transparent, #000 70%);
+  mask-image: linear-gradient(transparent, #000 70%);
+}
+
+.tron-scan {
+  background: linear-gradient(90deg, transparent, var(--color-tron-orange), transparent) no-repeat;
+  background-size: 50% 100%;
+  animation: tron-scan 1.4s linear infinite;
+}
+
+@keyframes tron-scan {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.tron-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  vertical-align: -0.15em;
+  background: var(--color-tron-cyan);
+  box-shadow: 0 0 8px var(--color-tron-cyan);
+  animation: tron-blink 1s steps(2, start) infinite;
+}
+
+@keyframes tron-blink {
+  to { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tron-scan,
+  .tron-cursor {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
