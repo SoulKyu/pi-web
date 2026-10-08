@@ -1468,6 +1468,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.loadFailed": "無法載入智慧代理：{error}",
     "agents.error": "操作失敗：{error}",
     "agents.mention.queued": "已為 {name} 排隊",
+    "agents.mention.imagesNotAllowed": "請移除圖片後再把訊息交給智慧代理",
     "agents.new.title": "新建長期智慧代理",
     "agents.new.name": "名稱",
     "agents.new.avatar": "頭像",

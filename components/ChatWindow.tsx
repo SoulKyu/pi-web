@@ -966,6 +966,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
       onSend={handleSend}
       mentionAgents={handTargets.length > 0 ? handTargets : undefined}
       onQueueMention={handTargets.length > 0 ? queueMention : undefined}
+      onNotice={(message) => addNotice({ type: "error", message })}
       onAbort={handleAbort}
       onSteer={agentRunning ? handleSteer : undefined}
       onFollowUp={agentRunning ? handleFollowUp : undefined}

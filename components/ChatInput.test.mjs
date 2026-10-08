@@ -628,6 +628,7 @@ test("handleSend queues @Agent at the start instead of prompting; a failed queue
       onSend: (message) => calls.sent.push(message),
       mentionAgents: ["Scout"],
       onQueueMention: async (agent, prompt) => { calls.queued.push([agent, prompt]); return queued; },
+      mentionPendingRef: { current: false },
       parseAgentMention,
     });
     await handleSend();
@@ -637,6 +638,39 @@ test("handleSend queues @Agent at the start instead of prompting; a failed queue
   assert.deepEqual(await run("@Scout look", false), { queued: [["Scout", "look"]], sent: [], cleared: 0 });
   assert.deepEqual(await run("look @Scout", true), { queued: [], sent: ["look @Scout"], cleared: 1 });
   assert.deepEqual(await run("@Me look", true), { queued: [], sent: ["@Me look"], cleared: 1 });
+});
+
+test("handleSend refuses @Agent with images and ignores a second Enter while the queue is pending", async () => {
+  const build = (calls, attachedImages, onQueueMention, mentionPendingRef) => chatInputCallback("handleSend", {
+    value: "@Scout look",
+    valueRef: { current: "@Scout look" },
+    attachedImages,
+    onAudioUnlock() {},
+    isStreaming: false,
+    offersBuiltinSlashCommandWhileStreaming,
+    runBuiltinCommand: async () => false,
+    clearInput() { calls.cleared += 1; },
+    onSend: (message) => calls.sent.push(message),
+    mentionAgents: ["Scout"],
+    onQueueMention,
+    onNotice: (message) => calls.notices.push(message),
+    t: (key) => key,
+    mentionPendingRef,
+    parseAgentMention,
+  });
+  const calls = { queued: 0, sent: [], cleared: 0, notices: [] };
+  await build(calls, [{}], async () => { calls.queued += 1; return true; }, { current: false })();
+  assert.deepEqual(calls, { queued: 0, sent: [], cleared: 0, notices: ["agents.mention.imagesNotAllowed"] });
+
+  const pendingCalls = { queued: 0, sent: [], cleared: 0, notices: [] };
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const handleSend = build(pendingCalls, [], async () => { pendingCalls.queued += 1; await gate; return true; }, { current: false });
+  const first = handleSend();
+  await handleSend();
+  release();
+  await first;
+  assert.deepEqual(pendingCalls, { queued: 1, sent: [], cleared: 1, notices: [] });
 });
 
 test("restores text and base64 images when editing a user message", () => {

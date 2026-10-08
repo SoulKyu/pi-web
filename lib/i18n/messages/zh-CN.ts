@@ -1468,6 +1468,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.loadFailed": "无法加载智能体：{error}",
     "agents.error": "操作失败：{error}",
     "agents.mention.queued": "已为 {name} 排队",
+    "agents.mention.imagesNotAllowed": "请移除图片后再把消息交给智能体",
     "agents.new.title": "新建长期智能体",
     "agents.new.name": "名称",
     "agents.new.avatar": "头像",

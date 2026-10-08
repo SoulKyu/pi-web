@@ -1468,6 +1468,7 @@ export const enLocale: LocalePlugin = {
     "agents.loadFailed": "Could not load agents: {error}",
     "agents.error": "Action failed: {error}",
     "agents.mention.queued": "Queued for {name}",
+    "agents.mention.imagesNotAllowed": "Remove the images to hand a message to an agent",
     "agents.new.title": "New long-term agent",
     "agents.new.name": "Name",
     "agents.new.avatar": "Avatar",

@@ -107,6 +107,8 @@ interface Props {
   mentionAgents?: string[];
   /** Queue the task; resolves true when it was queued (the composer is then cleared) */
   onQueueMention?: (agent: string, prompt: string) => Promise<boolean>;
+  /** Shown when a send is refused with a reason (an @Agent message with images attached) */
+  onNotice?: (message: string) => void;
 }
 
 export interface ChatInputHandle {
@@ -613,6 +615,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   cwd,
   mentionAgents,
   onQueueMention,
+  onNotice,
   compact = false,
 }: Props, ref) {
   const { t } = useI18n();
@@ -641,6 +644,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const [historyActiveIndex, setHistoryActiveIndex] = useState(0);
   const [builtinCommandPending, setBuiltinCommandPending] = useState(false);
   const builtinCommandPendingRef = useRef(false);
+  const mentionPendingRef = useRef(false);
   const [fileIndex, setFileIndex] = useState<{ cwd: string; entries: FileIndexEntry[]; truncated: boolean } | null>(null);
   const [fileIndexLoading, setFileIndexLoading] = useState(false);
   const [atServerResult, setAtServerResult] = useState<{ cwd: string; query: string; matches: FileIndexEntry[] } | null>(null);
@@ -1021,15 +1025,22 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     onAudioUnlock?.();
     const builtinAllowed = !isStreaming || offersBuiltinSlashCommandWhileStreaming(msg);
     if (builtinAllowed && await runBuiltinCommand(msg)) return;
-    const mention = mentionAgents && onQueueMention && !attachedImages.length ? parseAgentMention(msg, mentionAgents) : null;
+    const mention = mentionAgents && onQueueMention ? parseAgentMention(msg, mentionAgents) : null;
     if (mention && onQueueMention) {
-      if (await onQueueMention(mention.agent, mention.prompt) && valueRef.current.trim() === msg) clearInput();
+      if (attachedImages.length) { onNotice?.(t("agents.mention.imagesNotAllowed")); return; }
+      if (mentionPendingRef.current) return;
+      mentionPendingRef.current = true;
+      try {
+        if (await onQueueMention(mention.agent, mention.prompt) && valueRef.current.trim() === msg) clearInput();
+      } finally {
+        mentionPendingRef.current = false;
+      }
       return;
     }
     if (isStreaming) return;
     clearInput();
     onSend(msg, attachedImages.length ? attachedImages : undefined);
-  }, [value, attachedImages, isStreaming, runBuiltinCommand, mentionAgents, onQueueMention, onSend, clearInput, onAudioUnlock]);
+  }, [value, attachedImages, isStreaming, runBuiltinCommand, mentionAgents, onQueueMention, onNotice, t, onSend, clearInput, onAudioUnlock]);
 
   const slashQuery = !compact && value.startsWith("/") && !/\s/.test(value.slice(1))
     ? value.slice(1).toLowerCase()

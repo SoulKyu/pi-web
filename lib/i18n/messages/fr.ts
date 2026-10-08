@@ -1468,6 +1468,7 @@ export const frLocale: LocalePlugin = {
     "agents.loadFailed": "Impossible de charger les agents : {error}",
     "agents.error": "Échec de l'action : {error}",
     "agents.mention.queued": "Tâche envoyée à {name}",
+    "agents.mention.imagesNotAllowed": "Retirez les images pour confier un message à un agent",
     "agents.new.title": "Nouvel agent de longue durée",
     "agents.new.name": "Nom",
     "agents.new.avatar": "Avatar",
