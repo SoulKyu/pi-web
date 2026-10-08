@@ -74,6 +74,15 @@
 - pi-mem0 ignores a malformed block whole (fail closed) and trust still wins: an untrusted thread never captures or saves directly. The hint is owner text appended to pi-mem0's extraction instructions, never to the model's system prompt.
 - UI: "Memory" section in `NewAgentDialog` / `AgentProfileDialog` (capture, save, hint, recall limit, recall threshold); PATCH `null` clears a key, create omits defaults.
 
+## Audit journal (`lib/agents/audit.ts`, `app/api/agents/[name]/audit/route.ts`, "Audit" in `components/agents/AgentSpaceRight.tsx`)
+
+- Logged, for agent-profile sessions only (thread and isolated; ordinary sessions untouched): one line per finished tool call (`tool_execution_end`, nested codemode calls flagged `nested`) with tool, `args`, absolute-path arguments (`paths`; a bash/powershell command is never scanned), `isError`, `durationMs`; plus one `policy: "deny" | "egress" | "path"` line per call the command, egress or home path policy blocked (a blocked call may thus appear twice: the block and its error end).
+- Never logged: tool RESULTS. `args` is `JSON.stringify` through `redactSecrets`, then cut at 500 characters (cut after redaction).
+- Where: `<agentDir>/agent-ops/audit/<agent>/<YYYY-MM>.jsonl` (UTC month of the line), directory 0700, file 0600, append-only. The reader looks at the current and the previous month only, skips a broken line, returns the newest `limit` (default 50, max 500) oldest first.
+- Never throws into a tool call: a write failure logs one warning per session (observer) or per block.
+- Retention: none yet, files are never deleted.
+- Display-only: the Audit `<details>` filters client-side by tool name and "blocked only".
+
 ## Permissions sheet (`lib/agents/permissions.ts`, `app/api/agents/[name]/permissions/route.ts`, `components/agents/AgentPermissions.tsx`)
 - Read-only section of the profile dialog, fetched on open. It reads the profile, `listGlobalMcpServers()` (names from the mcp.json files, no connection), the triggers of the agent and, only when the pinned thread's wrapper is alive, its `get_tools` (active names). It never starts a session or connects to an MCP server; otherwise `extensionTools` is `"unknown-until-start"`.
 - Cannot know: MCP servers from host imports or plugins, extension tools before the thread started, whether bwrap really starts (the sheet shows `"bubblewrap"` when the profile asks and the binary is on PATH, `"none"` otherwise).

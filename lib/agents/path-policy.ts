@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
+import { blockLine, type AuditLine } from "./audit";
 import { hasParentDirectorySegment, isExistingPathWithinRoots } from "../path-security";
 
 export const HOME_PATH_POLICY_EXTENSION_NAME = "pi-web-home-path-policy";
@@ -35,7 +36,7 @@ function findPatternBlockReason(toolName: string, input: unknown): string | null
 }
 
 /** Isolated runs (webhooks) read external text: a payload must not make them read ~/.ssh or auth.json. */
-export function createHomePathPolicyExtension(home: string): InlineExtension {
+export function createHomePathPolicyExtension(home: string, onBlock?: (line: AuditLine) => void): InlineExtension {
   return {
     name: HOME_PATH_POLICY_EXTENSION_NAME,
     hidden: true,
@@ -44,6 +45,7 @@ export function createHomePathPolicyExtension(home: string): InlineExtension {
         const path = pathOfToolInput(event.toolName, event.input);
         if (path === undefined) return undefined;
         const reason = homePathBlockReason(event.toolName, path, home) ?? findPatternBlockReason(event.toolName, event.input);
+        if (reason) onBlock?.(blockLine("path", event));
         return reason ? { block: true, reason } : undefined;
       });
     },

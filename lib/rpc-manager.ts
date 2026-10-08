@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { existsSync, realpathSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { agentProfileExtensionFactories } from "./agent-profile-extensions";
+import { createAuditObserver } from "./agents/audit";
 import type { WrapperEvent } from "./agent-ops/prompt-run";
 import { createTurnUsageTracker } from "./agent-ops/turn-usage";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
@@ -2715,6 +2716,7 @@ export async function startRpcSession(
     });
     const realSessionId = inner.sessionId as string;
     registerRpcWrapper(wrapper);
+    if (snapshotProfile) inner.subscribe(createAuditObserver(snapshotProfile.name) as Parameters<typeof inner.subscribe>[0]);
 
     if (!chatOnly) {
       if (deferredModel) {

@@ -12,6 +12,7 @@ import { QueueTaskDialog } from "./QueueTaskDialog";
 import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
 import { formatCompact } from "@/lib/agents/format-usage";
+import type { AuditLine } from "@/lib/agents/audit";
 
 interface MemoryState { recent: AgentMemoryItem[]; events: JournalEvent[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
 const EMPTY_MEMORY: MemoryState = { recent: [], events: [], pendingForget: [], staged: [] };
@@ -27,6 +28,9 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   const [queueOpen, setQueueOpen] = useState(false);
   const [usage, setUsage] = useState<AgentUsageSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [audit, setAudit] = useState<AuditLine[] | null>(null);
+  const [auditFilter, setAuditFilter] = useState("");
+  const [auditBlockedOnly, setAuditBlockedOnly] = useState(false);
   const signalRef = useRef<AbortSignal | undefined>(undefined);
 
   // One request pair serves both sections; the poll below reads `tasks` through a ref to pick its interval.
@@ -104,6 +108,14 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   const budgetReached = usage !== null && ((agent.budgetTokensPerDay !== undefined && usage.today.tokens >= agent.budgetTokensPerDay) || (agent.budgetUsdPerDay !== undefined && usage.today.cost >= agent.budgetUsdPerDay));
   const usageHasRuns = usage !== null && usage.days30.runs > 0;
 
+  const loadAudit = () => {
+    fetch(`/api/agents/${encodeURIComponent(agent.name)}/audit?limit=50`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { lines: [] }))
+      .then((data: { lines?: AuditLine[] }) => setAudit(data.lines ?? []))
+      .catch(() => setAudit([]));
+  };
+  const auditShown = (audit ?? []).filter((line) => line.tool.toLowerCase().includes(auditFilter.trim().toLowerCase()) && (!auditBlockedOnly || line.policy));
+
   const reloadMemory = () => void loadMemory(signalRef.current);
 
   return (
@@ -160,6 +172,26 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
           </div>
         </>
       )}
+      <div className="agent-space-section">{t("agents.space.audit")}</div>
+      <details onToggle={(event) => { if (event.currentTarget.open && audit === null) loadAudit(); }}>
+        <summary style={{ cursor: "pointer" }}>{t("agents.space.auditHint")}</summary>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "4px 0" }}>
+          <input value={auditFilter} onChange={(event) => setAuditFilter(event.target.value)} placeholder={t("agents.space.auditFilter")} aria-label={t("agents.space.auditFilter")} style={{ flex: 1, minWidth: 0, fontSize: 11 }} />
+          <label style={{ display: "flex", gap: 4, alignItems: "center", fontSize: 11 }}>
+            <input type="checkbox" checked={auditBlockedOnly} onChange={(event) => setAuditBlockedOnly(event.target.checked)} />{t("agents.space.auditBlockedOnly")}
+          </label>
+        </div>
+        {audit !== null && auditShown.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.space.auditNone")}</div>}
+        {auditShown.map((line, index) => (
+          <div key={`${line.at}-${index}`} style={{ borderTop: "1px solid var(--border)", padding: "3px 0" }}>
+            <span style={{ color: "var(--text-dim)" }}>{new Date(line.at).toLocaleString()}</span> <strong>{line.tool}</strong>
+            {line.policy && <span style={{ marginLeft: 6, color: "var(--text)" }}>{t("agents.space.auditBlocked", { policy: line.policy })}</span>}
+            {line.durationMs !== undefined && <span style={{ marginLeft: 6, color: "var(--text-dim)" }}>{line.durationMs} ms</span>}
+            {line.isError && !line.policy && <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>{t("agents.space.auditError")}</span>}
+            <code style={{ display: "block", whiteSpace: "pre-wrap", wordBreak: "break-all", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{line.args}</code>
+          </div>
+        ))}
+      </details>
       <div className="agent-space-section">{t("agents.space.memory")}</div>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
       <AgentMemoryRecent agentName={agent.name} items={memory.recent} events={memory.events} onOpenSession={onOpenSession} pending={memory.pendingForget} health={memory.health} onChanged={reloadMemory} />

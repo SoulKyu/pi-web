@@ -61,6 +61,7 @@ app/api/
   agents/[name]/memory/route.ts    GET the agent's recent memories
   agents/[name]/permissions/route.ts GET { permissions } read-only sheet + lethal-trifecta check (files and live thread tool names; no MCP connection, no session start)
   agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
+  agents/[name]/audit/route.ts     GET ?limit= the agent's audit journal (tool-call arguments and policy blocks, never results), oldest first
   agents/[name]/memory/forget/route.ts POST request a forget
   memory/route.ts                  GET ?scope=user|project:<id>|agent:<name> pi-mem0 scope snapshot + { scopes, health } (400 on a bad scope)
   memory/forget/route.ts           POST { scope, memoryIds } (1-50) queue forget requests: 202 { requestIds } | 404 unknown id
@@ -151,6 +152,7 @@ lib/
   agents/egress-policy.ts   HOST_RE, hostAllowed, urlsOfToolInput, createEgressPolicyExtension: per-agent web_allow_hosts on external tools with a URL, top-level and nested calls, fail closed
   agents/command-policy.ts  COMMAND_DENY_PRESETS, commandDenyReason, createCommandPolicyExtension: per-agent command_deny regexes on bash/powershell, top-level and nested calls, fail closed
   agents/permissions.ts     buildAgentPermissions / assessTrifecta / explainTrifecta: what an agent can do, privateData + untrustedContent + exfiltration legs
+  agents/audit.ts           appendAudit / readAudit / createAuditObserver / blockLine: per-agent audit journal, <agentDir>/agent-ops/audit/<agent>/<YYYY-MM>.jsonl (0600), args redacted
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
   agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)

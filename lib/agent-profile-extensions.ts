@@ -1,4 +1,5 @@
 import type { InlineExtension } from "@earendil-works/pi-coding-agent";
+import { appendAuditSafe } from "./agents/audit";
 import { createAgentApproveExtension } from "./agents/agent-approve";
 import { createAgentDelegateExtension } from "./agents/agent-delegate";
 import { createAgentNotifyExtension } from "./agents/agent-notify";
@@ -20,14 +21,16 @@ type ProjectShellSettings = { getShellCommandPrefix(): string | undefined; getSh
 export function agentProfileExtensionFactories(options: {
   cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension; homeOnly?: string; commandDeny?: string[]; webAllowHosts?: string[]; wrapCommand?: (command: string) => string;
 }): InlineExtension[] {
+  const agentName = options.agentName;
+  const onBlock = agentName ? (line: Parameters<typeof appendAuditSafe>[1]) => appendAuditSafe(agentName, line) : undefined;
   return [
     ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),
     createReadOnlyMcpPolicyExtension({ selection: (entries) => readSubagentSessionResources(entries)?.tools }),
-    ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
+    ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly, onBlock)] : []),
     createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings, wrapCommand: options.wrapCommand }),
     createUntrustedContentExtension(),
-    ...(options.commandDeny?.length ? [createCommandPolicyExtension(options.commandDeny)] : []),
-    ...(options.webAllowHosts?.length ? [createEgressPolicyExtension(options.webAllowHosts)] : []),
+    ...(options.commandDeny?.length ? [createCommandPolicyExtension(options.commandDeny, onBlock)] : []),
+    ...(options.webAllowHosts?.length ? [createEgressPolicyExtension(options.webAllowHosts, onBlock)] : []),
     ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName }), createAgentDelegateExtension({ agentName: options.agentName })] : []),
   ];
 }
