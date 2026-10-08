@@ -45,7 +45,7 @@ test("Settings › MCP works without a project, and only project sections fall b
   assert.match(shellSource, /const disabled = settingsSectionRequiresProject\(section\) && !projectTrustCwd;/);
   assert.doesNotMatch(shellSource, /section !== "models"/);
   // Its own glyph, not the Plugins fallback.
-  assert.match(panelSource, /if \(section === "mcp"\) return <svg \{\.\.\.common\}>/);
+  assert.match(panelSource, /if \(section === "mcp"\) return <Server \{\.\.\.common\} \/>/);
   for (const source of [enSource, zhSource]) assert.match(source, /"settings\.mcp": "MCP"/);
 });
 
@@ -194,15 +194,14 @@ test("labels agent profiles as sub-agents", () => {
 });
 
 test("uses the child-session robot glyph for the sub-agents tab", () => {
-  const robotGlyph = /<rect x="5" y="7" width="14" height="11" rx="2" \/>\s*<path d="M9 11h\.01M15 11h\.01M9 15h6M12 7V4M10 4h4" \/>/;
-  assert.match(panelSource, robotGlyph);
-  assert.match(sidebarSource, robotGlyph);
-  assert.match(panelSource, /section === "agents"[\s\S]*?className="settings-section-icon is-agent"/);
+  // One shared glyph: lucide Bot in the sub-agents tab and for sidebar child sessions.
+  assert.match(panelSource, /section === "agents"\) return <Bot \{\.\.\.common\} className="settings-section-icon is-agent"/);
+  assert.match(sidebarSource, /<Bot aria-hidden="true" className="size-\[11px\] shrink-0 text-tron-cyan" \/>/);
   assert.match(cssSource, /\.settings-section-icon\.is-agent \{[\s\S]*?transform: scale\(1\.25\)/);
 });
 
 test("uses the compact controls glyph for General", () => {
-  assert.match(panelSource, /section === "general"[\s\S]*?<path d="M20 7h-9M14 17H5" \/>[\s\S]*?<circle cx="7" cy="7" r="3" \/>[\s\S]*?<circle cx="17" cy="17" r="3" \/>/);
+  assert.match(panelSource, /section === "general"\) return <SlidersHorizontal \{\.\.\.common\} \/>/);
 });
 
 test("keeps password authentication to one login field and one settings action", () => {

@@ -10,7 +10,7 @@ import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
-import { Trash2 } from "lucide-react";
+import { Bot, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { fieldClass } from "./ui/input";
 import { Led } from "./ui/led";
@@ -2410,10 +2410,7 @@ function SessionItem({
         <>
           {/* Subagent indicator for child sessions */}
           {depth > 0 && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-tron-cyan">
-              <rect x="5" y="7" width="14" height="11" rx="2" />
-              <path d="M9 11h.01M15 11h.01M9 15h6M12 7V4M10 4h4" />
-            </svg>
+            <Bot aria-hidden="true" className="size-[11px] shrink-0 text-tron-cyan" />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
