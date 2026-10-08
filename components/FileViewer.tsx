@@ -367,14 +367,14 @@ function DiffView({ patch }: { patch: string }) {
         const lines = seg.lines.map((line, li) => {
           const bg =
             line.type === "added"
-              ? "rgba(0,200,80,0.12)"
+              ? "var(--diff-added-bg)"
               : line.type === "removed"
-              ? "rgba(240,60,60,0.14)"
+              ? "var(--diff-removed-bg)"
               : "transparent";
           const prefix =
             line.type === "added" ? "+" : line.type === "removed" ? "-" : " ";
           const prefixColor =
-            line.type === "added" ? "#4ade80" : line.type === "removed" ? "#f87171" : "var(--text-dim)";
+            line.type === "added" ? "var(--diff-added)" : line.type === "removed" ? "var(--diff-removed)" : "var(--text-dim)";
 
           return (
             <div
@@ -385,9 +385,9 @@ function DiffView({ patch }: { patch: string }) {
                 minWidth: "100%",
                 background: bg,
                 borderLeft: line.type === "added"
-                  ? "3px solid #4ade80"
+                  ? "3px solid var(--diff-added)"
                   : line.type === "removed"
-                  ? "3px solid #f87171"
+                  ? "3px solid var(--diff-removed)"
                   : "3px solid transparent",
               }}
             >

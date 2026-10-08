@@ -1503,16 +1503,16 @@ function SplitDiffHeader({ title, side }: { title: string; side: "left" | "right
 function SplitDiffCellView({ cell, side }: { cell: SplitDiffCell; side: "left" | "right" }) {
   const bg =
     cell.type === "added"
-      ? "rgba(34,197,94,0.12)"
+      ? "var(--diff-added-bg)"
       : cell.type === "removed"
-      ? "rgba(248,113,113,0.13)"
+      ? "var(--diff-removed-bg)"
       : cell.type === "empty"
       ? "var(--bg-subtle)"
       : "transparent";
   const marker =
     cell.type === "added" ? "+" : cell.type === "removed" ? "-" : " ";
   const markerColor =
-    cell.type === "added" ? "#22c55e" : cell.type === "removed" ? "#f87171" : "var(--text-dim)";
+    cell.type === "added" ? "var(--diff-added)" : cell.type === "removed" ? "var(--diff-removed)" : "var(--text-dim)";
 
   return (
     <div
@@ -1577,13 +1577,13 @@ function PatchTextView({ text }: { text: string }) {
           line.startsWith("-") && !line.startsWith("---") ? "removed" :
           "context";
         const bg =
-          kind === "added" ? "rgba(34,197,94,0.12)" :
-          kind === "removed" ? "rgba(248,113,113,0.13)" :
+          kind === "added" ? "var(--diff-added-bg)" :
+          kind === "removed" ? "var(--diff-removed-bg)" :
           kind === "hunk" ? "rgba(96,165,250,0.12)" :
           "transparent";
         const color =
-          kind === "added" ? "#22c55e" :
-          kind === "removed" ? "#f87171" :
+          kind === "added" ? "var(--diff-added)" :
+          kind === "removed" ? "var(--diff-removed)" :
           kind === "hunk" ? "var(--accent)" :
           "var(--text)";
 
@@ -1594,9 +1594,9 @@ function PatchTextView({ text }: { text: string }) {
               display: "flex",
               background: bg,
               borderLeft: kind === "added"
-                ? "3px solid #22c55e"
+                ? "3px solid var(--diff-added)"
                 : kind === "removed"
-                ? "3px solid #f87171"
+                ? "3px solid var(--diff-removed)"
                 : kind === "hunk"
                 ? "3px solid var(--accent)"
                 : "3px solid transparent",
