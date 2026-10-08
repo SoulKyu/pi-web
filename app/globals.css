@@ -1453,7 +1453,7 @@ pre, code {
 .chat-find-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chat-find-bar { margin-bottom: 8px; }
 .chat-find-row,
-/* Both side panels collapsed: the chat column takes the whole width (the Settings width applies otherwise). */
+/* A side panel collapsed: the chat column takes the whole width (the Settings width applies otherwise). */
 [data-chat-wide="true"] {
   --chat-content-max-width: 100%;
 }

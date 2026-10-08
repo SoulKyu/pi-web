@@ -2164,7 +2164,7 @@ export function AppShell() {
       )}
 
       {/* Center: chat */}
-      <div inert={rightPanelFullWidth} data-chat-wide={!sidebarOpen && !rightPanelOpen ? "true" : undefined} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      <div inert={rightPanelFullWidth} data-chat-wide={!sidebarOpen || !rightPanelOpen ? "true" : undefined} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {isMobile && <AgentRail
           agents={agents}
           activeAgent={activeAgent}
