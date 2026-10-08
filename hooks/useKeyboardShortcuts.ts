@@ -49,6 +49,19 @@ export function isShortcutsHelpKey(event: KeyboardEvent, dialogOpen: boolean): b
   return tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !target?.isContentEditable;
 }
 
+/**
+ * Cmd+K (mac) / Ctrl+K (elsewhere) opens the command palette. Not with Alt or Shift, not while an
+ * input method composes, not when something nearer took the key, and never inside the terminal:
+ * there Ctrl+K belongs to the shell. On mac Ctrl+K stays the text-field "kill line".
+ */
+export function isCommandPaletteKey(event: KeyboardEvent, platform: "mac" | "other"): boolean {
+  if (event.key.toLowerCase() !== "k" || event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey) return false;
+  const primary = platform === "mac" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+  if (!primary) return false;
+  const target = event.target as Element | null;
+  return !target?.closest?.(".terminal-xterm");
+}
+
 // ---------------------------------------------------------------------------
 // Hook: global keyboard shortcuts
 // ---------------------------------------------------------------------------

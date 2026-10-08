@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useGlobalKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { isCommandPaletteKey, useGlobalKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useRailShortcuts } from "@/hooks/useRailShortcuts";
 import { SessionSidebar } from "./SessionSidebar";
 import { ChatWindow } from "./ChatWindow";
@@ -31,6 +31,9 @@ import { newTerminalTab, restoreTerminalTabs, TERMINAL_TABS_KEY, type TerminalTa
 import { useI18n } from "@/hooks/useI18n";
 import { ArrowDown, ArrowUp, Bot, Check, Ellipsis, FileText, GitBranch, History, Keyboard, LoaderCircle, PanelLeftClose, PanelLeftOpen, PanelRight, RefreshCw, Info, ShieldAlert, WandSparkles, Wrench, X } from "lucide-react";
 import { TopBarButton, contextTone } from "./shell/TopBarButton";
+import { CommandPalette, type PaletteCommand } from "./shell/CommandPalette";
+import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
+import { formatShortcut } from "@/lib/shortcut-label";
 import { Badge } from "./ui/badge";
 import { Gauge } from "./ui/gauge";
 import { Led } from "./ui/led";
@@ -77,7 +80,7 @@ import type { SessionStatsInfo } from "@/lib/pi-types";
 import type { FileViewerState } from "@/lib/file-viewer-state";
 import type { ToolEntry } from "@/lib/tool-presets";
 import { getSessionFamily } from "@/lib/session-family";
-import { getLastSettingsSection, settingsSectionRequiresProject, type SettingsSection } from "@/lib/settings-navigation";
+import { getLastSettingsSection, settingsSectionRequiresProject, SETTINGS_SECTION_VALUES, type SettingsSection } from "@/lib/settings-navigation";
 
 type SessionCopyField = "file" | "id" | "projectDir" | "gitBranch" | "gitWorktree";
 type AutoNameStatus =
@@ -1262,6 +1265,56 @@ export function AppShell() {
   const projectTrustCwd = selectedSession?.cwd ?? effectiveNewSessionCwd;
   // While restoring initial session from URL, don't show the placeholder
   const showPlaceholder = initialSessionRestored && !showChat;
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const shortcutPlatform = useShortcutPlatform();
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isCommandPaletteKey(event, shortcutPlatform)) return;
+      event.preventDefault();
+      setPaletteOpen((open) => !open);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [shortcutPlatform]);
+  const paletteCommands = useMemo<PaletteCommand[]>(() => {
+    const settingsLabels: Record<SettingsSection, string> = {
+      general: translate("settings.general"),
+      models: translate("common.models"),
+      skills: translate("common.skills"),
+      agents: translate("common.agents"),
+      plugins: translate("common.plugins"),
+      mcp: translate("settings.mcp"),
+      memory: translate("settings.memory"),
+    };
+    const commands: PaletteCommand[] = [
+      {
+        id: "new-session",
+        group: "actions",
+        label: translate("palette.newSession"),
+        hint: formatShortcut(["Ctrl", "Alt", "N"], shortcutPlatform),
+        disabled: !activeCwd,
+        run: () => { if (activeCwd) handleNewSession(`kb-${Date.now()}`, activeCwd); },
+      },
+      { id: "toggle-sidebar", group: "actions", label: translate("palette.toggleSidebar"), run: handleSidebarToggle },
+      { id: "toggle-files", group: "actions", label: translate("palette.toggleFiles"), run: handleRightPanelToggle },
+      { id: "shortcuts", group: "actions", label: translate("shortcuts.open"), hint: "?", run: openShortcuts },
+      ...SETTINGS_SECTION_VALUES.map((section): PaletteCommand => ({
+        id: `settings-${section}`,
+        group: "settings",
+        label: `${translate("settings.title")} › ${settingsLabels[section]}`,
+        disabled: settingsSectionRequiresProject(section) && !projectTrustCwd,
+        run: () => openSettingsSection(section),
+      })),
+      ...sessionCatalog.filter((session) => !session.transient).slice(0, 300).map((session): PaletteCommand => ({
+        id: `session-${session.id}`,
+        group: "sessions",
+        label: session.name || session.firstMessage?.slice(0, 60) || session.id.slice(0, 12),
+        run: () => handleSelectSession(session),
+      })),
+    ];
+    return commands;
+  }, [activeCwd, handleNewSession, handleRightPanelToggle, handleSelectSession, handleSidebarToggle, openSettingsSection, openShortcuts, projectTrustCwd, sessionCatalog, shortcutPlatform, translate]);
 
   useEffect(() => {
     setProjectTrust(null);
@@ -2648,6 +2701,7 @@ export function AppShell() {
         onOpen={(name, entryId) => { setInboxOpen(false); void openAgent(name, entryId); }}
       />
     )}
+    <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={paletteCommands} />
     {shortcutsOpen && <ShortcutsDialog onClose={() => {
       setShortcutsOpen(false);
       if (shortcutsFromMobileLayerRef.current) {
