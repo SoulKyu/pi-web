@@ -25,3 +25,10 @@ test("a row cancels through DELETE, says what it waits on, and an empty list ren
 test("the strip yields its height to the phone keyboard", () => {
   assert.match(css, /@media \(max-width: 640px\), \(pointer: coarse\) and \(max-height: 500px\) \{\s*html\[data-keyboard-open\] \.agent-pending-strip \{ display: none; \}/);
 });
+
+test("a cancel moves focus to the next row's Cancel, else the previous one, and a later poll never brings the row back", () => {
+  assert.match(source, /cancelledRef\.current\.add\(id\);/);
+  assert.match(source, /outgoingRequests\(data\.tasks, agentName\)\.filter\(\(task\) => !cancelledRef\.current\.has\(task\.id\)\)/);
+  assert.match(source, /row\?\.nextElementSibling\?\.matches\("\.agent-pending-item"\) \? row\.nextElementSibling : row\?\.previousElementSibling/);
+  assert.ok(source.indexOf('querySelector("button")?.focus()') < source.indexOf("setTasks((current) => current.filter"), "focus moves before the row unmounts");
+});
