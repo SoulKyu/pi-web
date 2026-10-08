@@ -267,7 +267,7 @@ components/
   agents/AgentOpsSettings.tsx quiet hours, run cap and memory floor in Settings › Agents
   agents/AgentEventCard.tsx event card in the thread (orange schedule/task, purple webhook)
   agents/QueueTaskDialog.tsx queue a task for an agent's thread
-  agents/queue-task-view.ts QUOTE_MAX mirror, clipQuote, reviewExcerpt, queueErrorKey: pure helpers of QueueTaskDialog (client-safe)
+  agents/queue-task-view.ts HandTarget, QUOTE_MAX mirror, clipQuote, reviewExcerpt, queueErrorKey: pure helpers of QueueTaskDialog (client-safe)
   agents/PromptChips.tsx   prompt chips above the agent composer, from <home>/prompts
   agents/AgentMemoryRecent.tsx recent memories with forget
   agents/AgentPermissions.tsx read-only Permissions section of the profile dialog

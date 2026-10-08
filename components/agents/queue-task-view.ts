@@ -1,3 +1,8 @@
+import type { AgentListItem } from "@/lib/agents/agent-view";
+
+/** A3: a hand-over target with the status the rail poll already has. */
+export type HandTarget = Pick<AgentListItem, "name" | "paused" | "running">;
+
 /** Mirrors QUOTE_MAX in app/api/agents/[name]/tasks/route.ts, counted the same way (quote.length); the route stays authoritative. */
 export const QUOTE_MAX = 20_000;
 const REVIEW_EXCERPT_MAX = 60;

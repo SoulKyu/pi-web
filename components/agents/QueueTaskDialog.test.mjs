@@ -58,3 +58,13 @@ test("the dialog strings exist in all four locales", async () => {
     for (const key of ["agents.handTo.prompt", "agents.askReview.titleLine", "agents.askReview.placeholder", "agents.askReview.submit", "agents.handTo.quoteClipped", "agents.handTo.mentionHint", "agents.handTo.errorQuoteTooLong", "agents.handTo.errorUnknownAgent"]) assert.ok(messages.includes(`"${key}"`), `${locale} ${key}`);
   }
 });
+
+test("the target select always shows, marks paused and busy agents, and explains the missing self", () => {
+  assert.match(dialog, /targetAgents\?: HandTarget\[\]/);
+  assert.match(dialog, /\{targetAgents && \(/);
+  assert.doesNotMatch(dialog, /targetAgents\.length > 1/);
+  assert.match(dialog, /agent\.paused \? `\$\{agent\.name\} \$\{t\("agents\.handTo\.paused"\)\}` : agent\.running \? `\$\{agent\.name\} \$\{t\("agents\.handTo\.busy"\)\}` : agent\.name/);
+  assert.match(dialog, /aria-describedby=\{deliverTo \? selfHintId : undefined\}/);
+  assert.match(dialog, /<span id=\{selfHintId\}[^>]*>\{t\("agents\.handTo\.selfHint", \{ name: deliverTo \}\)\}/);
+  for (const key of ["agents.handTo.selfHint", "agents.handTo.paused", "agents.handTo.busy"]) assert.ok(dialog.includes(`"${key}"`), key);
+});

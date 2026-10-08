@@ -4,7 +4,7 @@ import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "rea
 import { useI18n } from "@/hooks/useI18n";
 import { openStackedDialog } from "@/lib/stacked-dialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
-import { clipQuote, QUOTE_MAX, queueErrorKey, reviewExcerpt } from "./queue-task-view";
+import { clipQuote, type HandTarget, QUOTE_MAX, queueErrorKey, reviewExcerpt } from "./queue-task-view";
 
 const REVIEW_TOOLS = ["read", "grep", "find", "ls", "memory_search"];
 // Mirrors PROMPT_MAX in app/api/agents/[name]/tasks/route.ts, counted the same way (prompt.length); the route stays authoritative.
@@ -13,7 +13,7 @@ const ERROR_COLOR = "#e5484d";
 
 /** `targetAgents`, `quote` and `deliverTo` make it a hand-over (D14): the result comes back as a card in `deliverTo`'s thread.
  *  `purpose="review"` queues an isolated read-only review run instead of a thread task. `onQueued` receives the agent the task went to. */
-export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, purpose = "handoff", onClose, onQueued }: { agentName: string; targetAgents?: string[]; quote?: string; deliverTo?: string; purpose?: "handoff" | "review"; onClose: () => void; onQueued: (target: string) => void }) {
+export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, purpose = "handoff", onClose, onQueued }: { agentName: string; targetAgents?: HandTarget[]; quote?: string; deliverTo?: string; purpose?: "handoff" | "review"; onClose: () => void; onQueued: (target: string) => void }) {
   const { t, locale } = useI18n();
   const review = purpose === "review";
   const sentQuote = useMemo(() => (quote ? clipQuote(quote) : null), [quote]);
@@ -27,6 +27,7 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const lengthId = useId();
+  const selfHintId = useId();
   const overCap = prompt.length > PROMPT_MAX;
   const showLength = prompt.length > PROMPT_MAX / 2;
   const formatCount = (value: number) => new Intl.NumberFormat(locale).format(value);
@@ -59,14 +60,15 @@ export function QueueTaskDialog({ agentName, targetAgents, quote, deliverTo, pur
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
       <form onSubmit={(event) => void submit(event)} style={formStyle}>
         <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
-        {targetAgents && targetAgents.length > 1 && (
+        {targetAgents && (
           <label style={labelStyle}>
             {t("agents.handTo.target")}
-            <select value={target} onChange={(event) => setTarget(event.target.value)} style={fieldStyle}>
-              {targetAgents.map((name) => <option key={name} value={name}>{name}</option>)}
+            <select value={target} onChange={(event) => setTarget(event.target.value)} aria-describedby={deliverTo ? selfHintId : undefined} style={fieldStyle}>
+              {targetAgents.map((agent) => <option key={agent.name} value={agent.name}>{agent.paused ? `${agent.name} ${t("agents.handTo.paused")}` : agent.running ? `${agent.name} ${t("agents.handTo.busy")}` : agent.name}</option>)}
             </select>
           </label>
         )}
+        {targetAgents && deliverTo && <span id={selfHintId} style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -6 }}>{t("agents.handTo.selfHint", { name: deliverTo })}</span>}
         {sentQuote && (
           <details style={{ fontSize: 12, color: "var(--text-muted)" }}>
             <summary style={{ cursor: "pointer" }}>{t(review ? "agents.askReview.quote" : "agents.handTo.quote")}</summary>
