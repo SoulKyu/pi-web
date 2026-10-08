@@ -111,7 +111,7 @@ export function SelectorRow({
             display: "flex", alignItems: "center", justifyContent: "center",
             width: 24, height: 24, padding: 0,
             background: "var(--bg-hover)", border: "1px solid var(--border)",
-            borderRadius: 6, color: "var(--text-muted)",
+            borderRadius: 0, color: "var(--text-muted)",
             cursor: "pointer",
             opacity: showSave ? 1 : 0,
             pointerEvents: showSave ? "auto" : "none",
@@ -120,7 +120,7 @@ export function SelectorRow({
           onMouseEnter={(event) => {
             event.currentTarget.style.background = "var(--bg-selected)";
             event.currentTarget.style.color = "var(--accent)";
-            event.currentTarget.style.borderColor = "rgba(37,99,235,0.35)";
+            event.currentTarget.style.borderColor = "rgb(0 216 255 / 0.35)";
           }}
           onMouseLeave={(event) => {
             event.currentTarget.style.background = "var(--bg-hover)";

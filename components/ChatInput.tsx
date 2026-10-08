@@ -39,7 +39,8 @@ import { AgentProfileSelector } from "./AgentProfileSelector";
 import { SelectorRow } from "./SelectorRow";
 import { ModelSelector, type ModelSelectorOption } from "./ModelSelector";
 import { ComposerChip, composerMenuClass } from "./composer/ComposerChip";
-import { Brain, ImagePlus, Minimize2, Square, Volume2, VolumeX, Wrench, X } from "lucide-react";
+import { ArrowRight, ArrowUpToLine, Brain, ImagePlus, Minimize2, SendHorizontal, Square, Volume2, VolumeX, Wrench, X } from "lucide-react";
+import { Chamfer } from "@/components/tron";
 import { cn } from "@/lib/cn";
 
 export { filterModelOptions } from "./ModelSelector";
@@ -504,9 +505,9 @@ function QueuedMessageRow({ kind, text }: { kind: "steer" | "follow-up"; text: s
           fontSize: 10,
           fontFamily: "var(--font-mono)",
           padding: "1px 7px",
-          borderRadius: 999,
-          border: `1px solid ${kind === "steer" ? "color-mix(in srgb, var(--accent) 45%, transparent)" : "var(--border)"}`,
-          color: kind === "steer" ? "var(--accent)" : "var(--text-dim)",
+          borderRadius: 0,
+          border: `1px solid ${kind === "steer" ? "color-mix(in srgb, var(--color-tron-orange) 50%, transparent)" : "var(--border)"}`,
+          color: kind === "steer" ? "var(--color-tron-orange)" : "var(--text-dim)",
         }}
       >
         {kind}
@@ -517,7 +518,7 @@ function QueuedMessageRow({ kind, text }: { kind: "steer" | "follow-up"; text: s
 }
 
 function ModelNoticeBanner({ tone, title, body, onClose }: { tone: "error" | "warning"; title: string; body: string; onClose?: () => void }) {
-  const color = tone === "error" ? "239,68,68" : "234,179,8";
+  const color = tone === "error" ? "var(--color-tron-red)" : "var(--color-tron-orange)";
   return (
     <div
       role="alert"
@@ -529,10 +530,10 @@ function ModelNoticeBanner({ tone, title, body, onClose }: { tone: "error" | "wa
         marginBottom: 8,
         padding: "7px 10px",
         overflowY: "auto",
-        border: `1px solid rgba(${color},0.3)`,
-        borderRadius: 6,
-        background: `rgba(${color},0.07)`,
-        color: `rgb(${color})`,
+        border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
+        borderRadius: 0,
+        background: `color-mix(in srgb, ${color} 7%, transparent)`,
+        color,
         fontSize: 11,
         lineHeight: 1.45,
       }}
@@ -1822,8 +1823,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         {retryInfo && (
           <div style={{
             marginBottom: 8, padding: "5px 10px",
-            background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.25)",
-            borderRadius: 6, fontSize: 12, color: "rgba(180,130,0,0.9)",
+            background: "color-mix(in srgb, var(--color-tron-orange) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-tron-orange) 25%, transparent)",
+            borderRadius: 0, fontSize: 12, color: "var(--color-tron-orange)",
             display: "flex", alignItems: "center", gap: 6,
           }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -1836,8 +1837,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         {compactResultText && (
           <div style={{
             marginBottom: 8, padding: "5px 10px",
-            background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.24)",
-            borderRadius: 6, fontSize: 12, color: "rgba(5,150,105,0.95)",
+            background: "rgb(0 216 255 / 0.08)", border: "1px solid rgb(0 216 255 / 0.24)",
+            borderRadius: 0, fontSize: 12, color: "var(--color-tron-cyan)",
             display: "flex", alignItems: "center", gap: 6,
           }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -1852,10 +1853,10 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             style={{
               marginBottom: 8,
               padding: "7px 10px",
-              background: "rgba(239,68,68,0.07)",
-              border: "1px solid rgba(239,68,68,0.3)",
-              borderRadius: 6,
-              color: "#ef4444",
+              background: "color-mix(in srgb, var(--color-tron-red) 7%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-tron-red) 30%, transparent)",
+              borderRadius: 0,
+              color: "var(--color-tron-red)",
               fontFamily: "var(--font-mono)",
               fontSize: 12,
               lineHeight: 1.5,
@@ -2258,23 +2259,11 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               </div>
             );
           })()}
-          <div
-            style={{
-              minWidth: 0,
-              display: "flex",
-              flexDirection: compact ? "column" : "row",
-              gap: 8,
-              alignItems: compact ? "stretch" : "center",
-              background: "var(--bg)",
-              border: compact ? "none" : `1px solid ${bashMode ? "var(--tool-bg)" : isStreaming && (onSteer || onFollowUp)
-                ? "rgba(234,179,8,0.4)"
-                : "color-mix(in srgb, var(--border) 70%, transparent)"}`,
-              borderRadius: compact ? 0 : 14,
-              padding: compact ? 0 : isMobile ? "6px 6px 6px 12px" : "10px 10px 10px 14px",
-              boxShadow: compact ? "none" : "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.10)",
-              transition: "border-color 0.15s, background 0.15s, box-shadow 0.15s",
-            } as React.CSSProperties}
-          >
+          {(() => {
+            const steering = isStreaming && Boolean(onSteer || onFollowUp);
+            const hasDraft = Boolean(value.trim() || attachedImages.length);
+            const composerRow = (
+          <>
           <textarea
             ref={textareaRef}
             className="chat-input-textarea"
@@ -2331,49 +2320,26 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, alignSelf: "flex-end" }}>
               {onSteer && (
                 <button
+                  type="button"
                   onClick={() => sendQueued("steer")}
                   disabled={!canQueueStreamingMessage}
                   title={t("chat.steerHint")}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "7px 12px",
-                    background: canQueueStreamingMessage ? "rgba(234,179,8,0.12)" : "none",
-                    border: "1px solid rgba(234,179,8,0.35)",
-                    borderRadius: 8,
-                    color: canQueueStreamingMessage ? "rgba(180,130,0,1)" : "var(--text-dim)",
-                    cursor: canQueueStreamingMessage ? "pointer" : "not-allowed",
-                    fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em",
-                    transition: "background 0.12s",
-                  }}
+                  className={cn("flex items-center gap-1.5 border border-tron-orange/50 px-3 py-[7px] text-[13px] font-semibold outline-none focus-visible:shadow-glow-cyan disabled:cursor-not-allowed", canQueueStreamingMessage ? "bg-tron-orange/15 text-tron-orange enabled:hover:bg-tron-orange/25" : "text-text-dim")}
                 >
-                  <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 1 L9 5 L5 9" /><line x1="1" y1="5" x2="9" y2="5" />
-                  </svg>
+                  <ArrowRight aria-hidden="true" className="size-3" />
                   {t("chat.steer")}
                 </button>
               )}
               {onFollowUp && (
                 <button
+                  type="button"
                   onClick={() => sendQueued("followup")}
                   disabled={!canQueueStreamingMessage}
                   title={`${t("chat.followUpHint")} (${isMobile || enterSendMode === "ctrlEnter" ? "Ctrl/Cmd+" : ""}Alt/Option+Enter)`}
                   aria-keyshortcuts={isMobile ? "Control+Alt+Enter Meta+Alt+Enter" : enterSendMode === "ctrlEnter" ? (shortcutPlatform === "mac" ? "Meta+Alt+Enter" : "Control+Alt+Enter") : "Alt+Enter"}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "7px 12px",
-                    background: canQueueStreamingMessage ? "rgba(129,140,248,0.12)" : "none",
-                    border: "1px solid rgba(129,140,248,0.35)",
-                    borderRadius: 8,
-                    color: canQueueStreamingMessage ? "rgba(99,102,241,1)" : "var(--text-dim)",
-                    cursor: canQueueStreamingMessage ? "pointer" : "not-allowed",
-                    fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em",
-                    transition: "background 0.12s",
-                  }}
+                  className={cn("flex items-center gap-1.5 border border-tron-cyan/50 px-3 py-[7px] text-[13px] font-semibold outline-none focus-visible:shadow-glow-cyan disabled:cursor-not-allowed", canQueueStreamingMessage ? "bg-tron-cyan/15 text-tron-cyan enabled:hover:bg-tron-cyan/25" : "text-text-dim")}
                 >
-                  <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="1" x2="5" y2="6" /><polyline points="2.5 3.5 5 1 7.5 3.5" />
-                    <line x1="2" y1="9" x2="8" y2="9" />
-                  </svg>
+                  <ArrowUpToLine aria-hidden="true" className="size-3" />
                   {t("chat.followUp")}
                   {!isMobile && <kbd className="shortcut-kbd" aria-hidden="true">{formatShortcut(enterSendMode === "ctrlEnter" ? [shortcutPlatform === "mac" ? "Meta" : "Ctrl", "Alt", "Enter"] : ["Alt", "Enter"], shortcutPlatform)}</kbd>}
                 </button>
@@ -2385,32 +2351,34 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               disabled={!value.trim() && !attachedImages.length}
               title={t("chat.send")}
               aria-label={t("chat.send")}
-              style={{
-                flexShrink: 0,
-                alignSelf: "flex-end",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                // Mobile: icon-only so the placeholder and draft keep the width.
-                ...(isMobile ? { width: 36, height: 36, padding: 0 } : { padding: "7px 14px" }),
-                background: (value.trim() || attachedImages.length) ? "var(--accent)" : "var(--bg-panel)",
-                border: "none",
-                borderRadius: 8,
-                color: (value.trim() || attachedImages.length) ? "var(--accent-contrast)" : "var(--text-dim)",
-                cursor: (value.trim() || attachedImages.length) ? "pointer" : "not-allowed",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: "-0.01em",
-                boxShadow: (value.trim() || attachedImages.length) ? "0 1px 3px color-mix(in srgb, var(--accent) 25%, transparent)" : "none",
-                transition: "background 0.15s, box-shadow 0.15s",
-              }}
+              className={cn("flex shrink-0 items-center justify-center gap-1.5 self-end text-[13px] font-semibold outline-none transition-shadow focus-visible:shadow-glow-cyan disabled:cursor-not-allowed", hasDraft ? "bg-tron-orange text-black enabled:hover:shadow-glow-orange" : "bg-bg-panel text-text-dim")}
+              // Mobile: icon-only so the placeholder and draft keep the width.
+              style={isMobile ? { width: 36, height: 36, padding: 0, border: "none" } : { padding: "7px 14px", border: "none" }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="2" y1="7" x2="11" y2="7" />
-                <polyline points="7.5 3 12 7 7.5 11" />
-              </svg>
+              <SendHorizontal aria-hidden="true" className="size-3.5" />
               {!isMobile && t("chat.send")}
             </button>
           )}
-          </div>
+          </>
+            );
+            return compact ? (
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch", background: "var(--bg)" }}>
+                {composerRow}
+              </div>
+            ) : (
+              <Chamfer tone={steering ? "orange" : "cyan"} glow cut={12} innerStyle={{
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "center",
+                padding: isMobile ? "6px 6px 6px 12px" : "10px 10px 10px 14px",
+                background: bashMode ? "var(--tool-bg)" : "#000",
+              }}>
+                {composerRow}
+              </Chamfer>
+            );
+          })()}
         </div>
 
         {/* Bash mode status label */}

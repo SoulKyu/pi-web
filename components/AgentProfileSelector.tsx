@@ -96,7 +96,7 @@ export function AgentProfileSelector({ cwd, agentProfile, onChange, disabled, is
           height: 32,
           background: open ? "var(--bg-hover)" : "none",
           border: "none",
-          borderRadius: 9,
+          borderRadius: 0,
           color: agentProfile ? "var(--accent)" : "var(--text-muted)",
           cursor: editable ? "pointer" : "default",
           fontSize: 12,
@@ -115,7 +115,7 @@ export function AgentProfileSelector({ cwd, agentProfile, onChange, disabled, is
           right: isMobile ? undefined : 0,
           left: isMobile ? 0 : undefined,
           zIndex: 100, background: "var(--bg)", border: "1px solid var(--border)",
-          borderRadius: 8, boxShadow: "0 -4px 16px rgba(0,0,0,0.10)",
+          borderRadius: 0, boxShadow: "var(--shadow-glow-cyan)",
           width: isMobile ? "min(320px, calc(100vw - 32px))" : 320,
           display: "flex", flexDirection: "column",
         }}>
@@ -132,7 +132,7 @@ export function AgentProfileSelector({ cwd, agentProfile, onChange, disabled, is
             style={{
               margin: 8, padding: "6px 8px", fontSize: 12,
               background: "var(--bg-panel)", color: "var(--text)",
-              border: "1px solid var(--border)", borderRadius: 6, outline: "none",
+              border: "1px solid var(--border)", borderRadius: 0, outline: "none",
             }}
           />
           <div style={{ maxHeight: 320, overflowY: "auto" }}>
