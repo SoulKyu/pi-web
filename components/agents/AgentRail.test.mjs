@@ -137,3 +137,14 @@ test("the health dot is a button opening a fixed popover outside the scrolling r
     assert.ok(!messages.includes('"agents.health.details"'), `${locale} drops the unused details key`);
   }
 });
+
+test("the horizontal rail shows each agent's name under its avatar, clipped by CSS; the vertical rail does not", async () => {
+  const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
+  assert.match(rail, /\{!vertical && <span className="agent-rail-name" aria-hidden="true">\{agent\.name\}<\/span>\}/);
+  // The accessible name still starts with the full name; the label is decoration only.
+  assert.match(rail, /aria-label=\{\[agent\.name, /);
+  const start = css.indexOf(".agent-rail-name {");
+  assert.notEqual(start, -1, ".agent-rail-name has a rule");
+  const rule = css.slice(start, css.indexOf("}", start));
+  for (const declaration of ["max-width: 8ch", "overflow: hidden", "text-overflow: ellipsis", "white-space: nowrap"]) assert.match(rule, new RegExp(declaration), declaration);
+});

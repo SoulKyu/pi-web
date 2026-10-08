@@ -200,9 +200,10 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             aria-current={agent.name === activeAgent ? "true" : undefined}
             aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.state === "needs_input" ? t("agents.rail.needsInput") : agent.running ? t("agents.rail.running") : agent.state === "failed" ? t("agents.rail.failed") : ""].filter(Boolean).join(", ")}
             title={[agent.name + (index < 9 ? ` · Ctrl+Alt+${index + 1}` : ""), [agent.lastPreview, agent.lastActivityAt && formatRelativeTime(agent.lastActivityAt, locale)].filter(Boolean).join(" · ")].filter(Boolean).join("\n")}
-            style={{ ...railButtonStyle, borderRadius: "50%" }}
+            style={vertical ? { ...railButtonStyle, borderRadius: "50%" } : { ...railButtonStyle, flexDirection: "column", gap: 2, width: "auto", height: "auto", minWidth: 32, padding: "0 2px", borderRadius: 6 }}
           >
             <AgentAvatar avatar={agent.avatar} running={agent.running} state={agent.state} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />
+            {!vertical && <span className="agent-rail-name" aria-hidden="true">{agent.name}</span>}
           </button>
         ))}
         <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>
