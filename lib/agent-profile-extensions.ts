@@ -7,6 +7,7 @@ import { createCommandPolicyExtension } from "./agents/command-policy";
 import { createEgressPolicyExtension } from "./agents/egress-policy";
 import { createHomePathPolicyExtension } from "./agents/path-policy";
 import { createSecretRedactionExtension } from "./agents/secret-redaction";
+import { getLongTermAgent } from "./agents/registry";
 import { readSecrets } from "./agents/secrets";
 import { createUntrustedContentExtension } from "./agents/untrusted-content";
 import { createReadOnlyMcpPolicyExtension } from "./mcp-read-only-policy";
@@ -25,7 +26,9 @@ export function agentProfileExtensionFactories(options: {
 }): InlineExtension[] {
   const agentName = options.agentName;
   // Read at session start: a change takes effect at the next thread start.
-  const secrets = agentName ? readSecrets(agentName) : {};
+  // Long-term agents only: a built-in subagent profile sharing a name never gets them. A bad file must not break the start.
+  let secrets: Record<string, string> = {};
+  try { if (agentName && getLongTermAgent(agentName)) secrets = readSecrets(agentName); } catch (error) { console.warn("[agent-secrets]", error instanceof Error ? error.message : error); }
   const onBlock = agentName ? (line: Parameters<typeof appendAuditSafe>[1]) => appendAuditSafe(agentName, line) : undefined;
   return [
     ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),

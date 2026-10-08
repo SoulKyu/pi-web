@@ -10,9 +10,10 @@ import { pickRoadmapSettings, ROADMAP_SETTING_KEYS, type AgentRoadmapSettings } 
 import { syncAgentMcpOverrides } from "./mcp-access";
 import { PRESET_DEFAULT, PRESET_FULL, PRESET_READ_ONLY } from "../tool-presets";
 import { HOST_RE } from "./egress-policy";
+import { AGENT_NAME_RE } from "./agent-name";
+import { deleteAllSecrets } from "./secrets";
 
-/** Same rule as profile names (lib/subagents.ts assertProfileName): the name is also a folder and a memory scope. */
-export const AGENT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export { AGENT_NAME_RE };
 export const TOOLS_PRESETS = ["read-only", "standard", "full"] as const;
 export type ToolsPreset = typeof TOOLS_PRESETS[number];
 export const TOOLS_BY_PRESET: Record<ToolsPreset, readonly string[]> = { "read-only": PRESET_READ_ONLY, standard: PRESET_DEFAULT, full: PRESET_FULL };
@@ -274,5 +275,6 @@ export function deleteLongTermAgent(name: string, threadPath?: string): string {
   if (threadPath && existsSync(threadPath)) renameSync(threadPath, join(trash, "thread.jsonl"));
   if (profile.filePath) unlinkSync(profile.filePath);
   try { unlinkSync(spacePath(name)); } catch { /* already gone */ }
+  deleteAllSecrets(name); // a future agent with this name must not inherit them
   return trash;
 }
