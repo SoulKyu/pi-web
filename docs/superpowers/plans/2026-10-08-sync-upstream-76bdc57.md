@@ -13,13 +13,13 @@ Rollback: `git reset --hard a507131` on `local` while nothing is pushed there.
 - [x] merge commit + gate: tsc OK, lint OK, 3548 pass / 20 fail / 1 skipped (failures listed below)
 - [x] fork contributions on the new sidebar (inventory below), each with a failing test first
 - [x] Origin check on new routes: already enforced (`isApiRequestAllowed`); tests send Origin + pin the refusal (`c2313bb`)
-- [ ] Tron pass on new upstream components (codemod dry run, write, hand touch-ups) + palette test
-- [ ] gate after each Tron commit
-- [ ] 4.4 final checks (`diff --stat`, fork files back to upstream)
+- [x] Tron pass: `554bd60` (sidebar, menus, toast, pickers), `956b230` (Bot glyph), `a96cd24` (font placeholders)
+- [x] gate after each Tron commit (3575 pass / 0 fail / 1 skipped at `554bd60`)
+- [x] 4.4 final checks: 482 files differ (344 A, 133 M, 5 D = theme plumbing); no fork file back to upstream; only session-sidebar-tron.test gone (replaced)
 - [ ] Opus review, fixes
 - [ ] push `sync/upstream-76bdc57` to origin, ask human visual check
 - [ ] 4.5 ff-only into `local`, push, delete sync branch
-- [ ] `AGENT.md` §7 + §8, report §9
+- [x] `AGENT.md` §7 + §8 (on the sync branch) · [ ] report §9
 
 ## Conflicts
 
@@ -33,8 +33,8 @@ Failures after the merge (20), each owned by a follow-up commit:
 - [x] ui-state + fork route tests (12) `c2313bb`: no `Origin` header (fork `request-security`) → fix(fork)
 - [x] NewSessionContextBar.test `9fe1bcf`: fork find bar sits between hero and composer → fix(fork)
 - [x] shortcut-label.test `a6c64ee`: New session Ctrl+Alt+N hint → contribution C10
-- [ ] session-sidebar-tron.test (4), polish-frame.test (1): old sidebar Tron pins → Tron pass
-- [ ] tron-settings.test: radius in upstream settings.css font rules → Tron pass
+- [x] session-sidebar-tron.test, polish-frame.test → `554bd60`
+- [x] tron-settings.test → `554bd60`
 
 Follow-ups noted:
 - AgentSessionPanel robot glyph → lucide Bot (Tron), restore its SettingsPanel.test assertion
