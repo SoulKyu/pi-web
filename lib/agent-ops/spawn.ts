@@ -9,7 +9,7 @@ import { splitModel } from "../agents/agent-view";
 import type { AgentTask } from "./task-store";
 import { profilePinSha256, TRIGGER_TOOL_ALLOWLIST, triggerRunPin } from "./trigger-store";
 
-type SpawnTask = Pick<AgentTask, "profile" | "cwd" | "prompt" | "origin" | "pinnedProfileSha256" | "model" | "tools">;
+type SpawnTask = Pick<AgentTask, "profile" | "cwd" | "prompt" | "origin" | "pinnedProfileSha256" | "model" | "tools" | "target">;
 
 /** `deps.startRpcSession` is a seam for tests. */
 export async function startAgentProfileRun(
@@ -29,15 +29,16 @@ export async function startAgentProfileRun(
   // An isolated run of a long-term agent runs in its home: regenerate its MCP blocklist before the adapter reads it.
   const agent = getLongTermAgent(profile);
   if (agent && agent.home === cwd) syncAgentMcpOverrides(agent.home, agent.mcpServers);
+  const narrowed = pin !== undefined || task.tools !== undefined || task.target === "isolated"; // an isolated run is never wide
   const initialModel = task.model ? splitModel(task.model) : null;
   const tempKey = `__agentops__${randomUUID()}`; // unique: same-key callers coalesce onto one session
   const { session, realSessionId } = await deps.startRpcSession(tempKey, "", cwd, {
     agentProfile: profile, // trust stays absent: the run is untrusted and narrowed to the allowlist
-    ...(pin !== undefined || task.tools !== undefined ? { agentProfileTools: (task.tools ?? [...TRIGGER_TOOL_ALLOWLIST]).filter((t) => TRIGGER_TOOL_ALLOWLIST.has(t)) } : {}),
+    ...(narrowed ? { agentProfileTools: (task.tools ?? [...TRIGGER_TOOL_ALLOWLIST]).filter((t) => TRIGGER_TOOL_ALLOWLIST.has(t)) } : {}),
     ...(initialModel ? { initialModel } : {}),
   });
   invalidateSessionListCache(); // the route's call at queue time ran before this session existed
-  if (pin !== undefined || task.tools !== undefined) await enforceTriggerTools(session, task.tools);
+  if (narrowed) await enforceTriggerTools(session, task.tools);
   try { beforePrompt?.(); } catch (error) { await session.shutdown().catch(() => {}); throw error; }
   const run = watchPromptRun(session, prompt);
   return { sessionId: realSessionId, done: run.done, abort: run.abort, usage: run.usage };

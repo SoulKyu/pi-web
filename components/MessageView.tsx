@@ -1,6 +1,7 @@
 "use client";
 
 import type { PlannotatorConfig } from "@/lib/plannotator";
+import { isExternalContentTool } from "@/lib/agents/untrusted-content";
 import { plannotatorLinks } from "@/lib/plannotator-links";
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
@@ -1262,7 +1263,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator }: 
   const resultIsEmpty = resultText === null ? false : (resultText.trim() === "(no output)" || resultText.trim() === "");
   const isError = (result?.isError ?? false)
     || (isApplyPatchToolName(block.toolName) && applyPatchResultHasFailures(result?.details));
-  const planLinks = plannotatorLinks(joinedResultText ?? "", plannotator ?? null);
+  const planLinks = isExternalContentTool(block.toolName) ? [] : plannotatorLinks(joinedResultText ?? "", plannotator ?? null);
   const subagent = isSubagentToolDetails(result?.details) ? result.details : null;
   const codemodeCallCount = codemode ? codemode.calls.length + codemode.omitted : 0;
 

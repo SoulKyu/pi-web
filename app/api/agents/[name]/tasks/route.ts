@@ -5,6 +5,7 @@ import { createTask, listTasks } from "@/lib/agent-ops/task-store";
 import { TRIGGER_TOOL_ALLOWLIST } from "@/lib/agent-ops/trigger-store";
 import { fenceExternal } from "@/lib/agents/fence";
 import { getLongTermAgent } from "@/lib/agents/registry";
+import { hasJsonContentType } from "@/lib/request-security";
 import { invalidateSessionListCache } from "@/lib/session-reader";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ name: s
   recoverOnce();
   const agent = getLongTermAgent((await params).name);
   if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+  if (!hasJsonContentType(req)) return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
   let body: { prompt?: unknown; requestedBy?: unknown; deliverTo?: unknown; quote?: unknown; target?: unknown; kind?: unknown; tools?: unknown; purpose?: unknown };
   try {
     body = await req.json();
@@ -63,7 +65,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ name: s
   const task = createTask({
     agent: agent.name, target: isolated ? "isolated" : "thread", kind: kind === "review" ? "review" : "task", profile: agent.name, cwd: agent.home, prompt: fullPrompt,
     title: prompt.trim().split("\n")[0].slice(0, TITLE_MAX), origin: "ui",
-    ...(Array.isArray(tools) ? { tools: tools as string[] } : {}), ...(requestedBy === "user" ? { requestedBy } : {}), ...(typeof deliverTo === "string" ? { deliverTo } : {}),
+    ...(isolated ? { tools: Array.isArray(tools) ? (tools as string[]) : [...TRIGGER_TOOL_ALLOWLIST] } : {}), ...(requestedBy === "user" ? { requestedBy } : {}), ...(typeof deliverTo === "string" ? { deliverTo } : {}),
   });
   invalidateSessionListCache();
   void kickRunner();

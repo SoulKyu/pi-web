@@ -114,7 +114,7 @@ For a setup without Loki. `GET /api/metrics` renders in-memory counters in the t
 | `pi_web_run_duration_seconds_sum` / `_count` | `agent` (`_count` only counts runs that recorded a duration) |
 
 - **Enable**: set `PI_WEB_METRICS_TOKEN` in the server's environment and restart. Unset or empty → `GET /api/metrics` answers 404.
-- **Auth**: `Authorization: Bearer <token>` (constant-time compare); 401 otherwise. `proxy.ts` exempts exactly `GET /api/metrics` from the web password/session (the host check still applies), so the bearer is the only gate: use a long random token (`openssl rand -base64 32`) and keep the port off the public internet.
+- **Auth**: `Authorization: Bearer <token>` (constant-time compare); 401 otherwise. `proxy.ts` exempts exactly `GET /api/metrics` from the web password/session (the host check still applies), so the bearer is the only gate: use a long random token of at least 32 random bytes (`openssl rand -hex 32`) and keep the port off the public internet.
 - **Counters restart at zero** with the process. Use `rate()` / `increase()`, which handle resets; they do not backfill past runs (use `runs.jsonl` for that). Only runs finished since the start are counted.
 - Nothing from sessions, prompts or the token appears in the output; the `agent` label is the agent name.
 

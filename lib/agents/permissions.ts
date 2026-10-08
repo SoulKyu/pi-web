@@ -17,7 +17,7 @@ export interface AgentPermissions {
   notCovered: string[];
 }
 
-type TrifectaInput = Pick<AgentPermissions, "tools" | "mcpAllowed" | "extensionTools" | "sandbox" | "webAllowHosts"> & { hasWebhookTrigger?: boolean; sandboxNetwork?: boolean };
+type TrifectaInput = Pick<AgentPermissions, "tools" | "mcpAllowed" | "extensionTools" | "sandbox" | "webAllowHosts"> & { hasWebhookTrigger?: boolean; hasFeedTrigger?: boolean; sandboxNetwork?: boolean };
 
 /** Lethal trifecta: private data + untrusted content + a way out. Needs all three legs for an injected instruction to leak data. */
 export function explainTrifecta(p: TrifectaInput): AgentPermissions["trifectaReasons"] {
@@ -27,7 +27,7 @@ export function explainTrifecta(p: TrifectaInput): AgentPermissions["trifectaRea
   // The sandbox wraps bash only: read, grep, find, ls, edit and write still reach ~/.ssh.
   const privateData = p.tools.filter((t) => FILE_TOOLS.includes(t) && (unsandboxed || t !== "bash"));
   const mcpServers = p.mcpAllowed.map((s) => `mcp:${s}`);
-  const untrustedContent = [...external, ...mcpServers, ...(p.hasWebhookTrigger ? ["webhook trigger"] : [])];
+  const untrustedContent = [...external, ...mcpServers, ...(p.hasWebhookTrigger ? ["webhook trigger"] : []), ...(p.hasFeedTrigger ? ["feed trigger"] : [])];
   // web_search / source_check fetch result pages from any host, and an MCP server sends anywhere: neither is narrowed by webAllowHosts.
   const exfiltration = [
     ...((unsandboxed || p.sandboxNetwork) && p.tools.includes("bash") ? ["bash (network)"] : []),
@@ -61,14 +61,15 @@ export function buildAgentPermissions(agent: LongTermAgent, deps: PermissionsDep
   const sandbox = agent.sandbox === "bubblewrap" && (deps.sandboxAvailable ?? bwrapAvailable() !== null) ? "bubblewrap" as const : "none" as const;
   const triggers = deps.triggers.filter((t) => t.profile === agent.name);
   const hasWebhookTrigger = triggers.some((t) => t.webhookSecretSha256 !== undefined);
+  const hasFeedTrigger = triggers.some((t) => t.source !== undefined);
   const sandboxNetwork = sandbox === "bubblewrap" && agent.sandboxNetwork === true;
-  const input = { tools, mcpAllowed, extensionTools: deps.extensionTools, sandbox, webAllowHosts, hasWebhookTrigger, sandboxNetwork };
+  const input = { tools, mcpAllowed, extensionTools: deps.extensionTools, sandbox, webAllowHosts, hasWebhookTrigger, hasFeedTrigger, sandboxNetwork };
   return {
     tools, preset: agent.toolsPreset, mcpAllowed,
     mcpBlockedCount: deps.configuredMcpServers.filter((s) => !mcpAllowed.includes(s)).length,
     extensionTools: deps.extensionTools, env: "sanitized", sandbox,
     memory: { capture: agent.memoryCapture ?? "auto", save: agent.memorySave ?? "direct" },
-    triggers: triggers.map((t) => ({ id: t.id, name: t.name, tools: t.tools ? [...t.tools] : [], target: t.webhookSecretSha256 !== undefined ? "isolated" : (t.runTarget ?? "thread") })),
+    triggers: triggers.map((t) => ({ id: t.id, name: t.name, tools: t.tools ? [...t.tools] : [], target: t.webhookSecretSha256 !== undefined || t.source !== undefined ? "isolated" : (t.runTarget ?? "thread") })),
     commandDeny: agent.commandDeny ?? [], secrets: deps.secretNames ?? listSecretNames(agent.name), webAllowHosts, trifecta: assessTrifecta(input), trifectaReasons: explainTrifecta(input),
     notCovered: ["MCP servers from host imports or plugins are not listed", ...(deps.extensionTools === "unknown-until-start" ? ["extension tools are known only once the thread has started"] : [])],
   };
