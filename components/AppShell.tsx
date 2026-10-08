@@ -32,6 +32,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { ArrowDown, ArrowUp, Bot, Check, Ellipsis, FileText, GitBranch, History, Keyboard, LoaderCircle, PanelLeftClose, PanelLeftOpen, PanelRight, RefreshCw, Info, ShieldAlert, WandSparkles, Wrench, X } from "lucide-react";
 import { TopBarButton, contextTone } from "./shell/TopBarButton";
 import { CommandPalette, type PaletteCommand } from "./shell/CommandPalette";
+import { Toaster, toast } from "sonner";
 import { useShortcutPlatform } from "@/hooks/useShortcutPlatform";
 import { formatShortcut } from "@/lib/shortcut-label";
 import { Badge } from "./ui/badge";
@@ -922,12 +923,12 @@ export function AppShell() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[pi-web] failed to open agent:", message);
-      window.alert(translate("agents.error", { error: message }));
+      toast.error(translate("agents.error", { error: message }));
       return;
     }
     if (!response.ok || !data.sessionId) {
       console.error("[pi-web] failed to open agent:", data.error);
-      window.alert(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
+      toast.error(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
       return;
     }
     const detail = await fetch(`/api/agents/${encodeURIComponent(name)}`, { cache: "no-store" })
@@ -952,13 +953,13 @@ export function AppShell() {
     try {
       response = await fetch(`/api/agents/${encodeURIComponent(name)}/thread/reset`, { method: "POST" });
     } catch (error) {
-      window.alert(translate("agents.error", { error: error instanceof Error ? error.message : String(error) }));
+      toast.error(translate("agents.error", { error: error instanceof Error ? error.message : String(error) }));
       return;
     }
-    if (response.status === 409) { window.alert(translate("agents.profile.running")); return; }
+    if (response.status === 409) { toast.error(translate("agents.profile.running")); return; }
     if (!response.ok) {
       const data = await response.json().catch(() => ({})) as { error?: string };
-      window.alert(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
+      toast.error(translate("agents.error", { error: data.error ?? `HTTP ${response.status}` }));
       return;
     }
     pendingAgentRef.current = null; // the old thread id must not keep the agent view open on the archived session
@@ -2702,6 +2703,22 @@ export function AppShell() {
       />
     )}
     <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={paletteCommands} />
+    <Toaster
+      theme="dark"
+      position="bottom-right"
+      toastOptions={{
+        unstyled: true,
+        classNames: {
+          toast: "flex w-[min(92vw,360px)] items-start gap-2 border border-tron-line bg-black px-3 py-2.5 text-sm text-text shadow-glow-cyan",
+          title: "font-medium",
+          description: "text-xs text-text-muted",
+          error: "border-tron-red/60 text-tron-red shadow-[0_0_14px_rgb(255_77_94/0.35)]",
+          warning: "border-tron-orange/60 text-tron-orange shadow-glow-orange",
+          success: "text-tron-cyan",
+          closeButton: "border border-tron-line bg-black text-text-muted hover:text-text",
+        },
+      }}
+    />
     {shortcutsOpen && <ShortcutsDialog onClose={() => {
       setShortcutsOpen(false);
       if (shortcutsFromMobileLayerRef.current) {

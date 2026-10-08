@@ -15,6 +15,7 @@ import { TriggerDialog } from "./TriggerDialog";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
+import { toast } from "sonner";
 
 type RotatedSecret = { triggerId: string; name: string; webhookSecret: string };
 
@@ -157,8 +158,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       const data = await response.json().catch(() => ({})) as { error?: string; secrets?: RotatedSecret[]; vaultSecrets?: string[]; errors?: string[] };
       if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
       onSaved(agent); // reloads the agent list: the paused badge
-      if (data.errors?.length) window.alert(t("agents.profile.quarantinePartial", { errors: data.errors.join("; ") }));
-      if (data.vaultSecrets?.length) window.alert(t("agents.profile.quarantineVault", { names: data.vaultSecrets.join(", ") }));
+      if (data.errors?.length) toast.warning(t("agents.profile.quarantinePartial", { errors: data.errors.join("; ") }), { duration: Infinity, closeButton: true });
+      if (data.vaultSecrets?.length) toast.warning(t("agents.profile.quarantineVault", { names: data.vaultSecrets.join(", ") }), { duration: Infinity, closeButton: true });
       if (data.secrets?.length) setRotated(data.secrets);
       else onClose();
     } catch (cause) {
