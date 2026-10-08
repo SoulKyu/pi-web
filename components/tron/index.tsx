@@ -49,14 +49,16 @@ type ChamferProps = {
   cut?: number;
   className?: string;
   innerClassName?: string;
+  innerStyle?: CSSProperties;
   children: ReactNode;
 };
 
-export function Chamfer({ tone = "cyan", glow = false, cut = 12, className, innerClassName, children }: ChamferProps) {
+export function Chamfer({ tone = "cyan", glow = false, cut = 12, className, innerClassName, innerStyle, children }: ChamferProps) {
+  const edge = Math.max(2, cut);
   return (
     <div className={cn(glow && GLOW[tone], className)}>
-      <div className={cn("tron-chamfer p-px", tone === "cyan" ? "bg-tron-cyan" : "bg-tron-orange")} style={{ "--cut": `${cut}px` } as CSSProperties}>
-        <div className={cn("tron-chamfer bg-black", innerClassName)} style={{ "--cut": `${cut - 1}px` } as CSSProperties}>
+      <div className={cn("tron-chamfer p-px", tone === "cyan" ? "bg-tron-cyan" : "bg-tron-orange")} style={{ "--cut": `${edge}px` } as CSSProperties}>
+        <div className={cn("tron-chamfer bg-black", innerClassName)} style={{ "--cut": `${edge - 1}px`, ...innerStyle } as CSSProperties}>
           {children}
         </div>
       </div>

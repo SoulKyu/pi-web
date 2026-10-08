@@ -28,6 +28,7 @@ import { RecallCard } from "@/components/agents/RecallCard";
 import { RECALL_UI_TYPE } from "@/lib/agents/recall-card";
 import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_EVENT_UI_TYPE, AGENT_NOTIFY_TOOL } from "@/lib/agents/events";
 import { CodemodeCallList } from "./CodemodeToolView";
+import { Chamfer, StreamCursor } from "@/components/tron";
 import { TOOL_STATUS_GLYPH, TOOL_STATUS_LABEL_KEY, toolCallStatus } from "./tool-call-status";
 import { mcpToolLabel, prettyMcpResultText } from "@/lib/mcp-tool-display";
 import type {
@@ -442,7 +443,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
             <img
               src={src}
               alt=""
-              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid rgba(59,130,246,0.15)" }}
+              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid var(--color-tron-line)" }}
             />
           </ImagePreview>
         );
@@ -475,23 +476,15 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
       onMouseLeave={() => setHovered(false)}
     >
       <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: "85%" }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: isEditing ? "color-mix(in srgb, var(--accent) 14%, var(--user-bg))" : "var(--user-bg)",
-            border: isEditing ? "1px solid color-mix(in srgb, var(--accent) 62%, var(--user-bg))" : "1px solid rgba(59,130,246,0.2)",
-            boxShadow: isEditing ? "0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent)" : undefined,
-            borderRadius: 12,
-            padding: "8px 12px",
-            fontSize: "calc(14px + var(--chat-font-size-offset, 0px))",
-            lineHeight: 1.6,
-            color: "var(--text)",
-            wordBreak: "break-word",
-            maxHeight: USER_BUBBLE_MAX_HEIGHT,
-            overflowY: "auto",
-          }}
-        >
+        <Chamfer tone="orange" glow={isEditing} cut={10} className="min-w-0 flex-1" innerClassName="text-text" innerStyle={{
+          padding: "8px 12px",
+          fontSize: "calc(14px + var(--chat-font-size-offset, 0px))",
+          lineHeight: 1.6,
+          wordBreak: "break-word",
+          maxHeight: USER_BUBBLE_MAX_HEIGHT,
+          overflowY: "auto",
+          background: isEditing ? "color-mix(in srgb, var(--color-tron-orange) 12%, #000)" : "var(--user-bg)",
+        }}>
           {commandText ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
               {imageBlocksNode}
@@ -557,7 +550,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
           {content && <SafeMarkdownBody className="markdown-user-message" keepLineBreaks cwd={cwd} onOpenFile={onOpenFile}>{content}</SafeMarkdownBody>}
           </>
           )}
-        </div>
+        </Chamfer>
 
       </div>
 
@@ -887,9 +880,8 @@ function AssistantMessageView({
     >
       {/* Model label */}
       <div
+        className="font-hud text-[9px] uppercase tracking-[0.16em] text-tron-cyan/80"
         style={{
-          fontSize: 11,
-          color: "var(--text-dim)",
           marginBottom: 4,
           display: "flex",
           alignItems: "center",
@@ -913,9 +905,9 @@ function AssistantMessageView({
                     {est}
                   </span>
                   {tps !== null && (() => {
-                    const bg = tps >= 50 ? "#53b3cb" : tps >= 30 ? "#9bc53d" : tps >= 15 ? "#f9c22e" : "#e01a4f";
+                    const tone = tps >= 30 ? "var(--color-tron-cyan)" : tps >= 15 ? "var(--color-tron-orange)" : "var(--color-tron-red)";
                     return (
-                      <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 4, background: bg, color: "#fff", fontSize: 11, fontWeight: 400 }}>
+                      <span style={{ marginLeft: 6, padding: "1px 6px", background: tone, color: "#000", fontSize: 10, fontFamily: "var(--font-mono)" }}>
                         {tps.toFixed(1)} t/s
                       </span>
                     );
@@ -927,10 +919,11 @@ function AssistantMessageView({
         })()}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="border-l border-tron-cyan pl-3.5 shadow-[-6px_0_10px_-8px_var(--color-tron-cyan)]" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {blockItems.map(({ block, originalIndex }) => (
           <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} runningToolIds={runningToolIds} runActive={runActive} />
         ))}
+        {isStreaming && <StreamCursor />}
       </div>
 
       {providerError && (
@@ -939,10 +932,10 @@ function AssistantMessageView({
           style={{
             marginTop: blocks.length > 0 ? 8 : 0,
             padding: "7px 10px",
-            border: "1px solid rgba(239,68,68,0.3)",
-            borderRadius: 6,
-            background: "rgba(239,68,68,0.07)",
-            color: "#ef4444",
+            border: "1px solid color-mix(in srgb, var(--color-tron-red) 30%, transparent)",
+            borderRadius: 0,
+            background: "color-mix(in srgb, var(--color-tron-red) 7%, transparent)",
+            color: "var(--color-tron-red)",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
             lineHeight: 1.5,
@@ -960,10 +953,10 @@ function AssistantMessageView({
           style={{
             marginTop: blocks.length > 0 || providerError ? 8 : 0,
             padding: "7px 10px",
-            border: "1px solid rgba(234,179,8,0.3)",
-            borderRadius: 6,
-            background: "rgba(234,179,8,0.07)",
-            color: "#ca8a04",
+            border: "1px solid color-mix(in srgb, var(--color-tron-orange) 30%, transparent)",
+            borderRadius: 0,
+            background: "color-mix(in srgb, var(--color-tron-orange) 7%, transparent)",
+            color: "var(--color-tron-orange)",
             fontFamily: "var(--font-mono)",
             fontSize: 12,
             lineHeight: 1.5,
@@ -993,7 +986,7 @@ function AssistantMessageView({
             </button>
           )}
           {unansweredTruncation && compactError && (
-            <div style={{ marginTop: 8, color: "#ef4444", whiteSpace: "pre-wrap" }}>{compactError}</div>
+            <div style={{ marginTop: 8, color: "var(--color-tron-red)", whiteSpace: "pre-wrap" }}>{compactError}</div>
           )}
         </div>
       )}

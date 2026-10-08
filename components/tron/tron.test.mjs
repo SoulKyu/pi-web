@@ -43,3 +43,10 @@ test("HexAvatar keeps ZWJ emoji whole and accepts color, size and custom content
   assert.match(custom, /background:#ff00aa/);
   assert.match(custom, /width:32px/);
 });
+
+test("Chamfer floors cut at 2px and forwards innerStyle", () => {
+  const out = html(h(Chamfer, { cut: 0, innerStyle: { maxHeight: 300, overflowY: "auto" } }, "x"));
+  assert.match(out, /--cut:2px/);
+  assert.match(out, /--cut:1px/);
+  assert.match(out, /max-height:300px;overflow-y:auto/);
+});
