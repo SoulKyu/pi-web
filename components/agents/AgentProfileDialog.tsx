@@ -30,6 +30,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [memoryRecallThreshold, setMemoryRecallThreshold] = useState(agent.memoryRecallThreshold === undefined ? "" : String(agent.memoryRecallThreshold));
   const [commandDeny, setCommandDeny] = useState((agent.commandDeny ?? []).join("\n"));
   const [webAllowHosts, setWebAllowHosts] = useState((agent.webAllowHosts ?? []).join("\n"));
+  const [sandbox, setSandbox] = useState(agent.sandbox === "bubblewrap");
+  const [sandboxNetwork, setSandboxNetwork] = useState(agent.sandboxNetwork === true);
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -100,6 +102,8 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       const invalidHost = hostLines.find((line) => !HOST_RE.test(line));
       if (invalidHost !== undefined) { setError(t("agents.profile.webAllowHostsInvalid", { host: invalidHost })); return; }
       if (hostLines.join("\n") !== (agent.webAllowHosts ?? []).join("\n")) patch.webAllowHosts = hostLines.length ? hostLines : null;
+      if (sandbox !== (agent.sandbox === "bubblewrap")) patch.sandbox = sandbox ? "bubblewrap" : null;
+      if (sandboxNetwork !== (agent.sandboxNetwork === true)) patch.sandboxNetwork = sandboxNetwork ? true : null;
       const recallLimit = memoryRecallLimit === "" ? undefined : Number(memoryRecallLimit);
       const recallThreshold = memoryRecallThreshold === "" ? undefined : Number(memoryRecallThreshold);
       if (recallLimit !== agent.memoryRecallLimit) patch.memoryRecallLimit = recallLimit ?? null;
@@ -210,6 +214,17 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
         <div style={labelStyle}>
           {t("agents.profile.webAllowHosts")}
           <textarea aria-label={t("agents.profile.webAllowHosts")} placeholder="example.com&#10;*.example.com" rows={3} value={webAllowHosts} onChange={(event) => setWebAllowHosts(event.target.value)} style={{ ...fieldStyle, fontFamily: "var(--font-mono)" }} />
+        </div>
+        <div style={labelStyle}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="checkbox" role="switch" disabled={!agent.sandboxAvailable && !sandbox} checked={sandbox} onChange={(event) => setSandbox(event.target.checked)} />
+            {t("agents.profile.sandbox")}
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="checkbox" disabled={!sandbox} checked={sandboxNetwork} onChange={(event) => setSandboxNetwork(event.target.checked)} />
+            {t("agents.profile.sandboxNetwork")}
+          </label>
+          <span style={{ color: "var(--text-muted)" }}>{t(agent.sandboxAvailable ? "agents.profile.sandboxAvailable" : "agents.profile.sandboxUnavailable")}</span>
         </div>
         <div style={labelStyle}>
           {t("agents.profile.commandDeny")}

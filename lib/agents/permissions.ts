@@ -1,4 +1,5 @@
 import type { TriggerConfig } from "../agent-ops/trigger-store";
+import { bwrapAvailable } from "./sandbox";
 import { isExternalContentTool } from "./untrusted-content";
 import { TOOLS_BY_PRESET, type LongTermAgent, type ToolsPreset } from "./registry";
 
@@ -44,13 +45,16 @@ export interface PermissionsDeps {
   configuredMcpServers: string[];
   extensionTools: string[] | "unknown-until-start";
   triggers: TriggerConfig[];
+  /** Whether bwrap is installed; read from PATH when omitted. */
+  sandboxAvailable?: boolean;
 }
 
 export function buildAgentPermissions(agent: LongTermAgent, deps: PermissionsDeps): AgentPermissions {
   const tools = [...TOOLS_BY_PRESET[agent.toolsPreset]];
   const mcpAllowed = [...agent.mcpServers];
   const webAllowHosts: AgentPermissions["webAllowHosts"] = agent.webAllowHosts?.length ? agent.webAllowHosts : "any";
-  const sandbox = "none" as const;
+  // The effective sandbox: a profile asking for bubblewrap without the binary runs bash unsandboxed.
+  const sandbox = agent.sandbox === "bubblewrap" && (deps.sandboxAvailable ?? bwrapAvailable() !== null) ? "bubblewrap" as const : "none" as const;
   const triggers = deps.triggers.filter((t) => t.profile === agent.name);
   const hasWebhookTrigger = triggers.some((t) => t.webhookSecretSha256 !== undefined);
   const input = { tools, mcpAllowed, extensionTools: deps.extensionTools, sandbox, webAllowHosts, hasWebhookTrigger };

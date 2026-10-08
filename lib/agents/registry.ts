@@ -112,6 +112,8 @@ function validateFields(body: Record<string, unknown>, require: boolean): { ok: 
     if (!Array.isArray(list) || list.length > 100 || !list.every((h) => typeof h === "string" && HOST_RE.test(h))) return fail("webAllowHosts must be a list of host names (example.com or *.example.com)");
     input.webAllowHosts = list.length ? [...new Set((list as string[]).map((h) => h.toLowerCase()))] : undefined;
   }
+  if ("sandbox" in body) { if (body.sandbox != null && body.sandbox !== "none" && body.sandbox !== "bubblewrap") return fail("sandbox must be none or bubblewrap"); input.sandbox = body.sandbox ?? undefined; }
+  if ("sandboxNetwork" in body) { if (body.sandboxNetwork != null && typeof body.sandboxNetwork !== "boolean") return fail("sandboxNetwork must be a boolean"); input.sandboxNetwork = body.sandboxNetwork ?? undefined; }
   return { ok: true, input };
 }
 

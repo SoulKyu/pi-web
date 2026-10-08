@@ -8,6 +8,7 @@ import { agentProfileExtensionFactories } from "./agent-profile-extensions";
 import type { WrapperEvent } from "./agent-ops/prompt-run";
 import { createTurnUsageTracker } from "./agent-ops/turn-usage";
 import { agentHome, resolveLongTermProfile } from "./agents/registry";
+import { threadSandboxWrapper } from "./agents/sandbox";
 import { RECALL_ENTRY_TYPE } from "./agents/recall-card";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
@@ -2568,6 +2569,7 @@ export async function startRpcSession(
               homeOnly: options.agentProfileTools !== undefined ? sessionCwd : undefined,
               commandDeny: snapshotProfile?.commandDeny,
               webAllowHosts: snapshotProfile?.webAllowHosts,
+              wrapCommand: threadSandboxWrapper(Boolean(trustedThread && snapshotProfile), snapshotProfile, snapshotProfile ? agentHome(snapshotProfile.name) : sessionCwd),
             }),
             // The profile loads user extensions: a user bash extension wins over the host one, like a normal session.
             extensionsOverride: (base) => preferUserBashExtension(base),

@@ -9,7 +9,7 @@ export type AgentState = "idle" | "running" | "needs_input" | "failed"
 export const agentState = (flags: { needsInput: boolean; running: boolean; failedUnread: boolean }): AgentState =>
   flags.needsInput ? "needs_input" : flags.running ? "running" : flags.failedUnread ? "failed" : "idle";
 /** Server-computed paths and stats the client only displays or interpolates. */
-export interface AgentDetailExtras { memorySnapshotPath?: string; memoryMd?: { size: number } }
+export interface AgentDetailExtras { memorySnapshotPath?: string; memoryMd?: { size: number }; sandboxAvailable?: boolean }
 export interface AgentDetail extends AgentListItem, AgentRoadmapSettings, AgentDetailExtras { role: string; lastReadEntryId?: string }
 
 /** Client-safe card: explicit allowlist, never the role. */

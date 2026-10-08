@@ -2,7 +2,8 @@
 export interface AgentRoadmapSettings {
   memoryCapture?: "auto" | "off"; memoryHint?: string; memoryRecallLimit?: number; memoryRecallThreshold?: number; memorySave?: "direct" | "staged";
   acceptsDelegation?: boolean; budgetTokensPerDay?: number; budgetUsdPerDay?: number; commandDeny?: string[]; webAllowHosts?: string[];
+  sandbox?: "none" | "bubblewrap"; sandboxNetwork?: boolean;
 }
-export const ROADMAP_SETTING_KEYS = ["memoryCapture", "memoryHint", "memoryRecallLimit", "memoryRecallThreshold", "memorySave", "acceptsDelegation", "budgetTokensPerDay", "budgetUsdPerDay", "commandDeny", "webAllowHosts"] as const satisfies readonly (keyof AgentRoadmapSettings)[];
+export const ROADMAP_SETTING_KEYS = ["memoryCapture", "memoryHint", "memoryRecallLimit", "memoryRecallThreshold", "memorySave", "acceptsDelegation", "budgetTokensPerDay", "budgetUsdPerDay", "commandDeny", "webAllowHosts", "sandbox", "sandboxNetwork"] as const satisfies readonly (keyof AgentRoadmapSettings)[];
 export const pickRoadmapSettings = (source: AgentRoadmapSettings): AgentRoadmapSettings =>
   Object.fromEntries(ROADMAP_SETTING_KEYS.filter((key) => source[key] !== undefined).map((key) => [key, source[key]]));

@@ -18,13 +18,13 @@ type ProjectShellSettings = { getShellCommandPrefix(): string | undefined; getSh
  * read-only MCP policy a read-only preset could still call writing MCP tools.
  */
 export function agentProfileExtensionFactories(options: {
-  cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension; homeOnly?: string; commandDeny?: string[]; webAllowHosts?: string[];
+  cwd: string; settings: ProjectShellSettings; trustedThread: boolean; agentName?: string; exactSystemPrompt?: InlineExtension; homeOnly?: string; commandDeny?: string[]; webAllowHosts?: string[]; wrapCommand?: (command: string) => string;
 }): InlineExtension[] {
   return [
     ...(options.exactSystemPrompt ? [options.exactSystemPrompt] : []),
     createReadOnlyMcpPolicyExtension({ selection: (entries) => readSubagentSessionResources(entries)?.tools }),
     ...(options.homeOnly ? [createHomePathPolicyExtension(options.homeOnly)] : []),
-    createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings }),
+    createProjectCommandBashExtension({ cwd: options.cwd, settings: options.settings, wrapCommand: options.wrapCommand }),
     createUntrustedContentExtension(),
     ...(options.commandDeny?.length ? [createCommandPolicyExtension(options.commandDeny)] : []),
     ...(options.webAllowHosts?.length ? [createEgressPolicyExtension(options.webAllowHosts)] : []),

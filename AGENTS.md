@@ -147,6 +147,7 @@ lib/
   agents/agent-approve.ts   agent_approve: push + ctx.ui.confirm, approved | denied, trusted threads only
   agents/agent-delegate.ts  agent_delegate: delegationRefusal() + queue a thread task for an opted-in agent (D14), trusted threads only
   agents/path-policy.ts     isolated runs: read/grep/find/ls limited to the agent home (realpath)
+  agents/sandbox.ts         bwrapAvailable (PATH scan), sandboxArgs, shellQuote, wrapWithSandbox, threadSandboxWrapper: optional bubblewrap cage for a trusted thread's bash (profile `sandbox`, `sandbox_network`)
   agents/egress-policy.ts   HOST_RE, hostAllowed, urlsOfToolInput, createEgressPolicyExtension: per-agent web_allow_hosts on external tools with a URL, top-level and nested calls, fail closed
   agents/command-policy.ts  COMMAND_DENY_PRESETS, commandDenyReason, createCommandPolicyExtension: per-agent command_deny regexes on bash/powershell, top-level and nested calls, fail closed
   agents/permissions.ts     buildAgentPermissions / assessTrifecta / explainTrifecta: what an agent can do, privateData + untrustedContent + exfiltration legs

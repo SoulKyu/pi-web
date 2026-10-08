@@ -59,6 +59,8 @@ export interface SubagentProfile {
   budgetUsdPerDay?: number;
   commandDeny?: string[];
   webAllowHosts?: string[];
+  sandbox?: "none" | "bubblewrap";
+  sandboxNetwork?: boolean;
   enabled: boolean;
   scope: SubagentScope;
   filePath?: string;
@@ -161,7 +163,7 @@ const SUBAGENT_CONTROL_TOOLS = new Set<string>(SUBAGENT_CONTROL_TOOL_NAMES);
 const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 
 /** Per-agent settings read by the roadmap features; managed so a profile save never drops them. */
-export const ROADMAP_PROFILE_KEYS = ["memory_capture", "memory_hint", "memory_recall_limit", "memory_recall_threshold", "memory_save", "accepts_delegation", "budget_tokens_per_day", "budget_usd_per_day", "command_deny", "web_allow_hosts"] as const;
+export const ROADMAP_PROFILE_KEYS = ["memory_capture", "memory_hint", "memory_recall_limit", "memory_recall_threshold", "memory_save", "accepts_delegation", "budget_tokens_per_day", "budget_usd_per_day", "command_deny", "web_allow_hosts", "sandbox", "sandbox_network"] as const;
 
 function numberIn(value: unknown, min: number, max: number, integer: boolean): number | undefined {
   return typeof value === "number" && value >= min && value <= max && (!integer || Number.isInteger(value)) ? value : undefined;
@@ -407,6 +409,8 @@ function parseProfileFile(filePath: string, scope: SubagentScope): SubagentProfi
       ...(budgetUsdPerDay !== undefined ? { budgetUsdPerDay } : {}),
       ...(commandDeny.length > 0 ? { commandDeny } : {}),
       ...(webAllowHosts.length > 0 ? { webAllowHosts } : {}),
+      ...(data?.sandbox === "none" || data?.sandbox === "bubblewrap" ? { sandbox: data.sandbox } : {}),
+      ...(typeof data?.sandbox_network === "boolean" ? { sandboxNetwork: data.sandbox_network } : {}),
       enabled: booleanValue(data?.enabled, true),
       scope,
       filePath,
@@ -566,6 +570,8 @@ export function saveSubagentProfile(
   if (profile.budgetUsdPerDay !== undefined) managed.budget_usd_per_day = profile.budgetUsdPerDay;
   if (profile.commandDeny?.length) managed.command_deny = profile.commandDeny;
   if (profile.webAllowHosts?.length) managed.web_allow_hosts = profile.webAllowHosts;
+  if (profile.sandbox) managed.sandbox = profile.sandbox;
+  if (profile.sandboxNetwork !== undefined) managed.sandbox_network = profile.sandboxNetwork;
   // Managed keys win; keys this app does not own follow in their original order.
   const frontmatter: Record<string, unknown> = { ...managed };
   for (const [key, value] of Object.entries(unmanagedFrontmatter(stored))) {

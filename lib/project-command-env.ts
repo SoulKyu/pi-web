@@ -26,6 +26,8 @@ type ProjectCommandBashOperationsOptions = {
   localOperations?: BashOperations;
   platform?: NodeJS.Platform;
   shellPath?: string;
+  /** Rewrites the command right before it is delegated, e.g. to run it inside a sandbox. */
+  wrapCommand?: (command: string) => string;
 };
 
 type BashExecResult = Awaited<ReturnType<BashOperations["exec"]>>;
@@ -77,6 +79,7 @@ export function createProjectCommandBashOperations(
     baseEnvironment = process.env,
     localOperations = createLocalBashOperations({ shellPath: options.shellPath }),
     platform = process.platform,
+    wrapCommand,
   } = options;
 
   return {
@@ -88,7 +91,7 @@ export function createProjectCommandBashOperations(
       );
       const { onData, signal, timeout } = executionOptions;
       let released = false;
-      const execution = localOperations.exec(command, cwd, {
+      const execution = localOperations.exec(wrapCommand ? wrapCommand(command) : command, cwd, {
         ...executionOptions,
         env: environment,
         // Callers finalize their output once the command is released; a
@@ -144,6 +147,7 @@ export function createProjectCommandBashOperations(
 export function createProjectCommandBashExtension(options: {
   cwd: string;
   settings: ProjectShellSettings;
+  wrapCommand?: (command: string) => string;
 }): InlineExtension {
   return {
     name: HOST_EXTENSION_NAME,
@@ -157,6 +161,7 @@ export function createProjectCommandBashExtension(options: {
             commandPrefix: options.settings.getShellCommandPrefix(),
             operations: createProjectCommandBashOperations({
               shellPath: options.settings.getShellPath(),
+              wrapCommand: options.wrapCommand,
             }),
           });
           return executionDefinition.execute(toolCallId, params, signal, onUpdate, context);
