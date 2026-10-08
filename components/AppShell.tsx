@@ -1798,13 +1798,13 @@ export function AppShell() {
         {mobile ? (
           <>
             {tokens && tokens.input > 0 && (
-              <span className="mobile-session-stat-io flex shrink-0 items-center gap-0.5 [&_svg]:size-2.5">
+              <span className="mobile-session-stat-io flex shrink-0 items-center gap-0.5 [&_svg]:size-2.5!">
                 <ArrowUp aria-hidden="true" />
                 {formatCompact(tokens.input)}
               </span>
             )}
             {tokens && tokens.output > 0 && (
-              <span className="mobile-session-stat-io flex shrink-0 items-center gap-0.5 [&_svg]:size-2.5">
+              <span className="mobile-session-stat-io flex shrink-0 items-center gap-0.5 [&_svg]:size-2.5!">
                 <ArrowDown aria-hidden="true" />
                 {formatCompact(tokens.output)}
               </span>
@@ -1828,19 +1828,19 @@ export function AppShell() {
         ) : (
           <>
             {tokens && tokens.input > 0 && (
-              <span className="flex items-center gap-1 [&_svg]:size-3">
+              <span className="flex items-center gap-1 [&_svg]:size-3!">
                 <ArrowUp aria-hidden="true" />
                 {formatCompact(tokens.input)}
               </span>
             )}
             {tokens && tokens.output > 0 && (
-              <span className="flex items-center gap-1 [&_svg]:size-3">
+              <span className="flex items-center gap-1 [&_svg]:size-3!">
                 <ArrowDown aria-hidden="true" />
                 {formatCompact(tokens.output)}
               </span>
             )}
             {tokens && tokens.cacheRead > 0 && (
-              <span className="flex items-center gap-1 [&_svg]:size-3">
+              <span className="flex items-center gap-1 [&_svg]:size-3!">
                 <RefreshCw aria-hidden="true" />
                 {formatCompact(tokens.cacheRead)}
               </span>

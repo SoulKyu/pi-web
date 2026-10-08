@@ -27,7 +27,7 @@ test("running and unread indicators are labelled LEDs (orange running, cyan unre
 test("the selected row has the orange trace; every state keeps the fixed row height", () => {
   const item = fn("SessionItem");
   assert.match(item, /height: SESSION_LIST_ITEM_HEIGHT/);
-  assert.match(item, /isSelected && "border-l-tron-orange bg-\[linear-gradient\(90deg,rgb\(255_154_0\/0\.12\),transparent\)\]/);
+  assert.match(item, /isSelected && !confirmDelete && "border-l-tron-orange bg-\[linear-gradient\(90deg,rgb\(255_154_0\/0\.12\),transparent\)\]/);
   assert.match(item, /confirmDelete && "border-l-tron-red/);
 });
 

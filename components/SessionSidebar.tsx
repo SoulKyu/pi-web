@@ -90,7 +90,7 @@ function ToolbarIconButton({
       aria-pressed={ariaPressed}
       className={cn(
         "relative flex shrink-0 items-center justify-center p-0 outline-none transition-colors focus-visible:shadow-glow-cyan disabled:cursor-default disabled:opacity-60",
-        !skipHover && "hover:bg-bg-hover hover:!text-text-muted disabled:hover:bg-transparent",
+        !skipHover && "enabled:hover:bg-bg-hover enabled:hover:text-text-muted!",
       )}
       style={{ width: 26, height: 26, marginRight, color, ...(background !== "none" ? { background } : {}) }}
     >
@@ -369,7 +369,7 @@ function PiWebTitle() {
   return (
     <button
       onClick={handleClick}
-      className={cn("cursor-default bg-transparent p-0 font-hud text-[13px] font-bold uppercase tracking-[0.2em]", showVersion ? "text-tron-cyan" : "text-white [text-shadow:0_0_10px_rgb(0_216_255/0.45)]")}
+      className={cn("cursor-default bg-transparent p-0 font-hud text-[13px] font-bold uppercase tracking-[0.2em]", showVersion ? "normal-case text-tron-cyan" : "text-white [text-shadow:0_0_10px_rgb(0_216_255/0.45)]")}
       style={{ minWidth: "6ch" }}
     >
       {display}
@@ -2347,7 +2347,7 @@ function SessionItem({
       className={cn(
         "session-row cursor-pointer border-l-2 border-l-transparent transition-colors",
         !isSelected && !confirmDelete && "hover:bg-bg-hover",
-        isSelected && "border-l-tron-orange bg-[linear-gradient(90deg,rgb(255_154_0/0.12),transparent)] text-white shadow-[-6px_0_12px_-6px_var(--color-tron-orange)]",
+        isSelected && !confirmDelete && "border-l-tron-orange bg-[linear-gradient(90deg,rgb(255_154_0/0.12),transparent)] text-white shadow-[-6px_0_12px_-6px_var(--color-tron-orange)]",
         confirmDelete && "border-l-tron-red bg-tron-red/5",
         (confirmDelete || renaming) && "cursor-default",
       )}

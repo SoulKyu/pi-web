@@ -31,7 +31,10 @@ export function HexAvatar({ label, active = false, color, size = 28, className, 
       className={cn("tron-hex grid shrink-0 place-items-center p-px", active && "bg-tron-cyan", className)}
       style={{ width: size, height: size, ...(active ? {} : { background: color ?? "var(--color-tron-line)" }) }}
     >
-      <span className={cn("tron-hex grid size-full place-items-center font-hud text-[9px]", active ? "bg-[#00303a] text-white" : "bg-black text-tron-cyan")}>
+      <span
+        className={cn("tron-hex grid size-full place-items-center font-hud text-[9px]", active ? "bg-[#00303a] text-white" : "bg-black text-tron-cyan")}
+        style={!active && color ? { background: `color-mix(in srgb, ${color} 30%, #000)` } : undefined}
+      >
         {children ?? initials(label)}
       </span>
     </span>
