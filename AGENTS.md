@@ -324,10 +324,11 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 
 ---
 
-## Old Safari (iOS 16.2)
+## Browser floor (Safari / iOS 16.4)
 
-- `/` renders entirely on the client, so one script chunk the browser cannot parse is a blank page. Next 16 targets Safari 16.4+; the `browserslist` in `package.json` lowers Safari and iOS to 16.2 so SWC turns class `static {}` blocks into private static fields. That covers Next's client runtime; other node_modules keep their syntax unless listed in `transpilePackages` (mermaid and `@mermaid-js/parser` are, for their lazy diagram chunks). Keep the other browserslist entries at Next's defaults.
-- Never write a RegExp lookbehind (`(?<=`, `(?<!`) in client code: SWC cannot downlevel it and Safari parses it only from 16.4. `lib/markdown.ts` emulates its leading lookbehinds with `replaceNotPrecededBy()`. A lookbehind built at runtime (`new RegExp("(?<=…)")` in `try`) fails only when run; that is how `lib/gfm-autolink-email-loader.cjs` fixes `mdast-util-gfm-autolink-literal`'s email regex. The loader is registered for webpack and Turbopack in `next.config.ts` and fails the build if that regex changes upstream.
+- The fork targets Safari and iOS 16.4+ (`browserslist` in `package.json`, pinned by `lib/browser-floor.test.mjs`). It was 16.2 upstream; the Tron UI raised it so Tailwind v4 (`@property`, cascade layers) and Radix work unmodified.
+- `/` still renders entirely on the client: one chunk the browser cannot parse is a blank page. Keep new client dependencies to ones that support Safari 16.4.
+- The RegExp-lookbehind workarounds (`replaceNotPrecededBy()` in `lib/markdown.ts`, `lib/gfm-autolink-email-loader.cjs`) date from the 16.2 floor. They are harmless at 16.4 and stay until someone removes them deliberately.
 
 ## Pi Session File Format
 
