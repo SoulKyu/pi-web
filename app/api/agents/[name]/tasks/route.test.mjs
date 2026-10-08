@@ -19,7 +19,7 @@ const post = (name, body) => POST(new Request("http://localhost/x", { method: "P
 test("the route refuses a bad hand-over with 400", async () => {
   for (const body of [
     { deliverTo: "nobody" }, { deliverTo: "Lea" }, { requestedBy: "smoke" },
-    { deliverTo: "Martin", quote: "q".repeat(8001) }, { quote: "orphan" },
+    { deliverTo: "Martin", quote: "q".repeat(20_001) }, { quote: "orphan" },
   ]) assert.equal((await post("Lea", { prompt: "do it", ...body })).status, 400, JSON.stringify(body).slice(0, 80));
 });
 
@@ -77,7 +77,7 @@ test("a hand-over is validated against the registry and its quote is fenced serv
   assert.match(source, /getLongTermAgent\(deliverTo\)/);
   assert.match(source, /deliverTo === agent\.name/);
   assert.match(source, /cannot deliver to the task's own agent/);
-  assert.match(source, /QUOTE_MAX = 8000/);
+  assert.match(source, /QUOTE_MAX = 20_000/);
   assert.match(source, /fenceExternal\(quote, "handoff"\)/);
   assert.match(source, /Context handed over by the user from agent \$\{deliverTo\}'s thread:/);
   assert.match(source, /requestedBy[^\n]*deliverTo/);
@@ -87,4 +87,21 @@ test("the review fields are validated server-side", () => {
   assert.match(source, /TRIGGER_TOOL_ALLOWLIST\.has/);
   assert.match(source, /fenceExternal\(quote, "review-request"\)/);
   assert.match(source, /Review request from the user, quoting agent \$\{deliverTo\}'s thread:/);
+});
+
+test("a quote of exactly 20 000 characters is accepted", async () => {
+  const response = await post("Lea", { prompt: "do it", requestedBy: "user", deliverTo: "Martin", quote: "q".repeat(20_000) });
+  assert.equal(response.status, 201);
+});
+
+test("a review purpose needs an isolated target and implies kind review when kind is absent", async () => {
+  for (const body of [
+    { ...review, kind: undefined, tools: undefined, target: "thread" },
+    { ...review, kind: undefined, tools: undefined, target: undefined },
+  ]) assert.equal((await post("Lea", body)).status, 400, JSON.stringify(body).slice(0, 100));
+  const response = await post("Lea", { ...review, kind: undefined });
+  assert.equal(response.status, 201);
+  const task = store.getTask((await response.json()).task.id);
+  assert.equal(task.kind, "review");
+  assert.equal(task.target, "isolated");
 });

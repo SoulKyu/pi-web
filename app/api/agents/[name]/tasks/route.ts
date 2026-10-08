@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const TITLE_MAX = 80;
 const PROMPT_MAX = 20_000;
-const QUOTE_MAX = 8000;
+const QUOTE_MAX = 20_000;
 const REVIEW_INSTRUCTIONS = "Review the quoted content for correctness, risks and missing steps. Answer with a short list of findings. Do not execute anything; you only have read tools.";
 
 // GET /api/agents/[name]/tasks - this agent's tasks, shaped like /api/agent-ops/tasks.
@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ name: s
   if (kind !== undefined && kind !== "task" && kind !== "review") return NextResponse.json({ error: 'kind must be "task" or "review"' }, { status: 400 });
   if (purpose !== undefined && purpose !== "handoff" && purpose !== "review") return NextResponse.json({ error: 'purpose must be "handoff" or "review"' }, { status: 400 });
   const isolated = target === "isolated";
-  if (kind === "review" && !isolated) return NextResponse.json({ error: "a review runs isolated" }, { status: 400 });
+  if ((kind === "review" || purpose === "review") && !isolated) return NextResponse.json({ error: "a review runs isolated" }, { status: 400 });
   if (tools !== undefined) {
     if (!isolated) return NextResponse.json({ error: "tools need an isolated target" }, { status: 400 });
     if (!Array.isArray(tools) || tools.some((tool) => typeof tool !== "string" || !TRIGGER_TOOL_ALLOWLIST.has(tool))) return NextResponse.json({ error: "tools must be names from the trigger allowlist" }, { status: 400 });
@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ name: s
       : `${prompt}\n\nContext handed over by the user from agent ${deliverTo}'s thread:\n${fenceExternal(quote, "handoff")}`
     : prompt;
   const task = createTask({
-    agent: agent.name, target: isolated ? "isolated" : "thread", kind: kind === "review" ? "review" : "task", profile: agent.name, cwd: agent.home, prompt: fullPrompt,
+    agent: agent.name, target: isolated ? "isolated" : "thread", kind: kind === "review" || (kind === undefined && purpose === "review") ? "review" : "task", profile: agent.name, cwd: agent.home, prompt: fullPrompt,
     title: prompt.trim().split("\n")[0].slice(0, TITLE_MAX), origin: "ui",
     ...(isolated ? { tools: Array.isArray(tools) ? (tools as string[]) : [...TRIGGER_TOOL_ALLOWLIST] } : {}), ...(requestedBy === "user" ? { requestedBy } : {}), ...(typeof deliverTo === "string" ? { deliverTo } : {}),
   });
