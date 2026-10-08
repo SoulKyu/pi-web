@@ -19,8 +19,8 @@ interface MarkdownBodyProps {
   onOpenFile?: (filePath: string, page?: number) => void;
   /** Render every line ending as a line break, for text the user typed. */
   keepLineBreaks?: boolean;
-  /** Show images as links instead of loading them, for untrusted text (no tracking pixel, no exfiltration by URL). */
-  blockImages?: boolean;
+  /** For untrusted text: nothing rendered may make a network request (tracking pixel, exfiltration by URL). Images become links, mermaid fences stay source. */
+  blockRemoteContent?: boolean;
 }
 
 function BlockedMarkdownImage({ src, alt }: ComponentProps<"img">) {
@@ -55,7 +55,7 @@ function MarkdownImage({
   );
 }
 
-export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile, keepLineBreaks, blockImages }: MarkdownBodyProps) {
+export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile, keepLineBreaks, blockRemoteContent }: MarkdownBodyProps) {
   const normalizedMarkdown = useMemo(() => normalizeDisplayMath(children), [children]);
   // Stable renderer identities keep stateful blocks mounted across message hover updates.
   const components = useMemo<Components>(() => ({
@@ -64,7 +64,8 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
       const raw = String(children);
       const isBlock = className?.includes("language-") || raw.includes("\n");
       if (isBlock) {
-        if (lang === "mermaid") {
+        // Mermaid can load remote images (node shape `img`), so untrusted text shows its source.
+        if (lang === "mermaid" && !blockRemoteContent) {
           return (
             <MermaidBlock
               code={raw.replace(/\n$/, "")}
@@ -119,7 +120,7 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
       );
     },
     img(props) {
-      if (blockImages) return <BlockedMarkdownImage src={props.src} alt={props.alt} />;
+      if (blockRemoteContent) return <BlockedMarkdownImage src={props.src} alt={props.alt} />;
       return <MarkdownImage cwd={cwd} {...props} />;
     },
     table({ children }) {
@@ -129,7 +130,7 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
         </div>
       );
     },
-  }), [blockImages, cwd, isStreaming, onOpenFile]);
+  }), [blockRemoteContent, cwd, isStreaming, onOpenFile]);
 
   return (
     <div className={["markdown-body", className].filter(Boolean).join(" ")}>

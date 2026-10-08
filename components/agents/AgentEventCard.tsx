@@ -29,8 +29,8 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
           {data.runSessionId && onOpenSession && <button type="button" onClick={() => onOpenSession(data.runSessionId!)} className="agent-event-link">{t("agents.event.seeRun")}</button>}
           {onInject && data.summary && <button type="button" onClick={() => onInject(data.from, data.summary)} title={data.clipped ? t("agents.event.injectClippedHint") : undefined} className="agent-event-link">{t(data.clipped ? "agents.event.injectClipped" : "agents.event.inject")}</button>}
         </div>
-        {/* Display-only (D14): no cwd, no onOpenFile, so a link never opens a file in the app; blockImages, so untrusted output never loads a remote image. */}
-        <div id={summaryId} className={foldable && !expanded ? "agent-event-summary is-collapsed" : "agent-event-summary"}><MarkdownBody blockImages>{data.summary}</MarkdownBody></div>
+        {/* Display-only (D14): no cwd, no onOpenFile, so a link never opens a file in the app; blockRemoteContent, so untrusted output never fetches anything; inert while folded, so hidden links are not tabbable. */}
+        <div id={summaryId} className={foldable && !expanded ? "agent-event-summary is-collapsed" : "agent-event-summary"} inert={foldable && !expanded}><MarkdownBody blockRemoteContent>{data.summary}</MarkdownBody></div>
         {foldable && <button type="button" className="agent-event-toggle" aria-expanded={expanded} aria-controls={summaryId} onClick={() => setExpanded((open) => !open)}>{t(expanded ? "i18n.collapse" : "i18n.expand")}</button>}
         {data.clipped && <div className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.event.clipped")}</div>}
       </div>

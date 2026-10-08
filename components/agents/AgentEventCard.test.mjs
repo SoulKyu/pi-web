@@ -41,7 +41,8 @@ test("a delegation summary renders as markdown; a long one folds behind an Expan
   assert.match(short, /<strong>bold<\/strong>/);
   assert.doesNotMatch(short, /aria-expanded/);
   const long = render(ev.delegationEventOfTask({ ...done, result: Array.from({ length: 40 }, (_, i) => `- finding ${i}`).join("\n") }));
-  assert.match(long, /class="agent-event-summary is-collapsed"/);
+  assert.match(long, /class="agent-event-summary is-collapsed" inert=""/);
+  assert.doesNotMatch(short, /inert/);
   assert.match(long, /aria-expanded="false"/);
   assert.match(long, />Expand</);
 });

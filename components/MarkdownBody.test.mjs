@@ -325,13 +325,28 @@ test("keeps a block that opens a raw-text tag as it renders without line breaks"
   assert.match(list, /<li>two<br\/>lines<\/li>/);
 });
 
-test("blockImages renders images as links, never as <img>", () => {
+test("blockRemoteContent renders images as links, never as <img>", () => {
   const md = "![chart](https://example.com/c.png) ![](data:image/png;base64,AAAA) [![logo](https://example.com/l.png)](https://example.com)";
   assert.match(renderMarkdown(md, { cwd: undefined, onOpenFile: undefined }), /<img/);
-  const html = renderMarkdown(md, { cwd: undefined, onOpenFile: undefined, blockImages: true });
+  const html = renderMarkdown(md, { cwd: undefined, onOpenFile: undefined, blockRemoteContent: true });
   assert.doesNotMatch(html, /<img/);
   assert.match(html, /<a (?=[^>]*href="https:\/\/example\.com\/c\.png")(?=[^>]*target="_blank")(?=[^>]*rel="noopener noreferrer")[^>]*>🖼 chart<\/a>/);
   assert.doesNotMatch(html, /href="data:/);
   assert.match(html, /🖼 image/);
   assert.match(html, /<a [^>]*href="https:\/\/example\.com"[^>]*>🖼 logo<\/a>/);
+});
+
+test("blockRemoteContent shows a mermaid fence as source, never a diagram", () => {
+  const md = "```mermaid\nflowchart TD\nA@{ img: \"https://evil.example/p.png?d=x\" }\n```";
+  assert.match(renderMarkdown(md, { cwd: undefined, onOpenFile: undefined }), /mermaid-block/);
+  const html = renderMarkdown(md, { cwd: undefined, onOpenFile: undefined, blockRemoteContent: true });
+  assert.doesNotMatch(html, /mermaid-block/);
+  assert.match(html, /markdown-code-lang">mermaid</);
+  assert.match(html, /evil\.example/);
+});
+
+test("blockRemoteContent also turns raw HTML images into links", () => {
+  const html = renderMarkdown('<picture><source srcset="https://e.example/a.png"><img src="https://e.example/b.png" alt="b"></picture>', { cwd: undefined, onOpenFile: undefined, blockRemoteContent: true });
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /🖼 b/);
 });
