@@ -52,7 +52,8 @@ async function scratchSession(t) {
   return { dir, manager, id, path: manager.getSessionFile(), a1, a2, forked };
 }
 
-const JSON_HEADERS = { host: "localhost", "Content-Type": "application/json" };
+// The fork's request-security requires browser origin evidence on every mutating request.
+const JSON_HEADERS = { host: "localhost", origin: "http://localhost", "Content-Type": "application/json" };
 
 function post(id, headers = JSON_HEADERS) {
   return forkSession(
@@ -156,9 +157,13 @@ test("refusals: unknown session, unsaved wrapper, no JSON content type", async (
   assert.equal(unsaved.status, 409);
   assert.equal((await unsaved.json()).code, "unsaved");
 
-  const plain = await post(source.id, { host: "localhost", "Content-Type": "text/plain" });
+  const plain = await post(source.id, { host: "localhost", origin: "http://localhost", "Content-Type": "text/plain" });
   assert.equal(plain.status, 415);
   assert.equal((await plain.json()).code, "request-denied");
+
+  const noOrigin = await post(source.id, { host: "localhost", "Content-Type": "application/json" });
+  assert.equal(noOrigin.status, 403);
+  assert.equal((await noOrigin.json()).code, "request-denied");
 });
 
 test("a source deleted behind its cached path is not found, forgotten and dropped from the list", async (t) => {

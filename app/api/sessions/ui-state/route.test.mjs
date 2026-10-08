@@ -23,7 +23,8 @@ const { GET, POST, dynamic } = await jiti.import("./route.ts");
 const { resetSessionUiStateCacheForTests } = await jiti.import("../../../../lib/session-ui-state.ts");
 
 const statePath = path.join(agentDir, "pi-web-session-state.json");
-const JSON_HEADERS = { host: "localhost", "Content-Type": "application/json" };
+// The fork's request-security requires browser origin evidence on every mutating request.
+const JSON_HEADERS = { host: "localhost", origin: "http://localhost", "Content-Type": "application/json" };
 
 function post(body, headers = JSON_HEADERS) {
   return POST(new Request("http://localhost/api/sessions/ui-state", {
@@ -124,8 +125,9 @@ test("refuses untrusted, non-JSON and invalid requests without writing", async (
     [post({ action: "set", ids: ["a"], pinned: true }, { ...JSON_HEADERS, Origin: "https://evil.example" }), 403, "request-denied"],
     [post({ action: "set", ids: ["a"], pinned: true }, { ...JSON_HEADERS, "Sec-Fetch-Site": "cross-site" }), 403, "request-denied"],
     [post({ action: "set", ids: ["a"], pinned: true }, { ...JSON_HEADERS, host: "evil.example" }), 403, "request-denied"],
-    [post({ action: "set", ids: ["a"], pinned: true }, { host: "localhost", "Content-Type": "text/plain" }), 415, "content-type"],
-    [post({ action: "set", ids: ["a"], pinned: true }, { host: "localhost" }), 415, "content-type"],
+    [post({ action: "set", ids: ["a"], pinned: true }, { host: "localhost", "Content-Type": "application/json" }), 403, "request-denied"],
+    [post({ action: "set", ids: ["a"], pinned: true }, { host: "localhost", origin: "http://localhost", "Content-Type": "text/plain" }), 415, "content-type"],
+    [post({ action: "set", ids: ["a"], pinned: true }, { host: "localhost", origin: "http://localhost" }), 415, "content-type"],
     [post("{ nope"), 400, "invalid-request"],
     [post("[]"), 400, "invalid-request"],
     [post("null"), 400, "invalid-request"],
