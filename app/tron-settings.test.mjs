@@ -38,3 +38,14 @@ test("settings titles and headings are HUD labels; the active section has a cyan
   assert.match(rule(settings, ".settings-general-heading"), /font-family: var\(--font-hud\)/);
   assert.match(rule(settings, '.config-sidebar-item[aria-current="page"]'), /box-shadow: inset 2px 0 0 var\(--color-tron-cyan\)/);
 });
+
+// Settings › Fonts (upstream #1074): empty fields fall back to the Tron fonts, and say so.
+test("font defaults are the Tron fonts, and the font placeholders name them", async () => {
+  assert.match(globals, /--font-ui-default: var\(--font-geist\),/);
+  assert.match(globals, /--font-mono-default: var\(--font-jetbrains-mono\),/);
+  for (const id of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const messages = await readFile(new URL(`../lib/i18n/messages/${id}.ts`, import.meta.url), "utf8");
+    assert.match(messages, /"settings\.uiFontPlaceholder": "[^"]*Geist"/, id);
+    assert.match(messages, /"settings\.monoFontPlaceholder": "[^"]*JetBrains Mono"/, id);
+  }
+});
