@@ -16,6 +16,7 @@ test("other platforms spell chords with +, and Enter sends in the default mode",
     "shortcuts.stopAgent": "Esc",
     "shortcuts.newSession": "Ctrl+Alt+N",
     "shortcuts.showHelp": "?",
+    "shortcuts.commandPalette": "Ctrl+K",
     "shortcuts.unreadAgent": "Alt+↓ / Alt+↑",
     "shortcuts.nthAgent": "Ctrl+Alt+1–9",
     "shortcuts.send": "Enter",
@@ -54,4 +55,10 @@ test("four groups, no row for @ or / syntax, every key present in all four local
   for (const locale of [enLocale, frLocale, zhCNLocale, zhTWLocale]) {
     for (const key of keys) assert.equal(typeof locale.messages[key], "string", `${locale.id} ${key}`);
   }
+});
+
+test("polish: the command palette shortcut is listed", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const src = await readFile(new URL("./shortcuts-table.ts", import.meta.url), "utf8");
+  assert.match(src, /\{ keys: chord\(platform === "mac" \? "Meta" : "Ctrl", "K"\), labelKey: "shortcuts\.commandPalette" \}/);
 });

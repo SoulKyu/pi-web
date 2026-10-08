@@ -29,13 +29,16 @@ export function CommandPalette({ open, onOpenChange, commands }: { open: boolean
         onOpenAutoFocus={() => {
           openerRef.current = document.activeElement as HTMLElement | null;
         }}
+        onEscapeKeyDown={(event) => {
+          if (event.isComposing || event.keyCode === 229) event.preventDefault();
+        }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           focusIfLost(document, openerRef.current);
         }}
       >
         <DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
-        <Command label={t("palette.title")} loop className="flex flex-col">
+        <Command label={t("palette.title")} loop vimBindings={false} className="flex flex-col">
           <Command.Input
             placeholder={t("palette.placeholder")}
             className="h-12 border-b border-tron-line bg-transparent pl-4 pr-12 font-mono text-sm text-white outline-none placeholder:text-text-dim"

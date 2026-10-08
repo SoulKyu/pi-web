@@ -1726,6 +1726,8 @@ export const enLocale: LocalePlugin = {
     "shortcuts.stopAgent": "Stop the running agent",
     "shortcuts.newSession": "New session in the current project",
     "shortcuts.showHelp": "Show this list",
+    "shortcuts.commandPalette": "Command palette",
+    "toasts.region": "Notifications",
     "shortcuts.unreadAgent": "Next / previous agent with unread entries",
     "shortcuts.nthAgent": "Open the 1st to 9th agent of the rail",
     "shortcuts.send": "Send the message",

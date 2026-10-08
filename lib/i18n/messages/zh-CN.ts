@@ -1726,6 +1726,8 @@ export const zhCNLocale: LocalePlugin = {
     "shortcuts.stopAgent": "停止正在运行的 Agent",
     "shortcuts.newSession": "在当前项目中新建会话",
     "shortcuts.showHelp": "显示此列表",
+    "shortcuts.commandPalette": "命令面板",
+    "toasts.region": "通知",
     "shortcuts.unreadAgent": "下一个/上一个有未读内容的智能体",
     "shortcuts.nthAgent": "打开侧栏中第 1 至第 9 个智能体",
     "shortcuts.send": "发送消息",

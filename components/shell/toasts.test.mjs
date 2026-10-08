@@ -28,3 +28,11 @@ test("error toasts glow red: the cyan glow is not on the shared toast class", ()
   assert.match(shell, /default: "[^"]*shadow-glow-cyan/);
   assert.match(shell, /error: "[^"]*shadow-\[0_0_14px_rgb\(255_77_94\/0\.35\)\]/);
 });
+
+test("polish: toasts use the Tron font, a real close button, translated labels, top on mobile", () => {
+  assert.match(shell, /toast: "font-sans /);
+  assert.match(shell, /closeButton: "[^"]*size-7[^"]*pointer-coarse:size-11/);
+  assert.match(shell, /containerAriaLabel=\{translate\("toasts\.region"\)\}/);
+  assert.match(shell, /closeButtonAriaLabel: translate\("i18n\.close"\)/);
+  assert.match(shell, /position=\{isMobile \? "top-center" : "bottom-right"\}/);
+});

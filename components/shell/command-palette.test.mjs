@@ -53,3 +53,19 @@ test("closing the palette gives focus back to where it was opened from", () => {
   assert.match(palette, /onOpenAutoFocus=\{\(\) => \{\s*openerRef\.current = document\.activeElement as HTMLElement \| null;/);
   assert.match(palette, /onCloseAutoFocus=\{\(event\) => \{\s*event\.preventDefault\(\);\s*focusIfLost\(document, openerRef\.current\);/);
 });
+
+test("polish: Ctrl+K closes again (no cmdk vim bindings), IME Escape stays with the input method", () => {
+  assert.match(palette, /<Command label=\{t\("palette\.title"\)\} loop vimBindings=\{false\}/);
+  assert.match(palette, /onEscapeKeyDown=\{\(event\) => \{\s*if \(event\.isComposing \|\| event\.keyCode === 229\) event\.preventDefault\(\);/);
+});
+
+test("polish: Cmd+K works inside the terminal on mac (xterm does not use it)", () => {
+  assert.equal(isCommandPaletteKey(key("k", { metaKey: true, inTerminal: true }), "mac"), true);
+  assert.equal(isCommandPaletteKey(key("k", { ctrlKey: true, inTerminal: true }), "other"), false);
+});
+
+test("polish: session rows show their folder and skip sub-agent children; no redundant Settings prefix", () => {
+  assert.match(shell, /filter\(\(session\) => !session\.transient && session\.relation\?\.kind !== "subagent"\)/);
+  assert.match(shell, /hint: getFileName\(session\.cwd\) \|\| undefined,/);
+  assert.doesNotMatch(shell, /label: `\$\{translate\("settings\.title"\)\} › /);
+});

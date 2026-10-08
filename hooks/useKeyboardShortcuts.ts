@@ -51,13 +51,14 @@ export function isShortcutsHelpKey(event: KeyboardEvent, dialogOpen: boolean): b
 
 /**
  * Cmd+K (mac) / Ctrl+K (elsewhere) opens the command palette. Not with Alt or Shift, not while an
- * input method composes, not when something nearer took the key, and never inside the terminal:
- * there Ctrl+K belongs to the shell. On mac Ctrl+K stays the text-field "kill line".
+ * input method composes, not when something nearer took the key. Ctrl+K inside the terminal belongs
+ * to the shell; Cmd+K is unused there. On mac Ctrl+K stays the text-field "kill line".
  */
 export function isCommandPaletteKey(event: KeyboardEvent, platform: "mac" | "other"): boolean {
   if (event.key.toLowerCase() !== "k" || event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey) return false;
   const primary = platform === "mac" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
   if (!primary) return false;
+  if (platform === "mac") return true;
   const target = event.target as Element | null;
   return !target?.closest?.(".terminal-xterm");
 }

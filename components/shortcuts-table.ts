@@ -27,6 +27,7 @@ export function shortcutGroups(sendMode: EnterSendMode, mobile: boolean, platfor
         { keys: chord("Esc"), labelKey: "shortcuts.stopAgent" },
         { keys: chord("Ctrl", "Alt", "N"), labelKey: "shortcuts.newSession" },
         { keys: chord("?"), labelKey: "shortcuts.showHelp" },
+        { keys: chord(platform === "mac" ? "Meta" : "Ctrl", "K"), labelKey: "shortcuts.commandPalette" },
       ],
     },
     {

@@ -1305,14 +1305,15 @@ export function AppShell() {
       ...SETTINGS_SECTION_VALUES.map((section): PaletteCommand => ({
         id: `settings-${section}`,
         group: "settings",
-        label: `${translate("settings.title")} › ${settingsLabels[section]}`,
+        label: settingsLabels[section],
         disabled: settingsSectionRequiresProject(section) && !projectTrustCwd,
         run: () => openSettingsSection(section),
       })),
-      ...sessionCatalog.filter((session) => !session.transient).slice(0, 300).map((session): PaletteCommand => ({
+      ...sessionCatalog.filter((session) => !session.transient && session.relation?.kind !== "subagent").slice(0, 300).map((session): PaletteCommand => ({
         id: `session-${session.id}`,
         group: "sessions",
         label: session.name || session.firstMessage?.slice(0, 60) || session.id.slice(0, 12),
+        hint: getFileName(session.cwd) || undefined,
         run: () => handleSelectSession(session),
       })),
     ];
@@ -2707,11 +2708,13 @@ export function AppShell() {
     <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={paletteCommands} />
     <Toaster
       theme="dark"
-      position="bottom-right"
+      position={isMobile ? "top-center" : "bottom-right"}
+      containerAriaLabel={translate("toasts.region")}
       toastOptions={{
         unstyled: true,
+        closeButtonAriaLabel: translate("i18n.close"),
         classNames: {
-          toast: "flex w-[min(92vw,360px)] items-start gap-2 border border-tron-line bg-black px-3 py-2.5 text-sm text-text",
+          toast: "font-sans flex w-[min(92vw,360px)] items-start gap-2 border border-tron-line bg-black px-3 py-2.5 text-sm text-text",
           default: "shadow-glow-cyan",
           info: "shadow-glow-cyan",
           title: "font-medium",
@@ -2719,7 +2722,7 @@ export function AppShell() {
           error: "border-tron-red/60 text-tron-red shadow-[0_0_14px_rgb(255_77_94/0.35)]",
           warning: "border-tron-orange/60 text-tron-orange shadow-glow-orange",
           success: "text-tron-cyan shadow-glow-cyan",
-          closeButton: "border border-tron-line bg-black text-text-muted hover:text-text",
+          closeButton: "order-last ml-auto grid size-7 shrink-0 place-items-center border border-tron-line bg-black text-text-muted hover:text-text pointer-coarse:size-11",
         },
       }}
     />

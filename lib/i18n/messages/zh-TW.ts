@@ -1726,6 +1726,8 @@ export const zhTWLocale: LocalePlugin = {
     "shortcuts.stopAgent": "停止正在執行的 Agent",
     "shortcuts.newSession": "在目前專案中新增工作階段",
     "shortcuts.showHelp": "顯示此列表",
+    "shortcuts.commandPalette": "命令面板",
+    "toasts.region": "通知",
     "shortcuts.unreadAgent": "下一個/上一個有未讀內容的智慧代理",
     "shortcuts.nthAgent": "開啟側欄中第 1 至第 9 個智慧代理",
     "shortcuts.send": "傳送訊息",
