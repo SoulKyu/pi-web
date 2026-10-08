@@ -63,7 +63,7 @@ test("POST /api/agents/[name]/thread/reset archives under the lock and starts th
   const reset = await read("./[name]/thread/reset/route.ts");
   assert.match(reset, /withThreadLock\(name/);
   assert.match(reset, /agent_running/);
-  assert.match(reset, /archiveThread\(/);
+  assert.match(reset, /archiveThreadLocked\(agent\)/);
   assert.match(reset, /ensureThreadLocked\(/);
   assert.match(reset, /registryErrorResponse/);
   assert.doesNotMatch(reset, /cancelQueuedTasksOfAgent|deleteTriggersOfAgent/);

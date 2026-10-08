@@ -58,7 +58,8 @@
   - Pause the agent from the rail.
   - Reset its thread (`POST agents/[name]/thread/reset`).
   - Review staged memories (`lib/agent-ops/memory-review.ts`).
-  - Rotate webhook secrets (`POST agent-ops/triggers/[id]/secret`). One-click quarantine automating these steps is (planned).
+  - Rotate webhook secrets (`POST agent-ops/triggers/[id]/secret`). 
+- **Quarantine** (`POST agents/[name]/quarantine`, red "Quarantine" button in the profile dialog behind two confirms; `lib/agents/quarantine.ts`). Under the thread lock, in order: (1) pause (`pausedAgents` += name, idempotent; the only step whose failure aborts with 500); (2) `abortRunningTasks` for the agent, then every queued task of it set `cancelled`; (3) the thread: an alive wrapper gets `abort` (errors ignored) then `shutdown()`, a starting one is waited for ≤ 5 s, then `archiveThreadLocked(agent, { force: true })` (`lib/agents/thread-archive.ts`, shared with the reset route, which keeps the 409 `agent_running` behaviour) archives it and **no new thread is created**; (4) this agent's staged facts (`agent === name`) and their `.decision.json` are **moved** (never rewritten, pi-mem0 owns the layout) to `<mem0>/staging/quarantine-<stamp>/` (0700), other agents' files stay; (5) every trigger of the agent with a webhook secret is rotated. Each of steps 2-5 is wrapped: a failure lands in `errors` and the others still run. Answer (`no-store`): `{ trash, secrets: [{ triggerId, name, webhookSecret }], staged, tasksAborted, tasksCancelled, errors }`; the secrets are shown once (one `TriggerSecretDialog` per trigger). Triggers stay enabled, the pause blocks their runs; resume from the rail. No 409: quarantine forces.
 
 ## Security rules
 - Trusted starts and re-snapshots resolve the profile through `resolveLongTermProfile` (`registry.ts`): global scope, exact name. A `.pi/agents` or `.agents/agents` file under the home never applies. A new trusted session must also have the agent's home as cwd.

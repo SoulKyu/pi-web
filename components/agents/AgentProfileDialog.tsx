@@ -12,8 +12,11 @@ import { curationPrompt } from "@/lib/agents/curation-prompt";
 import { AgentPermissions } from "./AgentPermissions";
 import { AgentSecrets } from "./AgentSecrets";
 import { TriggerDialog } from "./TriggerDialog";
+import { TriggerSecretDialog } from "./TriggerSecretDialog";
 import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
+
+type RotatedSecret = { triggerId: string; name: string; webhookSecret: string };
 
 export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThreadReset }: { agent: AgentDetail; onClose: () => void; onSaved: (agent: AgentDetail) => void; onDeleted: () => void; onThreadReset: () => void }) {
   const { t } = useI18n();
@@ -33,6 +36,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [webAllowHosts, setWebAllowHosts] = useState((agent.webAllowHosts ?? []).join("\n"));
   const [sandbox, setSandbox] = useState(agent.sandbox === "bubblewrap");
   const [sandboxNetwork, setSandboxNetwork] = useState(agent.sandboxNetwork === true);
+  const [rotated, setRotated] = useState<RotatedSecret[]>([]);
   const [toolsPreset, setToolsPreset] = useState<ToolsPreset>(agent.toolsPreset);
   const [modelList, setModelList] = useState<ModelOption[]>([]);
   const [fetchedMcp, setFetchedMcp] = useState<string[]>([]);
@@ -134,6 +138,28 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
       onDeleted();
       onClose();
+    } catch (cause) {
+      setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const quarantine = async () => {
+    if (!window.confirm(t("agents.profile.quarantineConfirm", { name: agent.name }))) return;
+    const listed = await fetch(`/api/agent-ops/triggers?agent=${encodeURIComponent(agent.name)}`, { cache: "no-store" }).then((r) => r.json(), () => ({})) as { triggers?: { hasWebhookSecret?: boolean }[] };
+    const rotating = listed.triggers?.filter((trigger) => trigger.hasWebhookSecret).length ?? 0;
+    if (!window.confirm(t("agents.profile.quarantineConfirmSecrets", { count: rotating }))) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}/quarantine`, { method: "POST" });
+      const data = await response.json().catch(() => ({})) as { error?: string; secrets?: RotatedSecret[]; errors?: string[] };
+      if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
+      onSaved(agent); // reloads the agent list: the paused badge
+      if (data.errors?.length) window.alert(t("agents.profile.quarantinePartial", { errors: data.errors.join("; ") }));
+      if (data.secrets?.length) setRotated(data.secrets);
+      else onClose();
     } catch (cause) {
       setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
     } finally {
@@ -263,6 +289,7 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid #e5484d", background: "none", color: "#e5484d" }}>{t("agents.profile.delete")}</button>
+            <button type="button" disabled={busy} onClick={() => void quarantine()} style={{ ...buttonStyle, border: 0, background: "#e5484d", color: "#fff", fontWeight: 600 }}>{t("agents.profile.quarantine")}</button>
             <button type="button" disabled={busy} onClick={() => { onThreadReset(); onClose(); }} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -274,6 +301,15 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
         </div>
       </form>
     </div>
+    {rotated[0] && (
+      <TriggerSecretDialog
+        key={rotated[0].triggerId}
+        triggerId={rotated[0].triggerId}
+        triggerName={rotated[0].name}
+        secret={rotated[0].webhookSecret}
+        onClose={() => { if (rotated.length > 1) setRotated(rotated.slice(1)); else { setRotated([]); onClose(); } }}
+      />
+    )}
     {curation && agent.memorySnapshotPath && (
       <TriggerDialog
         agentName={agent.name}
