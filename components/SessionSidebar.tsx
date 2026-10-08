@@ -435,6 +435,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const shortcutPlatform = useShortcutPlatform();
   const [sessionSearchOpen, setSessionSearchOpen] = useState(false);
   const [sessionSearchQuery, setSessionSearchQuery] = useState("");
+  const sessionSearchToggleRef = useRef<HTMLButtonElement>(null);
   const sessionSearchActive = sessionSearchOpen && Boolean(sessionSearchQuery.trim());
   const [changesCount, setChangesCount] = useState(0);
   const [changesCollapsed, setChangesCollapsed] = useState(true);
@@ -1237,6 +1238,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
               {t("sidebar.new")}
             </button>
             <button
+              ref={sessionSearchToggleRef}
               type="button"
               onClick={() => {
                 setSessionSearchOpen((open) => !open);
@@ -1472,8 +1474,14 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
             onChange={(event) => setSessionSearchQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Escape") {
+                event.preventDefault();
                 event.stopPropagation();
-                setSessionSearchQuery("");
+                if (sessionSearchQuery) {
+                  setSessionSearchQuery("");
+                  return;
+                }
+                setSessionSearchOpen(false);
+                sessionSearchToggleRef.current?.focus();
               }
             }}
             className="mt-[6px] block h-[29px] w-full min-w-0 rounded-[7px] border border-border bg-bg px-[10px] text-xs text-text focus:outline-2 focus:outline-accent"

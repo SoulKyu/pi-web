@@ -148,3 +148,12 @@ test("hides subagent rows and aggregates their state into the main session row",
   assert.match(source, /familySessions\.some\(\(session\) => runningSessionIds\.has\(session\.id\)\)/);
   assert.doesNotMatch(source, /function SessionTreeItem/);
 });
+
+test("Escape clears a session search query first, then closes the search and refocuses its toggle", () => {
+  assert.match(source, /const sessionSearchToggleRef = useRef<HTMLButtonElement>\(null\);/);
+  assert.match(source, /<button\s+ref=\{sessionSearchToggleRef\}\s+type="button"/);
+  assert.match(
+    source,
+    /if \(event\.key === "Escape"\) \{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*if \(sessionSearchQuery\) \{\s*setSessionSearchQuery\(""\);\s*return;\s*\}\s*setSessionSearchOpen\(false\);\s*sessionSearchToggleRef\.current\?\.focus\(\);\s*\}/,
+  );
+});

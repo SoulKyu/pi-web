@@ -1360,17 +1360,19 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, initi
               <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} />
             )}
 
-            {agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && (
-              <div className="break-words py-2 text-[13px] text-text-muted">
-                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t, isCompacting)}</span>
-              </div>
-            )}
+            <div role="status" aria-live="polite">
+              {agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && (
+                <div className="break-words py-2 text-[13px] text-text-muted">
+                  <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t, isCompacting)}</span>
+                </div>
+              )}
 
-            {bashRunning && !pendingBash && (
-              <div className="py-2 text-[13px] text-text-muted">
-                 <span className="animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
-              </div>
-            )}
+              {bashRunning && !pendingBash && (
+                <div className="py-2 text-[13px] text-text-muted">
+                  <span className="animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
+                </div>
+              )}
+            </div>
 
             {pendingBash && (
               <MessageView

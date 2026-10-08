@@ -87,3 +87,21 @@ test("the inbox: rail button with the summed unread, panel polling only while op
     for (const key of ["agents.rail.inbox", "agents.inbox.title", "agents.inbox.empty", "agents.inbox.approval"]) assert.match(messages, new RegExp(`"${key.replaceAll(".", "\\.")}"`), `${locale} ${key}`);
   }
 });
+
+test("pausing all agents asks inline; Escape cancels without reaching the global Stop shortcut", async () => {
+  const { createJiti } = await import("jiti");
+  const jiti = createJiti(import.meta.url);
+  assert.doesNotMatch(rail, /window\.confirm/);
+  assert.match(rail, /onClick=\{\(\) => \(paused \? void togglePause\(\) : setConfirmingPause\(true\)\)\}/);
+  assert.match(rail, /role="group"\s+aria-label=\{t\("agentOps\.pause\.confirm"\)\}/);
+  assert.match(rail, /if \(event\.key !== "Escape"\) return;\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*closePauseConfirm\(\);/);
+  assert.match(rail, /onClick=\{\(\) => \{ closePauseConfirm\(\); void togglePause\(\); \}\}/);
+  assert.match(rail, /aria-label=\{t\("agentOps\.pause\.confirmYes"\)\}/);
+  assert.match(rail, /ref=\{pauseCancelRef\}/);
+  assert.match(rail, /useEffect\(\(\) => \{ if \(confirmingPause\) pauseCancelRef\.current\?\.focus\(\); \}, \[confirmingPause\]\);/);
+  assert.match(rail, /requestAnimationFrame\(\(\) => pauseButtonRef\.current\?\.focus\(\)\)/);
+  for (const id of ["en", "fr", "zh-CN", "zh-TW"]) {
+    const locale = Object.values(await jiti.import(`../../lib/i18n/messages/${id}.ts`)).find((value) => value?.messages);
+    assert.equal(typeof locale.messages["agentOps.pause.confirmYes"], "string", id);
+  }
+});

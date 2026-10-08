@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentListItem } from "@/lib/agents/agent-view";
@@ -126,8 +126,15 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   ].filter(Boolean).join("\n");
   const inboxUnread = agents.reduce((sum, agent) => sum + agent.unread, 0);
   const [pauseError, setPauseError] = useState<string | null>(null);
+  const [confirmingPause, setConfirmingPause] = useState(false);
+  const pauseButtonRef = useRef<HTMLButtonElement>(null);
+  const pauseCancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (confirmingPause) pauseCancelRef.current?.focus(); }, [confirmingPause]);
+  const closePauseConfirm = () => {
+    setConfirmingPause(false);
+    requestAnimationFrame(() => pauseButtonRef.current?.focus());
+  };
   const togglePause = async () => {
-    if (!paused && !window.confirm(t("agentOps.pause.confirm"))) return;
     try {
       const response = await fetch("/api/agent-ops/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: !paused }) });
       if (!response.ok) throw new Error(((await response.json()) as { error?: string }).error ?? `HTTP ${response.status}`);
@@ -154,7 +161,25 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
       <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} style={railButtonStyle}>+</button>
       {healthState && <span role="img" aria-label={t(`agents.health.${healthState.level}`)} title={healthTitle ?? undefined} style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: HEALTH_COLORS[healthState.level] }} />}
       {healthState?.health.quietHours && <span role="img" aria-label={t("agentOps.quietHours.active")} title={t("agentOps.quietHours.active")} style={{ fontSize: 12 }}>🌙</span>}
-      <button type="button" onClick={() => void togglePause()} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
+      {confirmingPause ? (
+        <div
+          role="group"
+          aria-label={t("agentOps.pause.confirm")}
+          title={t("agentOps.pause.confirm")}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            event.stopPropagation();
+            closePauseConfirm();
+          }}
+          style={{ display: "flex", flexDirection: vertical ? "column" : "row", alignItems: "center", gap: 4, flexShrink: 0 }}
+        >
+          <button type="button" onClick={() => { closePauseConfirm(); void togglePause(); }} aria-label={t("agentOps.pause.confirmYes")} title={t("agentOps.pause.confirmYes")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 6 }}>✓{!vertical && <span>{t("agentOps.pause.confirmYes")}</span>}</button>
+          <button ref={pauseCancelRef} type="button" onClick={closePauseConfirm} aria-label={t("i18n.cancel")} title={t("i18n.cancel")} style={{ ...railButtonStyle, ...(vertical ? {} : { width: "auto", padding: "0 8px", gap: 4, fontSize: 12 }), border: "1px solid var(--border)", borderRadius: 6 }}>✕{!vertical && <span>{t("i18n.cancel")}</span>}</button>
+        </div>
+      ) : (
+        <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void togglePause() : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} style={{ ...railButtonStyle, color: paused ? "var(--accent)" : "var(--text-muted)" }}>{paused ? "▶" : "⏸"}</button>
+      )}
       {pauseError && <span role="alert" title={t("agents.error", { error: pauseError })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span>}
       {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} style={{ color: "var(--text-muted)", fontSize: 12 }}>⚠</span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}
       <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} style={{ ...railButtonStyle, ...(vertical ? { marginTop: "auto" } : { marginLeft: "auto", width: "auto" }) }}>📥{inboxUnread > 0 && <span style={{ fontSize: 12, marginLeft: 2 }}>{inboxUnread}</span>}{!vertical && <span style={{ fontSize: 12, marginLeft: 4 }}>{t("agents.rail.inbox")}</span>}</button>

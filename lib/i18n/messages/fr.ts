@@ -1361,6 +1361,7 @@ export const frLocale: LocalePlugin = {
     "agentOps.pause.allBanner": "Tous les agents sont en pause",
     "agentOps.pause.agent": "Mettre cet agent en pause",
     "agentOps.pause.confirm": "Mettre tous les agents en pause et annuler leurs tâches en cours ?",
+    "agentOps.pause.confirmYes": "Tout mettre en pause",
     "agentOps.steerPlaceholder": "Message pour l'agent en cours d'exécution",
     "agentOps.retry": "Relancer",
     "agentOps.attempt": "tentative {n}",
