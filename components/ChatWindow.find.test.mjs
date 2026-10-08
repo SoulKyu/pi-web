@@ -20,11 +20,18 @@ test("the bar is in flow above the composer, with a 16px input on phones", () =>
   assert.match(css, /@media \(max-width: 640px\) \{\s*\.chat-find-input \{ font-size: 16px; \}/);
 });
 
-test("Enter / Shift+Enter step (never mid-IME), Escape closes with preventDefault, no Ctrl+F binding", () => {
-  assert.match(source, /if \(event\.key === "Escape"\) \{ event\.preventDefault\(\); closeFind\(\); return; \}/);
+test("Enter / Shift+Enter step (never mid-IME), Escape closes from the bar container, no Ctrl+F binding", () => {
+  const bar = source.slice(source.indexOf('id="chat-find-bar"'), source.indexOf("{chatInputElement}"));
+  const containerEsc = bar.indexOf('onKeyDown={(event) => {\n            if (event.key !== "Escape" || event.nativeEvent.isComposing || event.keyCode === 229) return;\n            event.preventDefault();\n            closeFind();');
+  assert.ok(containerEsc > 0 && containerEsc < bar.indexOf("<input"));
+  assert.doesNotMatch(bar.slice(bar.indexOf("<input")), /key === "Escape"/);
   assert.match(source, /if \(event\.key !== "Enter" \|\| event\.nativeEvent\.isComposing \|\| event\.keyCode === 229\) return;/);
   assert.match(source, /stepFind\(event\.shiftKey \? -1 : 1\)/);
   assert.doesNotMatch(source, /key === "f"/i);
+});
+
+test("the active hit resets when the scan source changes", () => {
+  assert.match(source, /useEffect\(\(\) => \{\n\s+setFindIndex\(-1\);\n\s+\}, \[findSource\]\);/);
 });
 
 test("the scan waits while a run streams, and a jump goes through AppShell's search target", () => {

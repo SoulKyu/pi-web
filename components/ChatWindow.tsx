@@ -579,6 +579,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     if (hit && session) onRequestSearchTarget?.({ sessionId: session.id, ...hit });
   };
   useEffect(() => {
+    setFindIndex(-1);
+  }, [findSource]);
+  useEffect(() => {
     setFindOpen(false);
     setFindQuery("");
     setFindIndex(-1);
@@ -1603,7 +1606,11 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
           </div>
         )}
         {findOpen && (
-          <div id="chat-find-bar" role="search" aria-label={t("chat.find.open")} className="chat-find-bar" style={{ paddingLeft: 16, paddingRight: isMobile ? 16 : 52 }}>
+          <div id="chat-find-bar" role="search" aria-label={t("chat.find.open")} className="chat-find-bar" style={{ paddingLeft: 16, paddingRight: isMobile ? 16 : 52 }} onKeyDown={(event) => {
+            if (event.key !== "Escape" || event.nativeEvent.isComposing || event.keyCode === 229) return;
+            event.preventDefault();
+            closeFind();
+          }}>
             <div className="chat-find-row">
               <input
                 type="text"
@@ -1611,7 +1618,6 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 value={findQuery}
                 onChange={(event) => { setFindQuery(event.target.value); setFindIndex(-1); }}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape") { event.preventDefault(); closeFind(); return; }
                   if (event.key !== "Enter" || event.nativeEvent.isComposing || event.keyCode === 229) return;
                   event.preventDefault();
                   stepFind(event.shiftKey ? -1 : 1);
