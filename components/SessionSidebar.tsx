@@ -1505,16 +1505,17 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     // skill-invoked session stays a no-op instead of persisting raw XML.)
     if (renameValue === title || name === (session.name ?? "")) return;
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
+      const res = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
+      if (!res.ok) throw new Error(`rename failed: ${res.status}`);
       void loadSessions();
     } catch {
-      // ignore
+      showToast(t("sidebar.renameFailed"));
     }
-  }, [loadSessions]);
+  }, [loadSessions, showToast, t]);
 
   const performDelete = useCallback(async (family: SessionFamily) => {
     const session = family.root;
@@ -1522,13 +1523,14 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     setConfirmDeleteRootId((current) => (current === session.id ? null : current));
     try {
       // The server deletes the family's subagent sessions with it.
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      const res = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`delete failed: ${res.status}`);
       onSessionDeleted?.(session.id);
       void loadSessions();
     } catch {
-      // The row stays; the next refresh shows what happened.
+      showToast(t("sidebar.deleteFailed"));
     }
-  }, [loadSessions, onSessionDeleted]);
+  }, [loadSessions, onSessionDeleted, showToast, t]);
 
   // Only Shift skips the confirmation (Shift+click, Shift+Enter or Shift+D in the menu).
   const requestDelete = useCallback((family: SessionFamily, shiftKey: boolean) => {

@@ -767,3 +767,13 @@ test("Escape clears a session search query first, then closes the search and ref
     /if \(event\.key !== "Escape" \|\| event\.nativeEvent\.isComposing \|\| event\.keyCode === 229\) return;\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*if \(sessionSearchQuery\) \{\s*setSessionSearchQuery\(""\);\s*return;\s*\}\s*setSessionSearchOpen\(false\);\s*searchToggleRef\.current\?\.focus\(\);/,
   );
 });
+
+// Fork (648fc0c): a refused rename or delete is reported, and a refused delete never closes the session.
+test("rename and delete check the response and report a failure in the sidebar toast", () => {
+  const rename = between("const commitRename = useCallback(", "const performDelete = useCallback(");
+  assert.match(rename, /const res = await fetch\(`\/api\/sessions\/\$\{encodeURIComponent\(session\.id\)\}`, \{\s*method: "PATCH"/);
+  assert.match(rename, /if \(!res\.ok\) throw new Error\(`rename failed: \$\{res\.status\}`\);\s*void loadSessions\(\);\s*\} catch \{\s*showToast\(t\("sidebar\.renameFailed"\)\);/);
+  const remove = between("const performDelete = useCallback(", "const requestDelete = useCallback(");
+  assert.match(remove, /const res = await fetch\(`\/api\/sessions\/\$\{encodeURIComponent\(session\.id\)\}`, \{ method: "DELETE" \}\);\s*if \(!res\.ok\) throw new Error\(`delete failed: \$\{res\.status\}`\);\s*onSessionDeleted\?\.\(session\.id\);/);
+  assert.match(remove, /\} catch \{\s*showToast\(t\("sidebar\.deleteFailed"\)\);/);
+});
