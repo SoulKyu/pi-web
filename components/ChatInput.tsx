@@ -1756,7 +1756,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           <div style={{
             marginBottom: 8,
             border: "1px solid var(--border)",
-            borderRadius: 6,
+            borderRadius: 0,
             background: "var(--bg-panel)",
             padding: "5px 0",
           }}>
@@ -1789,7 +1789,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                     color: "var(--text)",
                     background: "transparent",
                     border: "1px solid var(--border)",
-                    borderRadius: 7,
+                    borderRadius: 0,
                     cursor: "pointer",
                     transition: "background 0.12s, border-color 0.12s",
                     whiteSpace: "nowrap",
@@ -1896,7 +1896,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   <img
                     src={img.previewUrl}
                     alt=""
-                    style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)", display: "block" }}
+                    style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 0, border: "1px solid var(--border)", display: "block" }}
                   />
                 </ImagePreview>
                 <button
@@ -1983,7 +1983,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                         gap: 8,
                         padding: "7px 8px",
                         border: "none",
-                        borderRadius: 6,
+                        borderRadius: 0,
                         background: active ? "var(--bg-selected)" : "none",
                         color: "var(--text)",
                         cursor: "pointer",
@@ -2014,9 +2014,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 bottom: "calc(100% + 8px)",
                 zIndex: 120,
                 background: "var(--bg)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                boxShadow: "0 -6px 20px rgba(0,0,0,0.12)",
+                border: "1px solid var(--color-tron-line)",
+                borderRadius: 0,
+                boxShadow: "var(--shadow-glow-cyan)",
                 overflow: "hidden",
                 boxSizing: "border-box",
                 display: "flex",
@@ -2102,7 +2102,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                                 justifyContent: "center",
                                 padding: "9px 10px",
                                 border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                                borderRadius: 7,
+                                borderRadius: 0,
                                 background: active ? "var(--bg-selected)" : "var(--bg-panel)",
                                 color: "var(--text)",
                                 cursor: "pointer",
@@ -2123,7 +2123,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                                     marginLeft: 6,
                                     padding: "0 4px",
                                     border: "1px solid var(--border)",
-                                    borderRadius: 3,
+                                    borderRadius: 0,
                                     fontSize: 9,
                                     color: "var(--text-dim)",
                                     whiteSpace: "nowrap",
@@ -2173,9 +2173,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   bottom: "calc(100% + 8px)",
                   zIndex: 120,
                   background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  boxShadow: "0 -6px 20px rgba(0,0,0,0.12)",
+                  border: "1px solid var(--color-tron-line)",
+                  borderRadius: 0,
+                  boxShadow: "var(--shadow-glow-cyan)",
                   overflow: "hidden",
                   boxSizing: "border-box",
                   display: "flex",
@@ -2234,8 +2234,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                             gap: 8,
                             padding: "6px 8px",
                             border: "none",
-                            borderRadius: 6,
+                            borderRadius: 0,
                             background: active ? "var(--bg-selected)" : "none",
+                            boxShadow: active ? "inset 2px 0 0 var(--color-tron-cyan)" : "none",
                             color: "var(--text)",
                             cursor: "pointer",
                             textAlign: "left",
@@ -2366,14 +2367,14 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 {composerRow}
               </div>
             ) : (
-              <Chamfer tone={steering ? "orange" : "cyan"} glow cut={12} innerStyle={{
+              <Chamfer tone={steering || bashMode ? "orange" : "cyan"} glow cut={12} innerStyle={{
                 minWidth: 0,
                 display: "flex",
                 flexDirection: "row",
                 gap: 8,
                 alignItems: "center",
                 padding: isMobile ? "6px 6px 6px 12px" : "10px 10px 10px 14px",
-                background: bashMode ? "var(--tool-bg)" : "#000",
+                background: bashMode ? "color-mix(in srgb, var(--color-tron-orange) 8%, #000)" : "#000",
               }}>
                 {composerRow}
               </Chamfer>

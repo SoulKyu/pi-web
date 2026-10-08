@@ -133,7 +133,7 @@ function SafeMarkdownBody({ children, className, ...props }: React.ComponentProp
           margin: "4px 0",
           padding: "7px 10px",
           border: "1px solid var(--border)",
-          borderRadius: 6,
+          borderRadius: 0,
           background: "var(--bg-panel)",
           color: "var(--text-muted)",
           cursor: "pointer",
@@ -445,7 +445,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
             <img
               src={src}
               alt=""
-              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid var(--color-tron-line)" }}
+              style={{ maxWidth: 240, maxHeight: 240, borderRadius: 0, objectFit: "contain", display: "block", border: "1px solid var(--color-tron-line)" }}
             />
           </ImagePreview>
         );
@@ -575,7 +575,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "3px 8px", height: 22,
                 background: "none", border: "none",
-                borderRadius: 5,
+                borderRadius: 0,
                 color: copied ? "var(--accent)" : "var(--text-dim)",
                 cursor: "pointer",
                 fontSize: 11, fontWeight: 400,
@@ -613,7 +613,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: "var(--text-dim)",
                     cursor: "pointer",
                     fontSize: 11, fontWeight: 400,
@@ -640,7 +640,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: "var(--accent)",
                     cursor: "pointer",
                     fontSize: 11, fontWeight: 500,
@@ -662,7 +662,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "3px 8px", height: 22,
                     background: "none", border: "none",
-                    borderRadius: 5,
+                    borderRadius: 0,
                     color: forking ? "var(--accent)" : "var(--text-dim)",
                     cursor: forking ? "not-allowed" : "pointer",
                     fontSize: 11, fontWeight: 400,
@@ -977,7 +977,7 @@ function AssistantMessageView({
                 marginTop: 8,
                 padding: "3px 8px",
                 border: "1px solid currentColor",
-                borderRadius: 5,
+                borderRadius: 0,
                 background: "transparent",
                 color: "inherit",
                 cursor: isCompacting ? "default" : "pointer",
@@ -1013,7 +1013,7 @@ function AssistantMessageView({
               display: "flex", alignItems: "center", gap: 4,
               padding: "3px 8px", height: 22,
               background: "none", border: "none",
-              borderRadius: 5,
+              borderRadius: 0,
               color: copied ? "var(--accent)" : "var(--text-dim)",
               cursor: "pointer",
               fontSize: 11, fontWeight: 400,
@@ -1044,7 +1044,7 @@ function AssistantMessageView({
             title={t("agents.handTo.title")}
             style={{
               padding: "3px 8px", height: 22,
-              background: "none", border: "none", borderRadius: 5,
+              background: "none", border: "none", borderRadius: 0,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
               opacity: actionsVisible ? 1 : 0,
@@ -1063,7 +1063,7 @@ function AssistantMessageView({
             title={t("agents.askReview.title")}
             style={{
               padding: "3px 8px", height: 22,
-              background: "none", border: "none", borderRadius: 5,
+              background: "none", border: "none", borderRadius: 0,
               color: "var(--text-dim)", cursor: "pointer",
               fontSize: 11, fontWeight: 400, whiteSpace: "nowrap",
               opacity: actionsVisible ? 1 : 0,
@@ -1317,7 +1317,7 @@ function ToolCallBlock({ block, result, duration, onOpenSession, plannotator, ru
           type="button"
           onClick={toggleExpanded}
           aria-expanded={expanded}
-          className="bg-transparent text-text-muted outline-none hover:bg-bg-hover focus-visible:shadow-glow-cyan"
+          className="bg-transparent text-text-muted outline-none hover:bg-bg-hover focus-visible:shadow-[inset_0_0_0_1px_var(--color-tron-cyan)]"
           style={{
             display: "flex",
             alignItems: "center",
@@ -1750,7 +1750,7 @@ function ResultImages({ images, isError }: { images: ImageContent[]; isError: bo
                 display: "block",
                 maxWidth: "min(100%, 720px)",
                 maxHeight: 520,
-                borderRadius: 6,
+                borderRadius: 0,
                 objectFit: "contain",
                 border: "1px solid var(--border)",
               }}
@@ -1808,7 +1808,7 @@ function CompactionMessageView({ message }: { message: CustomMessage }) {
       <div
         style={{
           border: "1px solid var(--border)",
-          borderRadius: 8,
+          borderRadius: 0,
           overflow: "hidden",
           background: "var(--bg)",
         }}
@@ -1905,7 +1905,7 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
       <div
         style={{
           border: "1px solid var(--border)",
-          borderRadius: 8,
+          borderRadius: 0,
           overflow: "hidden",
           background: isHiddenDisplay ? "var(--bg-subtle)" : "var(--bg)",
           opacity: isHiddenDisplay && !contentExpanded ? 0.82 : 1,
@@ -1943,7 +1943,7 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
                       <img
                         src={src}
                         alt=""
-                        style={{ maxWidth: 240, maxHeight: 240, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid var(--border)" }}
+                        style={{ maxWidth: 240, maxHeight: 240, borderRadius: 0, objectFit: "contain", display: "block", border: "1px solid var(--border)" }}
                       />
                     </ImagePreview>
                   );
