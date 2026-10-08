@@ -1714,5 +1714,10 @@ export const zhTWLocale: LocalePlugin = {
     "chat.find.loadedOnly": "僅限已載入的訊息",
     "agents.tasks.promptLength": "{count} / {max} 個字元",
     "agents.tasks.promptTooLong": "過長：任務最多 {max} 個字元。請縮短後再排入佇列。",
+    "agents.event.reviewResult": "{name} 的審閱",
+    "agents.event.clipped": "已截斷——完整內容請查看執行記錄",
+    "agents.event.injectClipped": "注入（已截斷）",
+    "agents.event.injectClippedHint": "注入此卡片中已截斷的文字，而非完整結果",
+    "agents.tasks.handedFrom": "由 {name} 移交",
   },
 };

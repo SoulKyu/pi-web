@@ -1714,5 +1714,10 @@ export const frLocale: LocalePlugin = {
     "chat.find.loadedOnly": "Messages chargés uniquement",
     "agents.tasks.promptLength": "{count} / {max} caractères",
     "agents.tasks.promptTooLong": "Trop long : une tâche est limitée à {max} caractères. Raccourcissez-la pour la mettre en file.",
+    "agents.event.reviewResult": "Relecture par {name}",
+    "agents.event.clipped": "tronqué — voir l'exécution pour le texte complet",
+    "agents.event.injectClipped": "Injecter (tronqué)",
+    "agents.event.injectClippedHint": "Injecte le texte tronqué de cette carte, pas le résultat complet",
+    "agents.tasks.handedFrom": "confié depuis le fil de {name}",
   },
 };

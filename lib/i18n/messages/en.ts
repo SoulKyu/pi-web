@@ -1714,5 +1714,10 @@ export const enLocale: LocalePlugin = {
     "chat.find.loadedOnly": "Loaded messages only",
     "agents.tasks.promptLength": "{count} / {max} characters",
     "agents.tasks.promptTooLong": "Too long: a task is limited to {max} characters. Shorten it to queue it.",
+    "agents.event.reviewResult": "Review by {name}",
+    "agents.event.clipped": "truncated — see the run for the full text",
+    "agents.event.injectClipped": "Inject (truncated)",
+    "agents.event.injectClippedHint": "Injects the truncated text this card holds, not the full result",
+    "agents.tasks.handedFrom": "handed over from {name}",
   },
 };

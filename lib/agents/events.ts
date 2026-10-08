@@ -10,6 +10,8 @@ export const AGENT_APPROVE_TOOL = "agent_approve";
 /** Client-safe name of the trusted-thread delegation tool (lib/agents/agent-delegate.ts registers it). */
 export const AGENT_DELEGATE_TOOL = "agent_delegate";
 export const EVENT_TEXT_MAX = 2000;
+/** A delegation result is display-only and often long (a review): keep more of it than other cards. */
+export const DELEGATION_TEXT_MAX = 16_000;
 const TITLE_MAX = 80;
 
 export type EventFireReason = { source: "schedule" | "webhook" | "manual"; bucket?: number; payloadHash?: string };
@@ -18,9 +20,10 @@ export type EventFireReason = { source: "schedule" | "webhook" | "manual"; bucke
 export type EventUsage = { tokens: number; cost: number; costEquivalent?: number; turns?: number };
 
 export type AgentEventData =
-  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason; requestedBy?: string }
-  /** D14: another agent's result, display-only. `tainted`: the run read web content or a webhook payload. */
-  | { version: 1; kind: "delegation"; taskId: string; title: string; from: string; status: "completed" | "failed"; summary: string; runSessionId?: string; tainted: boolean }
+  /** `handedFrom`: the requester thread of a user hand-over (shown as provenance in the target's thread). */
+  | { version: 1; kind: "schedule" | "task"; taskId: string; triggerId?: string; title: string; fireReason?: EventFireReason; requestedBy?: string; handedFrom?: string }
+  /** D14: another agent's result, display-only. `tainted`: the run read web content or a webhook payload. `clipped`: the summary was cut at DELEGATION_TEXT_MAX. Older cards have neither `purpose` nor `clipped`. */
+  | { version: 1; kind: "delegation"; taskId: string; title: string; from: string; status: "completed" | "failed"; summary: string; runSessionId?: string; tainted: boolean; purpose?: "review" | "handoff"; clipped?: true }
   | { version: 1; kind: "webhook"; taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
@@ -31,13 +34,16 @@ export function isAgentEventData(value: unknown): value is AgentEventData {
   if (!isRecord(value) || value.version !== 1 || typeof value.taskId !== "string" || typeof value.title !== "string") return false;
   if (value.kind === "delegation") {
     return typeof value.from === "string" && (value.status === "completed" || value.status === "failed") && typeof value.summary === "string" && typeof value.tainted === "boolean"
-      && (value.runSessionId === undefined || typeof value.runSessionId === "string");
+      && (value.runSessionId === undefined || typeof value.runSessionId === "string")
+      && (value.purpose === undefined || value.purpose === "review" || value.purpose === "handoff")
+      && (value.clipped === undefined || value.clipped === true);
   }
   if (value.kind === "schedule" || value.kind === "task") {
     const reason = value.fireReason;
     const reasonOk = reason === undefined || (isRecord(reason) && (reason.source === "schedule" || reason.source === "webhook" || reason.source === "manual"));
     return reasonOk && (value.triggerId === undefined || typeof value.triggerId === "string")
-      && (value.requestedBy === undefined || typeof value.requestedBy === "string");
+      && (value.requestedBy === undefined || typeof value.requestedBy === "string")
+      && (value.handedFrom === undefined || typeof value.handedFrom === "string");
   }
   if (value.kind !== "webhook") return false;
   if (value.taskKind !== undefined && value.taskKind !== "schedule" && value.taskKind !== "webhook") return false;
@@ -52,8 +58,8 @@ export function isAgentEventData(value: unknown): value is AgentEventData {
 
 export const buildScheduleEvent = (input: { taskId: string; triggerId: string; title: string; fireReason?: EventFireReason }): AgentEventData =>
   ({ version: 1, kind: "schedule", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), ...(input.fireReason ? { fireReason: input.fireReason } : {}) });
-export const buildTaskEvent = (input: { taskId: string; title: string; requestedBy?: string }): AgentEventData =>
-  ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title), ...(input.requestedBy ? { requestedBy: input.requestedBy } : {}) });
+export const buildTaskEvent = (input: { taskId: string; title: string; requestedBy?: string; handedFrom?: string }): AgentEventData =>
+  ({ version: 1, kind: "task", taskId: input.taskId, title: clipTitle(input.title), ...(input.requestedBy ? { requestedBy: input.requestedBy } : {}), ...(input.handedFrom ? { handedFrom: input.handedFrom } : {}) });
 /** Display-only (D11): the summary never enters the model context, so clipping loses nothing the agent needs. */
 export const buildWebhookEvent = (input: { taskId: string; triggerId: string; title: string; status: "completed" | "failed"; summary: string; runSessionId?: string; taskKind?: "schedule" | "webhook"; usage?: EventUsage }): AgentEventData => ({
   version: 1, kind: "webhook", taskId: input.taskId, triggerId: input.triggerId, title: clipTitle(input.title), status: input.status,
@@ -65,10 +71,12 @@ export const buildWebhookEvent = (input: { taskId: string; triggerId: string; ti
 /** The result card of a task delivered to another agent's thread; null unless it ended completed or failed under an agent. Display-only (D14): unknown usage counts as tainted. */
 export function delegationEventOfTask(task: { id: string; title: string; agent?: string; status: string; result?: string; error?: string; sessionId?: string; kind?: string; usage?: Pick<RunUsage, "externalTools"> }): AgentEventData | null {
   if (!task.agent || (task.status !== "completed" && task.status !== "failed")) return null;
+  const text = (task.status === "completed" ? task.result : task.error) ?? "";
   return {
     version: 1, kind: "delegation", taskId: task.id, title: clipTitle(task.title), from: task.agent, status: task.status,
-    summary: clip((task.status === "completed" ? task.result : task.error) ?? "", EVENT_TEXT_MAX), ...(task.sessionId ? { runSessionId: task.sessionId } : {}),
+    summary: clip(text, DELEGATION_TEXT_MAX), ...(text.length > DELEGATION_TEXT_MAX ? { clipped: true as const } : {}), ...(task.sessionId ? { runSessionId: task.sessionId } : {}),
     tainted: task.kind === "webhook" || (task.usage?.externalTools ?? true),
+    purpose: task.kind === "review" ? "review" : "handoff",
   };
 }
 

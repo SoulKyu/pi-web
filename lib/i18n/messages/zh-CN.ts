@@ -1714,5 +1714,10 @@ export const zhCNLocale: LocalePlugin = {
     "chat.find.loadedOnly": "仅限已加载的消息",
     "agents.tasks.promptLength": "{count} / {max} 个字符",
     "agents.tasks.promptTooLong": "过长：任务最多 {max} 个字符。请缩短后再排队。",
+    "agents.event.reviewResult": "{name} 的审阅",
+    "agents.event.clipped": "已截断——完整内容请查看运行记录",
+    "agents.event.injectClipped": "注入（已截断）",
+    "agents.event.injectClippedHint": "注入此卡片中已截断的文本，而非完整结果",
+    "agents.tasks.handedFrom": "由 {name} 移交",
   },
 };

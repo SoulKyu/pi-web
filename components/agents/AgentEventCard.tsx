@@ -15,13 +15,14 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
     return (
       <div className="agent-event" role="note">
         <div className="agent-event-head">
-          <span aria-hidden>↩</span> <strong>{t("agents.event.delegationResult", { name: data.from })}</strong> · <span>{data.title}</span>
+          <span aria-hidden>↩</span> <strong>{t(data.purpose === "review" ? "agents.event.reviewResult" : "agents.event.delegationResult", { name: data.from })}</strong> · <span>{data.title}</span>
           {data.status === "failed" && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
           {data.tainted && <span className="agent-event-tainted" title={t("agents.event.taintedHint")}>{t("agents.event.tainted")}</span>}
           {data.runSessionId && onOpenSession && <button type="button" onClick={() => onOpenSession(data.runSessionId!)} className="agent-event-link">{t("agents.event.seeRun")}</button>}
-          {onInject && data.summary && <button type="button" onClick={() => onInject(data.from, data.summary)} className="agent-event-link">{t("agents.event.inject")}</button>}
+          {onInject && data.summary && <button type="button" onClick={() => onInject(data.from, data.summary)} title={data.clipped ? t("agents.event.injectClippedHint") : undefined} className="agent-event-link">{t(data.clipped ? "agents.event.injectClipped" : "agents.event.inject")}</button>}
         </div>
         <div className="agent-event-summary" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{data.summary}</div>
+        {data.clipped && <div className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.event.clipped")}</div>}
       </div>
     );
   }
@@ -33,6 +34,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
       <div className="agent-event-head">
         <span aria-hidden>{icon}</span> <strong>{label}</strong> · <span>{data.title}</span>
         {data.kind === "task" && data.requestedBy && data.requestedBy !== "user" && <span className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.tasks.requestedBy", { name: data.requestedBy })}</span>}
+        {data.kind === "task" && data.handedFrom && <span className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.tasks.handedFrom", { name: data.handedFrom })}</span>}
         {webhook && data.status === "failed" && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
         {webhook && data.status === "failed" && retryState === "idle" && (
           <button type="button" className="agent-event-link" onClick={() => void requestTaskAction(`/api/agent-ops/tasks/${data.taskId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "retry" }) }).then((failure) => setRetryState(failure ?? "done"))}>{t("agentOps.retry")}</button>
