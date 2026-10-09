@@ -42,12 +42,9 @@ Make the long-term agent space read like a Slack/Discord direct message with eac
 ### 1.2 Tool calls hidden, speech acts kept
 
 - With `details` off (default), process groups (`ProcessDetailsGroup`) are not displayed. A CSS rule keyed on `[data-chat-style="agent"][data-agent-details="off"]` hides them, so the markup is unchanged.
-- Three tool calls are the agent speaking to the user and are always shown as messages of the agent, extracted from the hidden group:
-  - `agent_notify` → `📣` + text;
-  - `agent_approve` → `🔒 asks for your approval: <title>`, summary below, state `pending | approved | denied` in words;
-  - `agent_delegate` → `↪ delegated to <agent>: <task>`, answer below when present.
-- One component, `components/agents/conversation/SpeechAct.tsx`, renders the three. It reuses the field parsing of `ToolCallBlock` (`MessageView.tsx` ~1231-1262), moved to a client-safe helper so both read the same fields.
-- With `details` on, nothing is extracted and everything renders as today, so nothing is shown twice.
+- Three tool calls are the agent speaking to the user and stay visible with details off: `agent_notify`, `agent_approve` (title, summary, `pending | approved | denied` in words) and `agent_delegate`. They keep today's `ToolCallBlock` cards (`MessageView.tsx` ~1231-1262), restyled as the agent talking.
+- **How (revised during planning):** in conversation mode every assistant block is wrapped in `data-block` / `data-tool`; with details off, CSS hides thinking, non-speech tool calls, the narration inside a finished turn's process, and any assistant message left with nothing to show (`:has()`, Safari 16.4). A finished turn without a speech act renders no process at all. This works the same for live turns (rendered flat) and finished ones, with no extraction component.
+- With `details` on, everything renders as today inside the conversation layout.
 - **Reveal.** A search hit, a deep link (`?agent=&entry=`) or the unread jump that targets an entry inside a hidden process group shows that one group (the existing `revealProcess` path) until the user leaves the thread.
 - The `details` switch sits in the conversation header (§2). It is persisted per browser in `localStorage["pi-agent-details"]` (`"on" | "off"`, unknown → off), read in the `useState` initializer and guarded against SSR.
 
@@ -58,7 +55,7 @@ Make the long-term agent space read like a Slack/Discord direct message with eac
 ──── 📥 Alertmanager · 2 alerts · failed ────
 ```
 
-- `AgentEventCard` (fork-only) renders collapsed as a centered one-line system line: kind icon, title (plain text, never markdown, as today), local time, and for webhooks the status in words. A click or Enter expands it to today's full card (summary, usage line, links).
+- `AgentEventCard` (fork-only) renders collapsed as a centered one-line system line: kind icon, title (plain text, never markdown, as today), and for webhooks the status in words. A click or Enter expands it to today's full card (summary, usage line, links). Delegation results stay open: they are content another agent wrote for the user.
 - A failed webhook line is red **and** carries the word `failed`.
 - The folded event prompt (`asEventPrompt`) stays as it is: it sits inside the expanded card's flow.
 - A system line breaks author groups (§1.1).
@@ -139,7 +136,7 @@ Day separators, unread divider, digest, jump pill, recall cards (already folded)
 - **No Orbitron (`--font-hud`) in the thread or the list.** Names and text use the UI font.
 
 ### Noise
-- Tool calls hidden (§1.2). Model name and usage are not shown in the thread; they appear in the header time's `title` tooltip.
+- Tool calls hidden (§1.2). Model name and usage show only while the message is hovered or focused.
 - Times of the non-first items of a group show in the gutter on hover or keyboard focus only. On touch, only the group header carries a time.
 - Links are underlined (cyan is also the system colour, so colour alone does not mark a link).
 
@@ -153,13 +150,13 @@ New (fork-only), under `components/agents/conversation/`:
 - `author-groups.ts` + `author-groups.test.mjs`
 - `presence.ts` + `presence.test.mjs`
 - `list-time.ts` + `list-time.test.mjs`
-- `speech-acts.ts` (client-safe field parsing of the three tools) + `speech-acts.test.mjs`
-- `GroupHeader.tsx`, `SpeechAct.tsx`, `ConversationHeader.tsx`
-- `conversation.css`, imported once, all rules scoped under `[data-chat-style="agent"]` or `.agent-rail-expanded`
+- `prefs.ts` (details and rail-expanded `localStorage` prefs)
+- `GroupHeader.tsx`, `ConversationHeader.tsx`
+- `app/agent-conversation.css`, imported once in `app/layout.tsx`, rules scoped under `[data-chat-style="agent"]`, `.conv-*`, `.agent-event-line` or `.agent-rail-expanded`
 
 Changed:
 - `components/ChatWindow.tsx`: `data-chat-style` / `data-agent-details` attributes, group headers in the render loop, speech-act extraction, the header, the working line text, approval panel header.
-- `components/MessageView.tsx`: `ToolCallBlock` reads fields through `speech-acts.ts`. No new prop.
+- `components/MessageView.tsx`: one boolean prop `conversation` (in the memo comparator): plain user layout, no model label row, blocks tagged `data-block` / `data-tool`.
 - `components/agents/AgentEventCard.tsx`: collapsed system-line state.
 - `components/agents/AgentRail.tsx` (+ test): expanded layout and toggle.
 - `components/AppShell.tsx`: passes the active `AgentListItem`, `agentDetail` and the `useHealthPoll` result (all already computed there) to `ChatWindow` for the header.
