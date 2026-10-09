@@ -22,7 +22,8 @@ test("200 no-store: the agent is paused afterwards, idempotent on a second call"
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("Cache-Control"), "no-store");
   const body = await first.json();
-  assert.deepEqual({ ...body, trash: null }, { trash: null, secrets: [], vaultSecrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] });
+  assert.deepEqual({ ...body, trash: null, snapshot: null }, { trash: null, snapshot: null, secrets: [], vaultSecrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] });
+  assert.match(body.snapshot, /agent-spaces\/\.trash\/Lea-quarantine-[^/]+\/home-snapshot$/);
   assert.deepEqual(settings.readAgentOpsSettings().pausedAgents, ["Lea"]);
   assert.equal((await post("Lea")).status, 200);
   assert.deepEqual(settings.readAgentOpsSettings().pausedAgents, ["Lea"]);

@@ -147,10 +147,11 @@ export function AgentProfileForm({ agent, onSaved, onDeleted, onThreadReset, onD
     setError(null);
     try {
       const response = await fetch(`/api/agents/${encodeURIComponent(agent.name)}/quarantine`, { method: "POST" });
-      const data = await response.json().catch(() => ({})) as { error?: string; secrets?: RotatedSecret[]; vaultSecrets?: string[]; errors?: string[] };
+      const data = await response.json().catch(() => ({})) as { error?: string; secrets?: RotatedSecret[]; vaultSecrets?: string[]; errors?: string[]; snapshot?: string | null };
       if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
       onSaved(agent); // reloads the agent list: the paused badge
       if (data.errors?.length) toast.warning(t("agents.profile.quarantinePartial", { errors: data.errors.join("; ") }), { duration: Infinity, closeButton: true });
+      if (data.snapshot) toast.info(t("agents.profile.quarantineSnapshot", { path: data.snapshot }), { duration: Infinity, closeButton: true });
       if (data.vaultSecrets?.length) toast.warning(t("agents.profile.quarantineVault", { names: data.vaultSecrets.join(", ") }), { duration: Infinity, closeButton: true });
       if (data.secrets?.length) setRotated(data.secrets);
     } catch (cause) {

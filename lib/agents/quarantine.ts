@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { abortRunningTasks } from "../agent-ops/kick";
 import { mem0StagingDir } from "../agent-ops/memory-review";
@@ -6,7 +6,7 @@ import { readAgentOpsSettings, updateAgentOpsSettings } from "../agent-ops/setti
 import { listTasks, updateTask, type AgentTask } from "../agent-ops/task-store";
 import { rotateSecret } from "../agent-ops/trigger-api";
 import { listTriggers } from "../agent-ops/trigger-store";
-import type { LongTermAgent } from "./registry";
+import { agentSpacesDir, type LongTermAgent } from "./registry";
 import { listSecretNames } from "./secrets";
 import { archiveThreadLocked } from "./thread-archive";
 
@@ -16,6 +16,7 @@ export interface QuarantineDeps {
   listTasks: () => AgentTask[];
   cancelTask: (id: string, completedAt: string) => void;
   archiveThread: (agent: LongTermAgent) => Promise<{ trash: string | null; stillStarting?: boolean }>;
+  snapshotHome: (agent: LongTermAgent, stamp: string) => string;
   vaultSecretNames: (name: string) => string[];
   stagingDir: () => string;
   listWebhookTriggers: (name: string) => string[];
@@ -24,6 +25,8 @@ export interface QuarantineDeps {
 }
 export interface QuarantineResult {
   trash: string | null;
+  /** A copy of the home, `.git` included: a planted git config or hook is evidence, so pi-web never runs git there. */
+  snapshot: string | null;
   secrets: { triggerId: string; name: string; webhookSecret: string }[];
   /** Names (never values) of the agent's vault: it is not rotated here, the owner revokes them upstream. */
   vaultSecrets: string[];
@@ -31,6 +34,13 @@ export interface QuarantineResult {
   tasksAborted: number;
   tasksCancelled: number;
   errors: string[];
+}
+
+export function snapshotHome(agent: Pick<LongTermAgent, "name" | "home">, stamp: string): string {
+  const target = join(agentSpacesDir(), ".trash", `${agent.name}-quarantine-${stamp}`, "home-snapshot");
+  mkdirSync(join(target, ".."), { recursive: true, mode: 0o700 });
+  cpSync(agent.home, target, { recursive: true, verbatimSymlinks: true, preserveTimestamps: true, errorOnExist: true, force: false }); // links stay links: nothing outside the home is copied
+  return target;
 }
 
 const defaultDeps = (): QuarantineDeps => ({
@@ -45,6 +55,7 @@ const defaultDeps = (): QuarantineDeps => ({
     const archived = await archiveThreadLocked(agent, { force: true });
     return "trash" in archived ? archived : { trash: null };
   },
+  snapshotHome,
   vaultSecretNames: listSecretNames,
   stagingDir: mem0StagingDir,
   listWebhookTriggers: (name) => listTriggers().filter((t) => t.profile === name && t.webhookSecretSha256).map((t) => t.id),
@@ -76,7 +87,7 @@ function moveStaged(dir: string, name: string, stamp: string): number {
 export async function quarantineAgent(agent: LongTermAgent, deps: QuarantineDeps = defaultDeps()): Promise<QuarantineResult> {
   const name = agent.name;
   deps.pauseAgent(name);
-  const result: QuarantineResult = { trash: null, secrets: [], vaultSecrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] };
+  const result: QuarantineResult = { trash: null, snapshot: null, secrets: [], vaultSecrets: [], staged: 0, tasksAborted: 0, tasksCancelled: 0, errors: [] };
   const step = async (label: string, run: () => void | Promise<void>) => {
     try { await run(); } catch (error) { result.errors.push(`${label}: ${error instanceof Error ? error.message : String(error)}`); }
   };
@@ -92,6 +103,8 @@ export async function quarantineAgent(agent: LongTermAgent, deps: QuarantineDeps
     result.trash = archived.trash;
     if (archived.stillStarting) result.errors.push("thread: still starting after 5 s");
   });
+  // After the thread step: the run is aborted, so nothing writes the home while it is copied.
+  await step("snapshot", () => { result.snapshot = deps.snapshotHome(agent, deps.now().toISOString().replace(/[:.]/g, "-")); });
   await step("vault", () => { result.vaultSecrets = deps.vaultSecretNames(name); });
   await step("staging", () => { result.staged = moveStaged(deps.stagingDir(), name, deps.now().toISOString().replace(/[:.]/g, "")); });
   await step("triggers", () => {
