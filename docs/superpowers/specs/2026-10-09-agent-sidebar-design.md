@@ -65,8 +65,8 @@ picker. Below it, `FileExplorer` on `agent.home` with `fileSearchOpen` driven by
 
 **`components/agents/AgentProfileForm.tsx`** (from `AgentProfileDialog.tsx`): the form body,
 inline. Same fields, validation, save, thread reset, delete (with its confirmation), secret
-rotation and memory curation sub-dialogs. "Cancel" becomes "Discard changes": it resets the
-fields to the saved profile and is disabled while nothing changed. No backdrop, no
+rotation and memory curation sub-dialogs. "Cancel" becomes "Discard changes": it remounts the
+form with the saved profile (enabled except while saving; no per-field dirty tracking). No backdrop, no
 `openStackedDialog`. `AgentProfileDialog.tsx` and `AgentSpaceLeft.tsx` are deleted (their only
 caller was `AgentSpaceLeft`).
 
