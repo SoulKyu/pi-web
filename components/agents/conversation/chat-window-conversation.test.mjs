@@ -15,9 +15,18 @@ test("conversation mode only for a trusted agent thread with agent data", () => 
 test("details: persisted, and a revealed process keeps today's group", () => {
   assert.match(chat, /useState\(loadDetails\)/);
   assert.match(chat, /savePref\(DETAILS_KEY, next\)/);
-  assert.match(chat, /if \(conversation && !details && !revealProcess\) \{/);
+  assert.match(chat, /if \(conversation && !details && !revealProcess && finalAnswerMessage\) \{/);
   assert.match(chat, /hasSpeechAct/);
   assert.match(chat, /data-process/);
+});
+
+test("a search or deep-link reveal sticks until the session changes; revealed and unanswered processes lift the CSS hiding", () => {
+  assert.match(chat, /const \[revealedEntryId, setRevealedEntryId\] = useState<string \| null>\(null\);/);
+  assert.match(chat, /setPendingSearchScroll\(searchTarget\);\n\s*setRevealedEntryId\(searchTarget\.entryId\);/);
+  assert.match(chat, /useEffect\(\(\) => \{\n\s*setRevealedEntryId\(null\);\n\s*\}, \[session\?\.id\]\);/);
+  assert.ok(chat.indexOf("setRevealedEntryId(null)") < chat.indexOf("setRevealedEntryId(searchTarget.entryId)"), "the reset effect runs before the search effect");
+  assert.match(chat, /revealProcess \|\|= entryIds\[processIdx\] === revealedEntryId;/);
+  assert.match(chat, /data-revealed=\{conversation && \(revealProcess \|\| !finalAnswerMessage\) \? "" : undefined\}/);
 });
 
 test("group headers come from one tracker per render; the streaming tail gets one when the agent did not speak last", () => {

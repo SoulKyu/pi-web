@@ -33,13 +33,14 @@
   border: 1px solid var(--color-tron-orange); color: var(--color-tron-orange); font-size: 13px; font-weight: 600;
 }
 
-/* ---- Details off: tool calls and reasoning hidden, the agent's speech acts kept ---- */
-[data-agent-details="off"] [data-block="thinking"],
-[data-agent-details="off"] [data-block="toolCall"]:not([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"]) { display: none; }
-[data-agent-details="off"] [data-message-role="assistant"]:not(:has([data-block="text"], [data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])) { display: none; }
+/* ---- Details off: tool calls and reasoning hidden, the agent's speech acts kept ----
+   A [data-revealed] process (search or deep-link hit, unanswered turn) is exempt. */
+[data-agent-details="off"] [data-block="thinking"]:not([data-revealed] *),
+[data-agent-details="off"] [data-block="toolCall"]:not([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"]):not([data-revealed] *) { display: none; }
+[data-agent-details="off"] [data-message-role="assistant"]:not(:has([data-block="text"], [data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])):not([data-revealed] *) { display: none; }
 /* Inside a finished turn's process, the narration is noise too: only speech acts stay. */
-[data-agent-details="off"] [data-process] [data-block="text"] { display: none; }
-[data-agent-details="off"] [data-process] [data-message-role="assistant"]:not(:has([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])) { display: none; }
+[data-agent-details="off"] [data-process] [data-block="text"]:not([data-revealed] *) { display: none; }
+[data-agent-details="off"] [data-process] [data-message-role="assistant"]:not(:has([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])):not([data-revealed] *) { display: none; }
 
 /* Speech acts read as the agent talking, not as a tool card. */
 [data-chat-style="agent"] .agent-notify {

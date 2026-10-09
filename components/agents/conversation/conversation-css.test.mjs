@@ -16,11 +16,18 @@ test("no off-palette colour literal", () => {
 });
 
 test("details off hides thinking and non-speech tool calls, and messages left with nothing to show", () => {
-  assert.ok(css.includes('[data-agent-details="off"] [data-block="thinking"]'));
-  assert.ok(css.includes(`[data-agent-details="off"] [data-block="toolCall"]:not(${SPEECH})`));
-  assert.ok(css.includes(`[data-agent-details="off"] [data-message-role="assistant"]:not(:has([data-block="text"], ${SPEECH}, [role="alert"]))`));
-  assert.ok(css.includes(`[data-agent-details="off"] [data-process] [data-message-role="assistant"]:not(:has(${SPEECH}, [role="alert"]))`));
-  assert.ok(css.includes('[data-agent-details="off"] [data-process] [data-block="text"]'));
+  const NR = ":not([data-revealed] *)";
+  assert.ok(css.includes(`[data-agent-details="off"] [data-block="thinking"]${NR}`));
+  assert.ok(css.includes(`[data-agent-details="off"] [data-block="toolCall"]:not(${SPEECH})${NR}`));
+  assert.ok(css.includes(`[data-agent-details="off"] [data-message-role="assistant"]:not(:has([data-block="text"], ${SPEECH}, [role="alert"]))${NR}`));
+  assert.ok(css.includes(`[data-agent-details="off"] [data-process] [data-message-role="assistant"]:not(:has(${SPEECH}, [role="alert"]))${NR}`));
+  assert.ok(css.includes(`[data-agent-details="off"] [data-process] [data-block="text"]${NR}`));
+});
+
+test("every details-off hiding rule spares a revealed process", () => {
+  const hiding = css.split("\n").filter((line) => line.startsWith('[data-agent-details="off"]'));
+  assert.ok(hiding.length >= 5);
+  for (const line of hiding) assert.match(line, /:not\(\[data-revealed\] \*\)(,| \{ display: none; \})$/, line);
 });
 
 test("readability: 72ch prose, 15px body, 1.6 line height, no HUD font in the thread", () => {

@@ -600,6 +600,12 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   const pendingScrollRestoreRef = useRef(pendingScrollRestore);
   pendingScrollRestoreRef.current = pendingScrollRestore;
   const [pendingSearchScroll, setPendingSearchScroll] = useState<Props["searchTarget"]>(null);
+  // A search or deep-link hit keeps its process group shown until the user leaves the thread.
+  const [revealedEntryId, setRevealedEntryId] = useState<string | null>(null);
+  // Declared before the search effect so a hit in the session just opened survives the reset.
+  useEffect(() => {
+    setRevealedEntryId(null);
+  }, [session?.id]);
   const searchMessage = messages[entryIds.indexOf(pendingSearchScroll?.entryId ?? "")];
   const searchBlock = searchMessage?.role === "assistant"
     ? (pendingSearchScroll?.blockIndex === undefined
@@ -810,6 +816,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
         prevScrollDistanceRef.current = null;
         setVisibleCount((current) => Math.max(current, (searchHistoryRef.current.entryIds.length + 200) * 2));
         setPendingSearchScroll(searchTarget);
+        setRevealedEntryId(searchTarget.entryId);
       } else {
         onSearchTargetHandled?.(searchTarget);
       }
@@ -1439,6 +1446,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
 
                 for (let processIdx = userIdx + 1; processIdx <= finalAssistantIdx; processIdx++) {
                   const processMessage = messages[processIdx];
+                  revealProcess ||= entryIds[processIdx] === revealedEntryId;
                   if (processMessage.role === "custom") {
                     revealProcess ||= Boolean(pendingSearchScroll && pendingSearchScroll.entryId === entryIds[processIdx]);
                     processViews.push(renderMessage(processIdx, { attachRef: false, keyPrefix: "process" }));
@@ -1465,7 +1473,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                   const dividerInProcess = unreadAt > userIdx && (unreadAt < finalAssistantIdx || (unreadAt === finalAssistantIdx && !finalAnswerMessage));
                   if (dividerInProcess) rendered.push(unreadDivider);
                   const processAt = (messages[userIdx + 1] as AgentMessage & { timestamp?: number } | undefined)?.timestamp;
-                  if (conversation && !details && !revealProcess) {
+                  if (conversation && !details && !revealProcess && finalAnswerMessage) {
                     // Details off: only the agent's speech acts survive (agent-conversation.css hides the rest).
                     let speaks = false;
                     for (let i = userIdx + 1; i <= finalAssistantIdx && !speaks; i++) speaks = hasSpeechAct(messages[i]);
@@ -1489,6 +1497,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                         key={`process-group-${entryIds[groupStartIdx] ?? groupStartIdx}`}
                         className={conversation ? "conv-item" : undefined}
                         data-author={conversation ? "agent" : undefined}
+                        // Lifts the details-off hiding (agent-conversation.css): a revealed hit or an unanswered turn shows as in an ordinary session.
+                        data-revealed={conversation && (revealProcess || !finalAnswerMessage) ? "" : undefined}
                         ref={processRefIdx === undefined ? undefined : (el) => { messageRefs.current[processRefIdx] = el; }}
                       >
                         {/* Re-key on answer availability: useState reads defaultExpanded only
