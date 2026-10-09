@@ -125,7 +125,7 @@ Day separators, unread divider, digest, jump pill, recall cards (already folded)
 ## §4 Readability (agent view, cross-cutting)
 
 ### Measure and rhythm
-- Prose capped at **72ch**: `p`, lists, blockquotes and headings in `.markdown-body`. Code blocks, tables, diffs and images keep the full column (`--chat-content-max-width`, 820 px). Today the column is ~115 characters per line at 14 px.
+- ~~Prose capped at 72ch~~ **Revised after merge:** in use the cap left text narrower than code and tables in the same column, which read as a layout bug. Prose fills the column (`--chat-content-max-width`) like everything else.
 - Body **15 px**, line-height **1.6**, paragraph gap **0.75em**. The +1 px is added on top of the user's `--chat-content-font-size` offset, so Settings › Fonts still applies.
 - Spacing carries grouping: **20 px** between groups, **4 px** between items of a group, no separators drawn between groups.
 

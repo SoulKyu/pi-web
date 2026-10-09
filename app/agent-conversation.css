@@ -8,8 +8,7 @@
 }
 [data-chat-style="agent"] .markdown-body { line-height: 1.6; }
 [data-chat-style="agent"] .markdown-body p { margin-bottom: 0.75em; }
-[data-chat-style="agent"] .markdown-body > :is(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6),
-[data-chat-style="agent"] [data-message-role="user"] { max-width: 72ch; }
+/* ponytail: no prose measure cap — text fills the chat column like code and tables (a 72ch cap was tried and rejected). */
 [data-chat-style="agent"] .markdown-body a { text-decoration: underline; text-underline-offset: 2px; }
 /* The code-block language label drops the HUD look (9 px tracked capitals) for the body font. */
 [data-chat-style="agent"] .markdown-code-lang { font-family: var(--font-ui); font-size: 11px; letter-spacing: normal; text-transform: none; }

@@ -121,7 +121,7 @@ app/api/
   push/subscribe/route.ts          POST register a push subscription
   app-update/route.ts              GET current vs latest published pi-web version
 
-app/agent-conversation.css         agent thread conversation view styles: 72ch measure, gutter, group headers, details-off hiding, expanded rail
+app/agent-conversation.css         agent thread conversation view styles: font size and rhythm, gutter, group headers, details-off hiding, expanded rail
 
 lib/
   plannotator.ts            plannotatorConfig(): PLANNOTATOR_PORT (port, list, a-b range) + PLANNOTATOR_URL_HOST, exposed by the health route

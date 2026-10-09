@@ -34,8 +34,8 @@ test("the code-block language label uses the UI font in the thread", () => {
   assert.match(css, /\[data-chat-style="agent"\] \.markdown-code-lang \{ font-family: var\(--font-ui\);/);
 });
 
-test("readability: 72ch prose, 15px body, 1.6 line height, no HUD font in the thread", () => {
-  assert.match(css, /max-width: 72ch/);
+test("readability: prose fills the column, 15px body, 1.6 line height, no HUD font in the thread", () => {
+  assert.doesNotMatch(css, /max-width:\s*\d+ch/);
   assert.match(css, /--chat-font-size-offset: calc\(var\(--chat-content-font-size, 14px\) - 13px\)/);
   assert.match(css, /line-height: 1\.6/);
   assert.doesNotMatch(css, /font-hud|orbitron/i);
