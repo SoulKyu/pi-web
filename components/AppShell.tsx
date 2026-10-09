@@ -1010,8 +1010,7 @@ export function AppShell() {
     pendingAgentRef.current = { sessionId: data.sessionId, agentName: name };
     await handleOpenSession(data.sessionId);
     if (entryId) setSearchTarget({ sessionId: data.sessionId, entryId });
-    if (!isMobile) setRightPanelOpen(true);
-  }, [handleOpenSession, isMobile, translate]);
+  }, [handleOpenSession, translate]);
 
   const openAgentByShortcut = useCallback((name: string) => void openAgent(name), [openAgent]);
   useRailShortcuts(agents, activeAgent, openAgentByShortcut);
