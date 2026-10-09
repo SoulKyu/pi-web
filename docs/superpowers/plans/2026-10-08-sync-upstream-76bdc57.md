@@ -19,8 +19,9 @@ Rollback: `git reset --hard a507131` on `local` while nothing is pushed there.
 - [x] Opus review: 0 critical; 2 important fixed test-first (`9725e7b` arrow onto delete-confirm row, `3991cbd` agent profile carried); minors `2596e5c`, `e0387ed`; gate 3577 pass / 0 fail / 1 skipped
   - open minors (report): SidebarMenu capture keydown swallows modified arrows while a menu is open (upstream code); `npm start` (fork, 0.0.0.0) skips bin/rotate-preview-secrets.js — start through bin/pi-web.js
 - [x] push `sync/upstream-76bdc57` to origin, ask human visual check
-- [ ] 4.5 ff-only into `local`, push, delete sync branch
-- [x] `AGENT.md` §7 + §8 (on the sync branch) · [ ] report §9
+- [x] human visual check: OK, with follow-ups fixed on the branch: `85e75f0` chat full width when either side panel is collapsed, `7165490` sidebar starts collapsed, `9f68d44` prompt chips + uploads .md into <home>/prompts
+- [x] 4.5 ff-only into `local`, push, delete sync branch
+- [x] `AGENT.md` §7 + §8 (on the sync branch) · [x] report §9 (in chat)
 
 ## Conflicts
 
