@@ -27,8 +27,15 @@ function setup(collapsed = false) {
   return { context, runToggle, resize: (mobile) => { context.isMobile = mobile; runEffect(); } };
 }
 
-test("closing a mobile drawer restores the previously open desktop sidebar", () => {
+// Fork: the desktop sidebar starts collapsed (the chat takes the width); its toggle opens it.
+test("the desktop sidebar starts collapsed", () => {
   const state = setup();
+  state.resize(false); assert.equal(state.context.sidebarOpen, false);
+  state.runToggle(); assert.equal(state.context.sidebarOpen, true);
+});
+
+test("closing a mobile drawer restores the previously open desktop sidebar", () => {
+  const state = setup(); state.resize(false); state.runToggle();
   state.resize(true); assert.equal(state.context.sidebarOpen, false);
   state.runToggle(); assert.equal(state.context.sidebarOpen, true);
   state.runToggle(); assert.equal(state.context.sidebarOpen, false);
@@ -36,7 +43,7 @@ test("closing a mobile drawer restores the previously open desktop sidebar", () 
 });
 
 test("opening a mobile drawer does not reopen an explicitly collapsed desktop sidebar", () => {
-  const state = setup(); state.runToggle();
+  const state = setup(); state.resize(false);
   assert.equal(state.context.sidebarOpen, false);
   state.resize(true); state.runToggle();
   state.resize(false); assert.equal(state.context.sidebarOpen, false);

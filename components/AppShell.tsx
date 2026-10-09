@@ -247,8 +247,10 @@ export function AppShell() {
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
   const [projectTrustBusy, setProjectTrustBusy] = useState(false);
   const [projectTrustError, setProjectTrustError] = useState<ProjectTrustFailure | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(() => !initialNavigation.sidebarCollapsed);
-  const desktopSidebarOpenRef = useRef(!initialNavigation.sidebarCollapsed);
+  // Fork: the sidebar starts collapsed everywhere, so the chat gets the width;
+  // ?sidebar=collapsed is then the default. The toggle opens it.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const desktopSidebarOpenRef = useRef(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [rightPanelExpanded, setRightPanelExpanded] = useState(false);
   const rightPanelFullWidth = rightPanelOpen && rightPanelExpanded && !isMobile;
