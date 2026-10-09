@@ -14,6 +14,7 @@ import type { AgentTaskListItem } from "@/lib/agent-ops/task-list";
 import type { AgentUsageSummary, UsageBucket } from "@/lib/agents/usage-summary";
 import { budgetBars, formatCompact } from "@/lib/agents/format-usage";
 import type { AuditLine } from "@/lib/agents/audit";
+import type { MemoryMdCommit } from "@/lib/agents/agent-git";
 
 interface MemoryState { recent: AgentMemoryItem[]; events: JournalEvent[]; pendingForget: string[]; staged: StagedFactView[]; health?: Mem0Health }
 const EMPTY_MEMORY: MemoryState = { recent: [], events: [], pendingForget: [], staged: [] };
@@ -30,6 +31,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
   const [usage, setUsage] = useState<AgentUsageSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [audit, setAudit] = useState<AuditLine[] | null>(null);
+  const [memoryHistory, setMemoryHistory] = useState<MemoryMdCommit[] | null>(null);
   const [auditFilter, setAuditFilter] = useState("");
   const [auditBlockedOnly, setAuditBlockedOnly] = useState(false);
   const signalRef = useRef<AbortSignal | undefined>(undefined);
@@ -112,6 +114,12 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       .then((data: { lines?: AuditLine[] }) => setAudit(data.lines ?? []))
       .catch(() => setAudit([]));
   };
+  const loadMemoryHistory = () => {
+    fetch(`/api/agents/${encodeURIComponent(agent.name)}/memory-md/history`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { commits: [] }))
+      .then((data: { commits?: MemoryMdCommit[] }) => setMemoryHistory(data.commits ?? []))
+      .catch(() => setMemoryHistory([]));
+  };
   const auditShown = (audit ?? []).filter((line) => line.tool.toLowerCase().includes(auditFilter.trim().toLowerCase()) && (!auditBlockedOnly || line.policy));
 
   const reloadMemory = () => void loadMemory(signalRef.current);
@@ -175,6 +183,19 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
             <span style={{ flex: 1 }}>MEMORY.md ({(agent.memoryMd.size / 1024).toFixed(1)} KB)</span>
             <button type="button" onClick={() => onOpenFile(`${agent.home}/MEMORY.md`, "MEMORY.md")} style={{ padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>{t("agents.space.knowledgeOpen")}</button>
           </div>
+          <details onToggle={(event) => { if (event.currentTarget.open && memoryHistory === null) loadMemoryHistory(); }}>
+            <summary style={{ cursor: "pointer" }}>{t("agents.space.memoryHistory")}</summary>
+            {memoryHistory !== null && memoryHistory.length === 0 && <div style={{ color: "var(--text-dim)" }}>{t("agents.space.memoryHistoryNone")}</div>}
+            {(memoryHistory ?? []).map((commit) => (
+              <details key={commit.hash} style={{ borderTop: "1px solid var(--border)", padding: "3px 0" }}>
+                <summary style={{ cursor: "pointer" }}>
+                  <span style={{ color: "var(--text-dim)" }}>{new Date(commit.date).toLocaleString()}</span> {commit.subject}
+                </summary>
+                <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{commit.patch}</pre>
+                {commit.truncated && <div style={{ color: "var(--text-dim)" }}>{t("agents.space.memoryHistoryTruncated")}</div>}
+              </details>
+            ))}
+          </details>
         </>
       )}
       <div className="agent-space-section">{t("agents.space.audit")}</div>

@@ -66,6 +66,7 @@ app/api/
   agents/[name]/read/route.ts      POST { entryId } set lastReadEntryId
   agents/[name]/tasks/route.ts     GET the agent's tasks | POST { prompt } queue a thread task (20 000-char cap)
   agents/[name]/memory/route.ts    GET the agent's recent memories
+  agents/[name]/memory-md/history/route.ts GET { commits } last 20 commits touching the home's MEMORY.md, patches capped at 8 KB
   agents/[name]/permissions/route.ts GET { permissions } read-only sheet + lethal-trifecta check (files and live thread tool names; no MCP connection, no session start)
   agents/[name]/usage/route.ts     GET today / 7 d / 30 d tokens and cost from the run registry
   agents/[name]/audit/route.ts     GET ?limit= the agent's audit journal (tool-call arguments and policy blocks, never results), oldest first
@@ -157,6 +158,7 @@ lib/
   agents/registry-response.ts registry errors to HTTP responses
   agents/thread-archive.ts  archiveThreadLocked(): shared by thread reset (409 when busy) and quarantine (force: abort, shutdown)
   agents/quarantine.ts      quarantineAgent(): pause first, then tasks, thread, staging, webhook secrets; per-step errors collected
+  agents/agent-git.ts       memoryMdHistory(): git log -p of the home's MEMORY.md, hardened (no fsmonitor, hooks, ext diff, textconv)
   agents/thread.ts          pinned trusted thread: ensureThread, openThread, unread count
   agents/visit-digest.ts    digestSince / digestLine: deterministic counts of what happened after the unread marker (client-safe)
   agents/agent-view.ts      list/detail views, canEditProfile, unread helpers (client-safe)
