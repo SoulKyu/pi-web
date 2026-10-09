@@ -1443,10 +1443,11 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 let processToolCount = 0;
                 let processRefIdx: number | undefined;
                 let revealProcess = false;
+                let stickyReveal = false;
 
                 for (let processIdx = userIdx + 1; processIdx <= finalAssistantIdx; processIdx++) {
                   const processMessage = messages[processIdx];
-                  revealProcess ||= entryIds[processIdx] === revealedEntryId;
+                  stickyReveal ||= entryIds[processIdx] === revealedEntryId;
                   if (processMessage.role === "custom") {
                     revealProcess ||= Boolean(pendingSearchScroll && pendingSearchScroll.entryId === entryIds[processIdx]);
                     processViews.push(renderMessage(processIdx, { attachRef: false, keyPrefix: "process" }));
@@ -1478,7 +1479,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                   for (let i = finalAssistantIdx; i > userIdx && processEndAt === undefined; i--) {
                     processEndAt = (messages[i] as AgentMessage & { timestamp?: number }).timestamp;
                   }
-                  if (conversation && !details && !revealProcess && finalAnswerMessage) {
+                  if (conversation && !details && !revealProcess && !stickyReveal && finalAnswerMessage) {
                     // Details off: only the agent's speech acts survive (agent-conversation.css hides the rest).
                     let speaks = false;
                     for (let i = userIdx + 1; i <= finalAssistantIdx && !speaks; i++) speaks = hasSpeechAct(messages[i]);
@@ -1503,7 +1504,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                         className={conversation ? "conv-item" : undefined}
                         data-author={conversation ? "agent" : undefined}
                         // Lifts the details-off hiding (agent-conversation.css): a revealed hit or an unanswered turn shows as in an ordinary session.
-                        data-revealed={conversation && (revealProcess || !finalAnswerMessage) ? "" : undefined}
+                        data-revealed={conversation && (revealProcess || stickyReveal || !finalAnswerMessage) ? "" : undefined}
                         ref={processRefIdx === undefined ? undefined : (el) => { messageRefs.current[processRefIdx] = el; }}
                       >
                         {/* Re-key on answer availability: useState reads defaultExpanded only
