@@ -129,6 +129,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   const [healthPosition, setHealthPosition] = useState<{ top: number; left: number } | null>(null);
   const healthButtonRef = useRef<HTMLButtonElement>(null);
   const healthPopoverRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const staleTime = error && lastOkAt !== null ? new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) : null;
   const healthLines = healthPopoverLines(healthState, { pauseError, staleTime }, t, (iso) => new Date(iso).toLocaleTimeString(locale));
   const healthLinesKey = healthLines.join("\n");
@@ -145,12 +146,17 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
       const popover = healthPopoverRef.current;
       if (!button || !popover) return;
       const viewport = { width: window.innerWidth, height: window.visualViewport?.height ?? window.innerHeight };
-      setHealthPosition(healthPopoverPosition(button.getBoundingClientRect(), { width: popover.offsetWidth, height: popover.offsetHeight }, viewport, orientation));
+      const rect = button.getBoundingClientRect();
+      const navRect = navRef.current?.getBoundingClientRect();
+      const anchor = vertical && navRect
+        ? { top: rect.top, bottom: rect.bottom, left: navRect.left, right: navRect.right }
+        : { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
+      setHealthPosition(healthPopoverPosition(anchor, { width: popover.offsetWidth, height: popover.offsetHeight }, viewport, orientation));
     };
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [healthOpen, healthLinesKey, orientation]);
+  }, [healthOpen, healthLinesKey, orientation, vertical]);
   const healthPositioned = healthPosition !== null;
   useEffect(() => {
     if (healthOpen && healthPositioned) healthPopoverRef.current?.focus({ preventScroll: true });
@@ -198,7 +204,7 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   };
   return (
     <>
-      <nav aria-label={t("agents.rail.shortcutsHint")} className={list ? "agent-rail agent-rail-expanded" : vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
+      <nav aria-label={t("agents.rail.shortcutsHint")} ref={navRef} className={list ? "agent-rail agent-rail-expanded" : vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
         {vertical && onExpandedChange && (
           <button type="button" onClick={() => onExpandedChange(!expanded)} aria-expanded={expanded} aria-label={t(expanded ? "agents.rail.collapse" : "agents.rail.expand")} title={t(expanded ? "agents.rail.collapse" : "agents.rail.expand")} className={cn(railButtonClass, list && "self-end")}>
             {expanded ? <ChevronsLeft aria-hidden="true" /> : <ChevronsRight aria-hidden="true" />}

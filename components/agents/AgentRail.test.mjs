@@ -164,3 +164,8 @@ test("the vertical rail expands into a conversation list in rail order, with a p
   assert.match(shell, /expanded=\{railExpanded\}/);
   assert.match(shell, /savePref\(RAIL_EXPANDED_KEY, next\)/);
 });
+
+test("the vertical health popover anchors on the nav rect so it opens beside the expanded rail", () => {
+  assert.match(rail, /navRef\.current/);
+  assert.match(rail, /ref=\{navRef\}/);
+});

@@ -52,3 +52,8 @@ test("position: right of the vertical rail, below the horizontal one, clamped 8 
   assert.deepEqual(healthPopoverPosition({ top: 6, left: 300, right: 332, bottom: 38 }, { width: 280, height: 200 }, phone, "horizontal"), { top: 46, left: 87 });
   assert.deepEqual(healthPopoverPosition({ top: 6, left: 300, right: 332, bottom: 38 }, { width: 400, height: 200 }, { width: 320, height: 568 }, "horizontal"), { top: 46, left: 8 });
 });
+
+test("position: a vertical anchor at the 240 px expanded rail edge opens beside the rail, not over the rows", () => {
+  const { left } = healthPopoverPosition({ top: 100, left: 6, right: 240, bottom: 132 }, { width: 200, height: 150 }, { width: 1280, height: 800 }, "vertical");
+  assert.ok(left >= 240 + 8, `left ${left}`);
+});
