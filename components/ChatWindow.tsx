@@ -9,15 +9,20 @@ import { registerAbortHandler } from "@/hooks/useKeyboardShortcuts";
 import Image from "next/image";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecutionMessage, BlockingExtensionUiRequest, ExtensionUiRequest, SessionInfo, SessionTreeNode, ToolResultMessage } from "@/lib/types";
+import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecutionMessage, BlockingExtensionUiRequest, ExtensionUiRequest, SessionInfo, SessionTreeNode, ToolCallContent, ToolResultMessage } from "@/lib/types";
 import { normalizeCustomPanelLines } from "@/lib/ansi";
 import { EXTENSION_DIALOG_BASE_WIDTH, fitExtensionDialogWidth } from "@/lib/extension-dialog-fit";
 import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
 import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, hasAssistantAnswer, isAssistantTruncated, isMessageGroupAnchor, splitFinalAssistantBlocks } from "@/lib/message-display";
 import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-files";
 import { buildQuotedSelection } from "@/lib/quoted-selection";
-import { eventPromptIndexes } from "@/lib/agents/events";
-import { firstUnreadIndex } from "@/lib/agents/agent-view";
+import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_NOTIFY_TOOL, eventPromptIndexes } from "@/lib/agents/events";
+import { firstUnreadIndex, type AgentListItem } from "@/lib/agents/agent-view";
+import { authorOf, createGroupTracker } from "./agents/conversation/author-groups";
+import { DETAILS_KEY, loadDetails, savePref } from "./agents/conversation/prefs";
+import { formatClock, GroupHeader } from "./agents/conversation/GroupHeader";
+import { ConversationHeader } from "./agents/conversation/ConversationHeader";
+import { AgentAvatar } from "./agents/AgentAvatar";
 import { digestLine, digestSince } from "@/lib/agents/visit-digest";
 import { dropMentionText, splitDroppedItems, uploadFiles, type DroppedItem } from "@/lib/file-upload-client";
 import { MessageView } from "./MessageView";
@@ -107,6 +112,8 @@ interface Props {
   unreadCount?: number;
   /** Called (debounced 1 s) when the newest entry changes while the page is visible. */
   onLatestEntryViewed?: (entryId: string) => void;
+  /** Agent view: the agent's list item and the header inputs; turns on the conversation layout. */
+  agentConversation?: { agent: AgentListItem; role?: string; globalPaused: boolean; quietHours: boolean };
 }
 const CHAT_MINIMAP_WIDTH = 36;
 const CHAT_COLUMN_PADDING = 16;
@@ -235,6 +242,12 @@ function withAssistantBlocks(
   return next;
 }
 
+const SPEECH_TOOLS: ReadonlySet<string> = new Set([AGENT_NOTIFY_TOOL, AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL]);
+/** True when an assistant message holds a call the conversation view keeps visible with details off. */
+function hasSpeechAct(message: AgentMessage): boolean {
+  return message.role === "assistant" && ((message as AssistantMessage).content ?? []).some((block) => block.type === "toolCall" && SPEECH_TOOLS.has((block as ToolCallContent).toolName));
+}
+
 function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = false, reveal = false, children, t }: { messageCount: number; toolCallCount: number; defaultExpanded?: boolean; reveal?: boolean; children: ReactNode; t: (key: string, params?: Record<string, string | number>) => string }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   useLayoutEffect(() => {
@@ -284,7 +297,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
 /** Upper bound of `before=` pages one click on the unread pill may load. */
 const JUMP_UNREAD_MAX_PAGES = 20;
 
-export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onRequestSearchTarget, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, newSessionContextBar, initialNewSessionChoices, onNewSessionChoicesChange, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onFilesUploaded, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed }: Props) {
+export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onRequestSearchTarget, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, newSessionContextBar, initialNewSessionChoices, onNewSessionChoicesChange, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, handToAgents, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onNewSessionRequested, onResetThread, onContextUsageChange, onOpenFile, onFilesUploaded, onOpenSession, plannotator, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio, unreadMarkerEntryId, unreadCount, onLatestEntryViewed, agentConversation }: Props) {
   const { t, locale } = useI18n();
   const isMobile = useIsMobile();
   const completionNotificationsEnabled = session?.relation?.kind !== "subagent";
@@ -487,6 +500,12 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   }, [quotedSelection, quoteInputOpen, quoteSubmitting, closeQuotedSelection]);
 
   const trustedAgentName = session?.agentProfile && session.agentProfile.trust !== "untrusted" ? session.agentProfile.name : undefined;
+  const conversation = Boolean(trustedAgentName && agentConversation);
+  const [details, setDetails] = useState(loadDetails);
+  const changeDetails = useCallback((next: boolean) => {
+    setDetails(next);
+    savePref(DETAILS_KEY, next);
+  }, []);
   const queueMention = useCallback(async (agent: string, prompt: string) => {
     try {
       const response = await fetch(`/api/agents/${encodeURIComponent(agent)}/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, requestedBy: "user", deliverTo: trustedAgentName }) });
@@ -1151,6 +1170,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     );
   }
 
+  const groups = createGroupTracker();
   return (
     <div
       className="chat-content relative flex h-full min-w-0 flex-col overflow-hidden"
@@ -1210,9 +1230,12 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
         <NoticeShelf notices={notices} floating onPauseChange={setNoticePaused} />
       </div>
 
+      {conversation && agentConversation && (
+        <ConversationHeader agent={agentConversation.agent} role={agentConversation.role} globalPaused={agentConversation.globalPaused} quietHours={agentConversation.quietHours} details={details} onDetailsChange={changeDetails} />
+      )}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {extensionDialog && (
-          <ExtensionDialog key={extensionDialog.id} request={extensionDialog} waitingCount={waitingExtensionDialogCount} onRespond={respondToExtensionUi} />
+          <ExtensionDialog key={extensionDialog.id} request={extensionDialog} waitingCount={waitingExtensionDialogCount} onRespond={respondToExtensionUi} speaker={conversation ? agentConversation?.agent : undefined} />
         )}
         {extensionCustomUi && (
           <ExtensionCustomPanel key={extensionCustomUi.id} request={extensionCustomUi} waitingCount={waitingExtensionCustomUiCount} onInput={sendExtensionCustomInput} />
@@ -1220,6 +1243,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
         {!isEmptyNew && <>
         <div
           ref={scrollContainerRef}
+          data-chat-style={conversation ? "agent" : undefined}
+          data-agent-details={conversation ? (details ? "on" : "off") : undefined}
           // The message list is the one place long output has to be dragged through,
           // so it shows its scrollbar instead of hiding it behind the minimap (#788).
           // A stable gutter keeps the centred column from shifting when a short
@@ -1307,6 +1332,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                     onHandTo={handTargets.length > 0 ? handTo : undefined}
                     onAskReview={handTargets.length > 0 ? askReview : undefined}
                     onInject={trustedAgentName ? injectResult : undefined}
+                    conversation={conversation}
                   />
                 );
                 const node = !isVisible || currentRefIdx === undefined ? view : (
@@ -1323,10 +1349,23 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                   }
                   dayLabel = isNewDay(prevTimestamp, messageTimestamp, locale);
                 }
-                const dayAndNode = dayLabel === null ? node : (
+                const author = conversation && keyPrefix === "message" ? authorOf(msg, { eventPrompt: eventPrompts.has(idx) }) : null;
+                let speaker: ReactNode = node;
+                if (author) {
+                  const opens = groups.open(author, messageTimestamp, dayLabel !== null || idx === unreadAt);
+                  if (author !== "system") {
+                    speaker = (
+                      <Fragment key={`${keyPrefix}-conv-${messageKey}`}>
+                        {opens && <GroupHeader author={author} agent={agentConversation?.agent} timestamp={messageTimestamp} />}
+                        <div className="conv-item" data-author={author} data-time={!opens && messageTimestamp !== undefined ? formatClock(messageTimestamp, locale) : undefined}>{node}</div>
+                      </Fragment>
+                    );
+                  }
+                }
+                const dayAndNode = dayLabel === null ? speaker : (
                   <Fragment key={`${keyPrefix}-day-${messageKey}`}>
                     <div className="day-separator" role="separator">{dayLabel}</div>
-                    {node}
+                    {speaker}
                   </Fragment>
                 );
                 if (idx === unreadAt && keyPrefix === "message") {
@@ -1419,24 +1458,46 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 }
 
                 if (processViews.length > 0) {
-                  if (unreadAt > userIdx && (unreadAt < finalAssistantIdx || (unreadAt === finalAssistantIdx && !finalAnswerMessage))) {
-                    rendered.push(unreadDivider);
+                  const dividerInProcess = unreadAt > userIdx && (unreadAt < finalAssistantIdx || (unreadAt === finalAssistantIdx && !finalAnswerMessage));
+                  if (dividerInProcess) rendered.push(unreadDivider);
+                  const processAt = (messages[userIdx + 1] as AgentMessage & { timestamp?: number } | undefined)?.timestamp;
+                  if (conversation && !details && !revealProcess) {
+                    // Details off: only the agent's speech acts survive (agent-conversation.css hides the rest).
+                    let speaks = false;
+                    for (let i = userIdx + 1; i <= finalAssistantIdx && !speaks; i++) speaks = hasSpeechAct(messages[i]);
+                    if (speaks) {
+                      const opens = groups.open("agent", processAt, dividerInProcess);
+                      rendered.push(
+                        <Fragment key={`process-conv-${entryIds[groupStartIdx] ?? groupStartIdx}`}>
+                          {opens && <GroupHeader author="agent" agent={agentConversation?.agent} timestamp={processAt} />}
+                          <div className="conv-item" data-author="agent" data-process ref={processRefIdx === undefined ? undefined : (el) => { messageRefs.current[processRefIdx] = el; }}>
+                            {processViews}
+                          </div>
+                        </Fragment>,
+                      );
+                    }
+                  } else {
+                    if (conversation && groups.open("agent", processAt, dividerInProcess)) {
+                      rendered.push(<GroupHeader key={`process-head-${entryIds[groupStartIdx] ?? groupStartIdx}`} author="agent" agent={agentConversation?.agent} timestamp={processAt} />);
+                    }
+                    rendered.push(
+                      <div
+                        key={`process-group-${entryIds[groupStartIdx] ?? groupStartIdx}`}
+                        className={conversation ? "conv-item" : undefined}
+                        data-author={conversation ? "agent" : undefined}
+                        ref={processRefIdx === undefined ? undefined : (el) => { messageRefs.current[processRefIdx] = el; }}
+                      >
+                        {/* Re-key on answer availability: useState reads defaultExpanded only
+                            on mount, so a turn first rendered without an answer (expanded)
+                            would otherwise stay open once its answer shows up, e.g. when
+                            switching between an answered and an unanswered leaf of the same
+                            turn. Manual toggles survive every other re-render. */}
+                        <ProcessDetailsGroup key={finalAnswerMessage ? "answered" : "unanswered"} messageCount={processViews.length} toolCallCount={processToolCount} defaultExpanded={!finalAnswerMessage} reveal={revealProcess} t={t}>
+                          {processViews}
+                        </ProcessDetailsGroup>
+                      </div>,
+                    );
                   }
-                  rendered.push(
-                    <div
-                      key={`process-group-${entryIds[groupStartIdx] ?? groupStartIdx}`}
-                      ref={processRefIdx === undefined ? undefined : (el) => { messageRefs.current[processRefIdx] = el; }}
-                    >
-                      {/* Re-key on answer availability: useState reads defaultExpanded only
-                          on mount, so a turn first rendered without an answer (expanded)
-                          would otherwise stay open once its answer shows up, e.g. when
-                          switching between an answered and an unanswered leaf of the same
-                          turn. Manual toggles survive every other re-render. */}
-                      <ProcessDetailsGroup key={finalAnswerMessage ? "answered" : "unanswered"} messageCount={processViews.length} toolCallCount={processToolCount} defaultExpanded={!finalAnswerMessage} reveal={revealProcess} t={t}>
-                        {processViews}
-                      </ProcessDetailsGroup>
-                    </div>,
-                  );
                 }
 
                 if (finalAnswerMessage) {
@@ -1476,9 +1537,15 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                 </>
               );
             })()}
-            {streamState.isStreaming && hasStreamingContent && streamState.streamingMessage && (
-              <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} runningToolIds={runningToolIds} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} />
-            )}
+            {streamState.isStreaming && hasStreamingContent && streamState.streamingMessage && (() => {
+              const view = <MessageView message={streamState.streamingMessage as AgentMessage} toolResults={toolResultsMap} runningToolIds={runningToolIds} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} conversation={conversation} />;
+              return conversation ? (
+                <>
+                  {groups.last() !== "agent" && <GroupHeader author="agent" agent={agentConversation?.agent} />}
+                  <div className="conv-item" data-author="agent">{view}</div>
+                </>
+              ) : view;
+            })()}
 
             <div
               role="status"
@@ -1489,7 +1556,16 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
               {bashRunning && !pendingBash && t("chat.runningCommand")}
             </div>
             <div>
-              {agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && (
+              {conversation && agentConversation && agentRunning && (
+                <div className="conv-working">
+                  <span className="conv-gutter" aria-hidden="true"><AgentAvatar avatar={agentConversation.agent.avatar} size={20} /></span>
+                  <span className="conv-working-text">
+                    {t("agents.chat.working", { name: agentConversation.agent.name })}
+                    {!hasStreamingContent && (agentPhase || isCompacting) && phaseLabel(agentPhase, t, isCompacting) ? ` · ${phaseLabel(agentPhase, t, isCompacting)}` : ""}
+                  </span>
+                </div>
+              )}
+              {!conversation && agentRunning && !hasStreamingContent && (agentPhase || isCompacting) && (
                 <div className="break-words py-2 text-[13px] text-text-muted">
                   <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t, isCompacting)}</span>
                 </div>
@@ -1866,11 +1942,14 @@ function ExtensionDialog({
   request,
   waitingCount,
   onRespond,
+  speaker,
 }: {
   request: ExtensionDialogRequest;
   /** Further dialogs queued behind this one; each opens after this one is answered. */
   waitingCount: number;
   onRespond: (request: ExtensionDialogRequest, response: { value: string } | { confirmed: boolean } | { cancelled: true }) => void;
+  /** Agent view: the agent asking, shown above the dialog and on its collapsed bar. */
+  speaker?: { name: string; avatar: AgentListItem["avatar"] };
 }) {
   const { t } = useI18n();
   const [value, setValue] = useState(request.method === "editor" ? request.prefill ?? "" : "");
@@ -1982,7 +2061,7 @@ function ExtensionDialog({
           }}
         >
           <span style={{ fontSize: 11, fontWeight: 650, color: "var(--accent)", flexShrink: 0 }}>
-            {t("chat.extensionPending")}
+            {speaker ? t("agents.chat.asks", { name: speaker.name }) : t("chat.extensionPending")}
           </span>
           <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
             {request.title}
@@ -2018,6 +2097,12 @@ function ExtensionDialog({
           overflow: "hidden",
         }}
       >
+        {speaker && (
+          <div className="conv-dialog-speaker">
+            <AgentAvatar avatar={speaker.avatar} size={20} />
+            <span>{t("agents.chat.asks", { name: speaker.name })}</span>
+          </div>
+        )}
         <div style={{ flexShrink: 1, minHeight: 0, display: "flex", alignItems: "flex-start", gap: 8, padding: "12px 14px", borderBottom: "1px solid var(--border)", maxHeight: "50vh", overflowY: "auto" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Pi's TUI shows the title verbatim, newlines included; select/input have no

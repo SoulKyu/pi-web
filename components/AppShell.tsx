@@ -2584,6 +2584,10 @@ export function AppShell() {
               unlockAudio={unlockAudio}
               unreadMarkerEntryId={activeAgent ? agentUnreadMarker : null}
               unreadCount={activeAgent ? agents.find((agent) => agent.name === activeAgent)?.unread : undefined}
+              agentConversation={(() => {
+                const item = activeAgent ? agents.find((agent) => agent.name === activeAgent) : undefined;
+                return item ? { agent: item, role: agentDetail?.name === item.name ? agentDetail.role : undefined, globalPaused: allPaused, quietHours: healthState?.health.quietHours ?? false } : undefined;
+              })()}
               onLatestEntryViewed={activeAgent ? markAgentRead : undefined}
             />
           ) : initialCwdStatus === "validating" ? (
