@@ -117,8 +117,9 @@ export interface MemoryPolicy {
 
 /** Static text on purpose: the file's content is never injected, so editing MEMORY.md never invalidates the prompt cache. */
 export const MEMORY_MD_INSTRUCTION = "Your home contains MEMORY.md: read it at the start of a task and keep it current (one line per fact, details in notes/).";
+export const GIT_HOME_INSTRUCTION = "Your home is a local git repository with no remote: when you can run git, commit durable changes with Conventional Commits (feat:, fix:, docs:, chore:); never add a remote or push.";
 export const withLongTermInstruction = (profile: { longTerm?: true }, appendSystemPrompt: string[]): string[] =>
-  profile.longTerm ? [...appendSystemPrompt, MEMORY_MD_INSTRUCTION, UNTRUSTED_CONTENT_RULE] : appendSystemPrompt;
+  profile.longTerm ? [...appendSystemPrompt, MEMORY_MD_INSTRUCTION, GIT_HOME_INSTRUCTION, UNTRUSTED_CONTENT_RULE] : appendSystemPrompt;
 
 export interface SubagentSessionResources {
   skills?: string[];
