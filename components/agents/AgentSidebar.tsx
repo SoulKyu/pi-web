@@ -10,7 +10,7 @@ import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import { loadAgentSidebarTab, saveAgentSidebarTab, type AgentSidebarTab } from "@/lib/agents/drawer-tab";
 import { FileExplorer, type FileExplorerHandle } from "../FileExplorer";
-import { CheckIcon, FolderIcon, PlusIcon, RefreshIcon, SearchIcon, TerminalIcon, UploadIcon } from "../SidebarIcons";
+import { ChangesIcon, CheckIcon, FolderIcon, PlusIcon, RefreshIcon, SearchIcon, TerminalIcon, UploadIcon } from "../SidebarIcons";
 import { AgentProfileForm } from "./AgentProfileForm";
 import { AgentTriggers } from "./AgentTriggers";
 import { QueueTaskDialog } from "./QueueTaskDialog";
@@ -59,6 +59,8 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
   const [uploadBusy, setUploadBusy] = useState(false);
   const [fileSearchOpen, setFileSearchOpen] = useState(false);
   const [explorerKey, setExplorerKey] = useState(0);
+  const [changesCollapsed, setChangesCollapsed] = useState(true);
+  const [changesCount, setChangesCount] = useState(0);
   const [refreshDone, setRefreshDone] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -152,8 +154,8 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
   };
   useHeaderFit(headerRef, [...tabs.map((id) => labels[id]), t("agents.sidebar.newTask"), tab].join("\n"));
 
-  const tool = (title: string, onClick: () => void, icon: ReactNode, disabled = false, done = false) => (
-    <button type="button" onClick={onClick} disabled={disabled} title={title} aria-label={title} className={`sidebar-tool-button${done ? " is-done" : ""}`}>{icon}</button>
+  const tool = (title: string, onClick: () => void, icon: ReactNode, disabled = false, done = false, pressed?: boolean) => (
+    <button type="button" onClick={onClick} disabled={disabled} title={title} aria-label={title} aria-pressed={pressed} className={`sidebar-tool-button${pressed ? " is-active" : ""}${done ? " is-done" : ""}`}>{icon}</button>
   );
 
   return (
@@ -211,6 +213,7 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
             {tool(fileManagerUnavailable ? t(fileManager?.reason === "remote" ? "sidebar.openInExplorerRemoteOnly" : "sidebar.openInExplorerUnsupported") : fileManagerLabel, () => { void openInFileManager(); }, <FolderIcon size={14} />, fileManagerUnavailable)}
             {tool(t("sidebar.uploadFilesTitle"), () => explorerRef.current?.openUploadPicker(), <UploadIcon size={14} />, uploadBusy)}
             {tool(t("sidebar.refreshExplorer"), refresh, refreshDone ? <CheckIcon size={14} /> : <RefreshIcon size={14} />, false, refreshDone)}
+            {tool(t("sidebar.changedFiles", { count: changesCount }), () => setChangesCollapsed((v) => !v), <ChangesIcon size={14} />, changesCount === 0, false, changesCount > 0 && !changesCollapsed)}
           </div>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
@@ -220,7 +223,8 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
             onOpenFile={onOpenFile}
             refreshKey={explorerKey}
             onUploadBusyChange={setUploadBusy}
-            changesCollapsed
+            changesCollapsed={changesCollapsed}
+            onChangesCountChange={setChangesCount}
             fileSearchOpen={fileSearchOpen}
             onFileSearchOpenChange={setFileSearchOpen}
           />

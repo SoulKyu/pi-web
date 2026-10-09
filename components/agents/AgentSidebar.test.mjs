@@ -46,10 +46,10 @@ test("Search opens the file search, switching to Files first; + Task opens the q
   assert.match(source, /createPortal\(<QueueTaskDialog agentName=\{agent\.name\} onClose=\{\(\) => setQueueOpen\(false\)\} onQueued=\{\(\) => \{ setQueueOpen\(false\); void load\(\); \}\} \/>, document\.body\)/);
 });
 
-test("the files head has terminal, file manager, upload and refresh, and no project picker", () => {
+test("the files head has terminal, file manager, upload, refresh and changes, and no project picker", () => {
   const html = render(false);
   const head = html.slice(html.indexOf('class="sidebar-files-actions"'), html.indexOf("</div>", html.indexOf('class="sidebar-files-actions"')));
-  assert.equal((head.match(/class="sidebar-tool-button/g) ?? []).length, 4);
+  assert.equal((head.match(/class="sidebar-tool-button/g) ?? []).length, 5);
   assert.doesNotMatch(source, /ProjectWorktreePicker/);
 });
 
@@ -93,4 +93,9 @@ test("trigger and queue dialogs are portaled out of the drawer", async () => {
   assert.match(triggers, /createPortal\(<TriggerSecretDialog/);
   const right = await readFile(new URL("./AgentSpaceRight.tsx", import.meta.url), "utf8");
   assert.match(right, /createPortal\(<QueueTaskDialog/);
+});
+
+test("the files head toggles the home's changed-files list, disabled while there is none", () => {
+  assert.match(source, /tool\(t\("sidebar\.changedFiles", \{ count: changesCount \}\), \(\) => setChangesCollapsed\(\(v\) => !v\), <ChangesIcon size=\{14\} \/>, changesCount === 0, false, changesCount > 0 && !changesCollapsed\)/);
+  assert.match(source, /changesCollapsed=\{changesCollapsed\}\s*onChangesCountChange=\{setChangesCount\}/);
 });
