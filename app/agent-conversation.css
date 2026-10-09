@@ -1,0 +1,111 @@
+/* Agent conversation view (docs/superpowers/specs/2026-10-09-agent-conversation-design.md).
+   Every rule is scoped: ordinary sessions never match. */
+
+/* ---- Measure and rhythm ---- */
+[data-chat-style="agent"] {
+  /* +1 px over the user's chat font size: 15 px by default. */
+  --chat-font-size-offset: calc(var(--chat-content-font-size, 14px) - 13px);
+}
+[data-chat-style="agent"] .markdown-body { line-height: 1.6; }
+[data-chat-style="agent"] .markdown-body p { margin-bottom: 0.75em; }
+[data-chat-style="agent"] .markdown-body > :is(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6),
+[data-chat-style="agent"] [data-message-role="user"] { max-width: 72ch; }
+[data-chat-style="agent"] .markdown-body a { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---- Gutter, groups, headers ---- */
+[data-chat-style="agent"] .conv-item { position: relative; padding-left: 40px; }
+[data-chat-style="agent"] .conv-item[data-author="user"]::after {
+  content: ""; position: absolute; left: 13px; top: 2px; bottom: 2px; width: 2px; background: var(--color-tron-orange);
+}
+[data-chat-style="agent"] .conv-item[data-time]:is(:hover, :focus-within)::before {
+  content: attr(data-time); position: absolute; left: 0; top: 4px; width: 36px;
+  font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums;
+}
+@media (pointer: coarse) {
+  [data-chat-style="agent"] .conv-item[data-time]::before { content: none; }
+}
+.conv-group-header { display: flex; align-items: baseline; gap: 8px; margin: 20px 0 4px; min-width: 0; }
+.conv-group-header .conv-gutter { width: 32px; flex-shrink: 0; align-self: center; display: inline-flex; justify-content: center; }
+.conv-name { font-family: var(--font-ui); font-weight: 600; font-size: 15px; color: var(--text); }
+.conv-time { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.conv-user-avatar {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  border: 1px solid var(--color-tron-orange); color: var(--color-tron-orange); font-size: 13px; font-weight: 600;
+}
+
+/* ---- Details off: tool calls and reasoning hidden, the agent's speech acts kept ---- */
+[data-agent-details="off"] [data-block="thinking"],
+[data-agent-details="off"] [data-block="toolCall"]:not([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"]) { display: none; }
+[data-agent-details="off"] [data-message-role="assistant"]:not(:has([data-block="text"], [data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])) { display: none; }
+/* Inside a finished turn's process, the narration is noise too: only speech acts stay. */
+[data-agent-details="off"] [data-process] [data-block="text"] { display: none; }
+[data-agent-details="off"] [data-process] [data-message-role="assistant"]:not(:has([data-tool="agent_notify"], [data-tool="agent_approve"], [data-tool="agent_delegate"], [role="alert"])) { display: none; }
+
+/* Speech acts read as the agent talking, not as a tool card. */
+[data-chat-style="agent"] .agent-notify {
+  border: none; border-left: 2px solid var(--color-tron-orange); padding: 2px 0 2px 10px; margin: 2px 0;
+  font-size: inherit; line-height: 1.6;
+}
+
+/* ---- System lines (events): event cards only exist in agent threads, so these are not scoped ---- */
+.agent-event-line {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin: 12px 0;
+  padding: 2px 0; border: none; background: transparent; cursor: pointer;
+  font-size: 12px; color: var(--text-muted); text-align: center;
+}
+.agent-event-line::before,
+.agent-event-line::after { content: ""; flex: 1 1 24px; max-width: 120px; height: 1px; background: var(--border); }
+.agent-event-line[data-failed] { color: var(--color-tron-red); }
+.agent-event-line:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.agent-event-line-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Working line ---- */
+.conv-working { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; color: var(--text-muted); }
+.conv-working .conv-gutter { width: 32px; display: inline-flex; justify-content: center; }
+.conv-working-text { animation: pulse 1.5s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .conv-working, .conv-working-text { animation: none; }
+}
+
+/* ---- Conversation header ---- */
+.conv-header {
+  position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--bg);
+}
+.conv-header-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.conv-header-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.conv-header-name { font-family: var(--font-ui); font-weight: 600; font-size: 15px; color: var(--text); }
+.conv-header-status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+.conv-header-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+.conv-header-status[data-tone="orange"] { color: var(--color-tron-orange); }
+.conv-header-status[data-tone="orange"] .conv-header-dot { background: var(--color-tron-orange); }
+.conv-header-status[data-tone="cyan"] .conv-header-dot { background: var(--color-tron-cyan); }
+.conv-header-status[data-tone="red"] { color: var(--color-tron-red); }
+.conv-header-status[data-tone="red"] .conv-header-dot { background: var(--color-tron-red); }
+.conv-header-role { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-header-details { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; font-size: 12px; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+@media (pointer: coarse) { .conv-header-details { min-height: 44px; } }
+@media (max-width: 400px) { .conv-header-role { display: none; } }
+
+/* ---- Approval / extension dialog speaker ---- */
+.conv-dialog-speaker { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
+
+/* ---- Expanded rail (conversation list) ---- */
+.agent-rail.agent-rail-expanded { width: 240px; align-items: stretch; padding: 8px; gap: 2px; }
+.agent-rail-expanded .agent-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 6px 8px;
+  border: none; background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.agent-rail-expanded .agent-row:hover { background: var(--bg-hover); }
+.agent-rail-expanded .agent-row[aria-current="true"] { background: var(--bg-selected); }
+.agent-rail-expanded .agent-row:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.agent-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.agent-row-line1 { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.agent-row-name { font-family: var(--font-ui); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-row[data-unread] .agent-row-name { font-weight: 700; }
+.agent-row-unread { font-family: var(--font-mono); font-size: 11px; color: var(--color-tron-cyan); }
+.agent-row-time { margin-left: auto; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.agent-row-preview { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-row-preview[data-state="needs_input"] { color: var(--color-tron-orange); }
+.agent-row-preview[data-state="failed"] { color: var(--color-tron-red); }
+.agent-rail-expanded .agent-rail-action { width: 100%; justify-content: flex-start; gap: 8px; padding: 0 8px; }
