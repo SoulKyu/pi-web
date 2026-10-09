@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Inbox, ListTodo, Menu, Moon, Pause, Play, Plus, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronsLeft, ChevronsRight, Inbox, ListTodo, Menu, Moon, Pause, Play, Plus, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { useI18n } from "@/hooks/useI18n";
@@ -10,6 +10,7 @@ import type { AgentListItem } from "@/lib/agents/agent-view";
 import type { AgentOpsHealth } from "@/lib/agent-ops/health";
 import { samePlannotator, type PlannotatorConfig } from "@/lib/plannotator";
 import { AgentAvatar } from "./AgentAvatar";
+import { formatListTime } from "./conversation/list-time";
 import { healthPopoverLines, healthPopoverPosition } from "./rail-health";
 
 type HealthLevel = "ok" | "warn" | "down";
@@ -101,7 +102,7 @@ export function useAgentsPoll(): { agents: AgentListItem[]; agentsHomeDir?: stri
 
 const railButtonClass = "flex size-8 shrink-0 items-center justify-center bg-transparent p-0 text-text-muted outline-none transition-colors hover:text-tron-cyan focus-visible:shadow-glow-cyan [&_svg]:size-4";
 
-export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, onShowInbox, orientation, paused, error, lastOkAt, onPauseChanged, healthState }: {
+export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onShowSessions, onShowTasks, onShowInbox, orientation, paused, error, lastOkAt, onPauseChanged, healthState, expanded = false, onExpandedChange }: {
   healthState: HealthState | null;
   agents: readonly AgentListItem[];
   activeAgent: string | null;
@@ -115,9 +116,13 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   error: string | null;
   lastOkAt: number | null;
   onPauseChanged: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (next: boolean) => void;
 }) {
   const { t, locale } = useI18n();
   const vertical = orientation === "vertical";
+  const list = vertical && expanded;
+  const showLabels = !vertical || list;
   const inboxUnread = agents.reduce((sum, agent) => sum + agent.unread, 0);
   const [pauseError, setPauseError] = useState<string | null>(null);
   const [healthOpen, setHealthOpen] = useState(false);
@@ -193,8 +198,37 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
   };
   return (
     <>
-      <nav aria-label={t("agents.rail.shortcutsHint")} className={vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
+      <nav aria-label={t("agents.rail.shortcutsHint")} className={list ? "agent-rail agent-rail-expanded" : vertical ? "agent-rail" : "agent-rail agent-rail-horizontal"}>
+        {vertical && onExpandedChange && (
+          <button type="button" onClick={() => onExpandedChange(!expanded)} aria-expanded={expanded} aria-label={t(expanded ? "agents.rail.collapse" : "agents.rail.expand")} title={t(expanded ? "agents.rail.collapse" : "agents.rail.expand")} className={cn(railButtonClass, list && "self-end")}>
+            {expanded ? <ChevronsLeft aria-hidden="true" /> : <ChevronsRight aria-hidden="true" />}
+          </button>
+        )}
         {agents.map((agent, index) => (
+          list ? (
+            <button
+              key={agent.name}
+              type="button"
+              onClick={() => onSelectAgent(agent.name)}
+              aria-current={agent.name === activeAgent ? "true" : undefined}
+              aria-label={[agent.name, agent.unread > 0 ? t("agents.rail.unread", { count: agent.unread }) : "", agent.state === "needs_input" ? t("agents.rail.needsInput") : agent.running ? t("agents.rail.running") : agent.state === "failed" ? t("agents.rail.failed") : "", agent.lastPreview ?? ""].filter(Boolean).join(", ")}
+              title={agent.name + (index < 9 ? ` · Ctrl+Alt+${index + 1}` : "")}
+              className="agent-row"
+              data-unread={agent.unread > 0 || undefined}
+            >
+              <AgentAvatar avatar={agent.avatar} size={32} running={agent.running} state={agent.state} selected={agent.name === activeAgent} title={agent.name} />
+              <span className="agent-row-text" aria-hidden="true">
+                <span className="agent-row-line1">
+                  <span className="agent-row-name">{agent.name}</span>
+                  {agent.unread > 0 && <span className="agent-row-unread">{agent.unread}</span>}
+                  {agent.lastActivityAt && <span className="agent-row-time">{formatListTime(agent.lastActivityAt, locale)}</span>}
+                </span>
+                <span className="agent-row-preview" data-state={agent.state}>
+                  {agent.state === "needs_input" ? t("agents.presence.needsInput") : agent.state === "failed" ? t("agents.presence.failed") : agent.lastPreview ?? ""}
+                </span>
+              </span>
+            </button>
+          ) : (
           <button
             key={agent.name}
             type="button"
@@ -207,8 +241,9 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             <AgentAvatar avatar={agent.avatar} running={agent.running} state={agent.state} unread={agent.unread} selected={agent.name === activeAgent} title={agent.name} />
             {!vertical && <span className="agent-rail-name" aria-hidden="true">{agent.name}</span>}
           </button>
+          )
         ))}
-        <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} className={railButtonClass}><Plus aria-hidden="true" /></button>
+        <button type="button" onClick={onNewAgent} aria-label={t("agents.rail.new")} title={t("agents.rail.new")} className={cn(railButtonClass, list && "agent-rail-action w-full")}><Plus aria-hidden="true" />{list && <span className="ml-1 text-xs">{t("agents.rail.new")}</span>}</button>
         {(healthState || pauseError) && (
           <button
             ref={healthButtonRef}
@@ -242,13 +277,13 @@ export function AgentRail({ agents, activeAgent, onSelectAgent, onNewAgent, onSh
             <button ref={pauseCancelRef} type="button" onClick={closePauseConfirm} aria-label={t("i18n.cancel")} title={t("i18n.cancel")} className={cn(railButtonClass, !vertical && "w-auto gap-1 px-2 text-xs", "border border-tron-line")}><X aria-hidden="true" />{!vertical && <span>{t("i18n.cancel")}</span>}</button>
           </div>
         ) : (
-          <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void setPausedAll(false) : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} className={cn(railButtonClass, paused && "text-tron-cyan")}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}</button>
+          <button ref={pauseButtonRef} type="button" onClick={() => (paused ? void setPausedAll(false) : setConfirmingPause(true))} aria-label={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} title={paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")} aria-pressed={paused} className={cn(railButtonClass, paused && "text-tron-cyan", list && "agent-rail-action w-full")}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}{list && <span className="ml-1 text-xs">{paused ? t("agentOps.pause.resumeAll") : t("agentOps.pause.all")}</span>}</button>
         )}
         {pauseError && <span role="alert" className="visually-hidden">{t("agents.error", { error: pauseError })}</span>}
         {error && lastOkAt !== null && (vertical ? <span role="status" title={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} aria-label={t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })} className="text-tron-orange"><TriangleAlert aria-hidden="true" className="size-3" /></span> : <span role="status" style={{ color: "var(--text-muted)", fontSize: 11 }}>{t("agents.rail.stale", { time: new Date(lastOkAt).toLocaleTimeString(locale, { timeStyle: "short" }) })}</span>)}
-        <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} className={cn(railButtonClass, vertical ? "mt-auto" : "ml-auto w-auto")}><Inbox aria-hidden="true" />{inboxUnread > 0 && <span className="ml-0.5 font-mono text-xs text-tron-cyan">{inboxUnread}</span>}{!vertical && <span className="ml-1 text-xs">{t("agents.rail.inbox")}</span>}</button>
-        <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} className={cn(railButtonClass, !vertical && "w-auto")}><ListTodo aria-hidden="true" />{!vertical && <span className="ml-1 text-xs">{t("agents.rail.tasks")}</span>}</button>
-        <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} className={cn(railButtonClass, activeAgent === null && "text-tron-cyan")}><Menu aria-hidden="true" /></button>
+        <button type="button" onClick={onShowInbox} aria-label={t("agents.rail.inbox")} title={t("agents.rail.inbox")} className={cn(railButtonClass, vertical ? "mt-auto" : "ml-auto w-auto", list && "agent-rail-action w-full")}><Inbox aria-hidden="true" />{inboxUnread > 0 && <span className="ml-0.5 font-mono text-xs text-tron-cyan">{inboxUnread}</span>}{showLabels && <span className="ml-1 text-xs">{t("agents.rail.inbox")}</span>}</button>
+        <button type="button" onClick={onShowTasks} aria-label={t("agents.rail.tasks")} title={t("agents.rail.tasks")} className={cn(railButtonClass, !vertical && "w-auto", list && "agent-rail-action w-full")}><ListTodo aria-hidden="true" />{showLabels && <span className="ml-1 text-xs">{t("agents.rail.tasks")}</span>}</button>
+        <button type="button" onClick={onShowSessions} aria-label={t("agents.rail.sessions")} title={t("agents.rail.sessions")} aria-pressed={activeAgent === null} className={cn(railButtonClass, activeAgent === null && "text-tron-cyan", list && "agent-rail-action w-full")}><Menu aria-hidden="true" />{list && <span className="ml-1 text-xs">{t("agents.rail.sessions")}</span>}</button>
       </nav>
       {healthOpen && createPortal(
         <div

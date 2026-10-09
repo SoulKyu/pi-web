@@ -152,3 +152,15 @@ test("the horizontal rail shows each agent's name under its avatar, clipped by C
   const rule = css.slice(start, css.indexOf("}", start));
   for (const declaration of ["max-width: 8ch", "overflow: hidden", "text-overflow: ellipsis", "white-space: nowrap"]) assert.match(rule, new RegExp(declaration), declaration);
 });
+
+test("the vertical rail expands into a conversation list in rail order, with a persisted toggle", () => {
+  assert.match(rail, /const list = vertical && expanded;/);
+  assert.match(rail, /className=\{list \? "agent-rail agent-rail-expanded" : vertical \? "agent-rail" : "agent-rail agent-rail-horizontal"\}/);
+  assert.match(rail, /aria-expanded=\{expanded\}/);
+  assert.match(rail, /t\(expanded \? "agents\.rail\.collapse" : "agents\.rail\.expand"\)/);
+  assert.match(rail, /formatListTime\(agent\.lastActivityAt, locale\)/);
+  assert.match(rail, /data-state=\{agent\.state\}/);
+  assert.match(rail, /agents\.map\(\(agent, index\) =>/);
+  assert.match(shell, /expanded=\{railExpanded\}/);
+  assert.match(shell, /savePref\(RAIL_EXPANDED_KEY, next\)/);
+});

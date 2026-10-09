@@ -12,6 +12,7 @@ import { FileViewer } from "./FileViewer";
 import { TabBar, type Tab } from "./TabBar";
 import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { SettingsPanel, SettingsSectionIcon } from "./SettingsPanel";
+import { loadRailExpanded, RAIL_EXPANDED_KEY, savePref } from "./agents/conversation/prefs";
 import { AgentRail, useAgentsPoll, useHealthPoll } from "./agents/AgentRail";
 import { NewAgentDialog } from "./agents/NewAgentDialog";
 import { InboxPanel } from "./agents/InboxPanel";
@@ -240,6 +241,11 @@ export function AppShell() {
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
   const healthState = useHealthPoll();
+  const [railExpanded, setRailExpanded] = useState(loadRailExpanded);
+  const changeRailExpanded = useCallback((next: boolean) => {
+    setRailExpanded(next);
+    savePref(RAIL_EXPANDED_KEY, next);
+  }, []);
   const handToAgents = useMemo(() => agents.map(({ name, paused, running }) => ({ name, paused: paused || allPaused, running })), [agents, allPaused]);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
@@ -2103,6 +2109,8 @@ export function AppShell() {
         onShowTasks={() => setTasksBoardOpen(true)}
         onShowInbox={() => setInboxOpen(true)}
         orientation={isMobile ? "horizontal" : "vertical"}
+        expanded={railExpanded}
+        onExpandedChange={changeRailExpanded}
         paused={allPaused}
         error={agentsError}
         lastOkAt={agentsLastOkAt}
