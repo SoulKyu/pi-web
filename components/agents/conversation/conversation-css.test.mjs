@@ -41,6 +41,13 @@ test("readability: prose fills the column, 15px body, 1.6 line height, no HUD fo
   assert.doesNotMatch(css, /font-hud|orbitron/i);
 });
 
+test("the day separator is an inline line, never a sticky bar over the text", async () => {
+  const globals = await read("../../../app/globals.css");
+  const rule = globals.slice(globals.indexOf(".day-separator {"), globals.indexOf("}", globals.indexOf(".day-separator {")));
+  assert.ok(rule.length > 0);
+  assert.doesNotMatch(rule, /position:\s*sticky/);
+});
+
 test("reduced motion stops the working pulse", () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.conv-working[\s\S]*animation: none/);
 });
