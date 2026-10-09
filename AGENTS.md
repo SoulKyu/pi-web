@@ -121,6 +121,8 @@ app/api/
   push/subscribe/route.ts          POST register a push subscription
   app-update/route.ts              GET current vs latest published pi-web version
 
+app/agent-conversation.css         agent thread conversation view styles: 72ch measure, gutter, group headers, details-off hiding, expanded rail
+
 lib/
   plannotator.ts            plannotatorConfig(): PLANNOTATOR_PORT (port, list, a-b range) + PLANNOTATOR_URL_HOST, exposed by the health route
   plannotator-links.ts      plannotatorLinks(): Plannotator page URLs in a tool result (exact host, listed port, max 5; client-safe)
@@ -298,6 +300,7 @@ components/
   agents/AgentSidebar.tsx / AgentProfileForm.tsx   agent sidebar (Files, Triggers, Settings tabs; Status on phones) and its inline profile form
   agents/AgentSpaceRight.tsx  agent status panel (status, usage, memory, tasks)
   agents/dialog-styles.ts  shared styles of the agent dialogs
+  agents/conversation/     agent thread conversation view: author-groups.ts (authorOf, createGroupTracker), presence.ts (presenceOf), list-time.ts (rail list time), prefs.ts (details / rail-expanded localStorage), GroupHeader.tsx, ConversationHeader.tsx (client-safe)
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install
   MemoryConfig.tsx         Settings › Memory: scope selector, filter, source badge, forget selected, per-row promote / correct (MemoryRowActions.tsx, shared with the agent panel)
@@ -343,9 +346,9 @@ Design decisions and traps live in `docs/agents/`, one note per area. Read every
 - [subagents.md](docs/agents/subagents.md): the built-in subagent setting, profiles and their files, run status, completion notifications. Files: `lib/subagent*.ts`, `app/api/subagents/**`, `components/AgentsConfig.tsx`.
 - [agent-ops.md](docs/agents/agent-ops.md): the task store and FIFO runner, cancel/steer ordering, the single deadline, the unawaited prompt send, trigger tool check, the two runners. Files: `lib/agent-ops/**`, `lib/agents/{queue,thread-run}.ts`, `app/api/agent-ops/**`, `components/agents/{AgentTasks,AgentTriggers,TriggerDialog,TriggerSecretDialog,AgentMemory}.tsx`, `task-view.ts`, `trigger-view.ts`.
 - [finops.md](docs/agents/finops.md): `runs.jsonl` fields, promtail / Alloy ingestion into Loki, Grafana alert rules, troubleshooting. Files: `lib/agent-ops/run-registry.ts`, `lib/agent-ops/run-usage.ts`, `lib/agent-ops/metrics.ts`, `app/api/metrics/route.ts`; also the optional Prometheus endpoint.
-- [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation, event cards, the per-agent queue, trigger binding, `agent_notify`. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/*`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `components/MessageView.tsx`, `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/web-push.ts`, `lib/initial-navigation.ts`.
+- [long-term-agents.md](docs/agents/long-term-agents.md): agent data model (profile, space, home, trash), the pinned trusted thread and its re-snapshot rule, unread marker, rail and `?agent=` navigation, event cards, the per-agent queue, trigger binding, `agent_notify`. Files: `lib/agents/**`, `app/api/agents/**`, `components/agents/*`, the agent parts of `components/AppShell.tsx`, `components/ChatWindow.tsx`, `components/MessageView.tsx`, `lib/rpc-manager.ts`, `lib/session-reader.ts`, `lib/web-push.ts`, `lib/initial-navigation.ts`, `components/agents/conversation/*`, `app/agent-conversation.css`.
 - [client-platform.md](docs/agents/client-platform.md): mobile software keyboard and viewport height, completion sound. Files: `hooks/useViewportHeight.ts`, `hooks/useAudio.ts`, the keyboard-open CSS.
-- [ui.md](docs/agents/ui.md): the Tron design system: single palette and tokens, color meaning, components/ui primitives, Chamfer/clip-path trap, reduced motion, /dev/ui. Files: `app/globals.css`, `app/layout.tsx`, `lib/cn.ts`, `components/ui/**`, `components/tron/**`, `app/dev/ui/**`.
+- [ui.md](docs/agents/ui.md): the Tron design system: single palette and tokens, color meaning, components/ui primitives, Chamfer/clip-path trap, reduced motion, /dev/ui. Files: `app/globals.css`, `app/layout.tsx`, `lib/cn.ts`, `components/ui/**`, `components/tron/**`, `app/dev/ui/**`, `app/agent-conversation.css` (the agent thread's readability rules).
 
 ---
 
