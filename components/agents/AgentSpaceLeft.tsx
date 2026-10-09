@@ -7,7 +7,7 @@ import type { PublicTrigger } from "@/lib/agent-ops/trigger-api";
 import { modelLabel, type AgentDetail } from "@/lib/agents/agent-view";
 import { FileExplorer, type FileExplorerHandle } from "../FileExplorer";
 import { AgentAvatar } from "./AgentAvatar";
-import { AgentProfileDialog } from "./AgentProfileDialog";
+import { AgentProfileForm } from "./AgentProfileForm";
 import { AgentTriggers } from "./AgentTriggers";
 
 const TRIGGERS_POLL_MS = 10_000;
@@ -22,6 +22,7 @@ export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSave
 }) {
   const { t } = useI18n();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const [triggers, setTriggers] = useState<PublicTrigger[]>([]);
   const [tasks, setTasks] = useState<AgentTaskListItem[]>([]);
   const explorerRef = useRef<FileExplorerHandle>(null);
@@ -85,12 +86,12 @@ export function AgentSpaceLeft({ agent, onOpenFile, onOpenSession, onProfileSave
       <AgentTriggers agentName={name} triggers={triggers} tasks={tasks} onOpenSession={onOpenSession} onChanged={() => void load()} />
       <button
         type="button"
-        onClick={() => setProfileOpen(true)}
+        onClick={() => setProfileOpen((open) => !open)}
         style={{ marginTop: 8, padding: "6px 10px", border: "1px solid var(--border)", borderRadius: 0, background: "none", color: "var(--text)", cursor: "pointer", fontSize: 12 }}
       >
         {t("agents.space.profile")}
       </button>
-      {profileOpen && <AgentProfileDialog agent={agent} onClose={() => setProfileOpen(false)} onSaved={onProfileSaved} onDeleted={onDeleted} onThreadReset={onThreadReset} />}
+      {profileOpen && <AgentProfileForm key={formKey} agent={agent} onSaved={onProfileSaved} onDeleted={onDeleted} onThreadReset={onThreadReset} onDiscard={() => setFormKey((key) => key + 1)} />}
     </div>
   );
 }

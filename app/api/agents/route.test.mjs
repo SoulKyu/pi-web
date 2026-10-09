@@ -75,7 +75,7 @@ test("MCP allowlist: PATCH restarts the thread, the route lists names only, spaw
   assert.match(route, /"Cache-Control": "no-store"/);
   assert.match(route, /dynamic = "force-dynamic"/);
   assert.match(await read("../../../lib/agent-ops/spawn.ts"), /syncAgentMcpOverrides\(agent\.home, agent\.mcpServers\)/);
-  for (const dialog of ["NewAgentDialog", "AgentProfileDialog"]) {
+  for (const dialog of ["NewAgentDialog", "AgentProfileForm"]) {
     const source = await read(`../../../components/agents/${dialog}.tsx`);
     assert.match(source, /\/api\/agents\/mcp-servers/);
     assert.match(source, /type="checkbox"/);

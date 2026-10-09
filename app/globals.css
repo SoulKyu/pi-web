@@ -2323,6 +2323,7 @@ span.token.table {
   .agent-drawer-tab.is-active { color: var(--text); border-bottom-color: var(--accent); }
 }
 .agent-space-section { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 10px 0 4px; }
+.agent-profile-form { display: grid; gap: 10px; padding: 10px 10px 16px; }
 
 .agent-notify { border: 1px solid var(--color-tron-orange); border-radius: 0; padding: 6px 10px; margin: 6px 0; font-size: 13px; }
 .agent-notify-sent { color: var(--text-dim); font-size: 11px; }

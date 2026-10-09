@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const shell = await readFile(new URL("../AppShell.tsx", import.meta.url), "utf8");
-const profile = await readFile(new URL("../agents/AgentProfileDialog.tsx", import.meta.url), "utf8");
+const profile = await readFile(new URL("../agents/AgentProfileForm.tsx", import.meta.url), "utf8");
 
 test("agent flows use toasts, never blocking alerts", () => {
   assert.doesNotMatch(shell, /window\.alert\(/);

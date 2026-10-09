@@ -1694,6 +1694,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.profile.quarantinePartial": "已隔离，但有问题：{errors}",
     "agents.profile.quarantineVault": "请在上游轮换这些保险库密钥：{names}",
     "agents.profile.running": "智能体正在运行：请在其空闲时重试。",
+    "agents.profile.discard": "放弃更改",
     "agents.thread.unread": "{count} 条新消息",
     "agents.thread.jumpUnread": "↑ {count} 条新消息",
     "agents.thread.jumpUnreadNoCount": "↑ 新消息",

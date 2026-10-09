@@ -1694,6 +1694,7 @@ export const enLocale: LocalePlugin = {
     "agents.profile.quarantinePartial": "Quarantined, with problems: {errors}",
     "agents.profile.quarantineVault": "Rotate these vault secrets upstream: {names}",
     "agents.profile.running": "The agent is running: try again when it is idle.",
+    "agents.profile.discard": "Discard changes",
     "agents.thread.unread": "{count} new messages",
     "agents.thread.jumpUnread": "↑ {count} new",
     "agents.thread.jumpUnreadNoCount": "↑ new",

@@ -1,9 +1,8 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "@/hooks/useI18n";
-import { openStackedDialog } from "@/lib/stacked-dialog";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { ToolsPreset } from "@/lib/agents/registry";
 import { COMMAND_DENY_PRESETS } from "@/lib/agents/command-policy";
@@ -13,13 +12,13 @@ import { AgentPermissions } from "./AgentPermissions";
 import { AgentSecrets } from "./AgentSecrets";
 import { TriggerDialog } from "./TriggerDialog";
 import { TriggerSecretDialog } from "./TriggerSecretDialog";
-import { backdropStyle, buttonStyle, fieldStyle, formStyle, labelStyle } from "./dialog-styles";
+import { buttonStyle, fieldStyle, labelStyle } from "./dialog-styles";
 import { COLORS, EMOJIS, THINKING_LEVELS, TOOLS_PRESETS, type ModelOption } from "./NewAgentDialog";
 import { toast } from "sonner";
 
 type RotatedSecret = { triggerId: string; name: string; webhookSecret: string };
 
-export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThreadReset }: { agent: AgentDetail; onClose: () => void; onSaved: (agent: AgentDetail) => void; onDeleted: () => void; onThreadReset: () => void }) {
+export function AgentProfileForm({ agent, onSaved, onDeleted, onThreadReset, onDiscard }: { agent: AgentDetail; onSaved: (agent: AgentDetail) => void; onDeleted: () => void; onThreadReset: () => void; onDiscard: () => void }) {
   const { t } = useI18n();
   const [emoji, setEmoji] = useState(agent.avatar.emoji);
   const [color, setColor] = useState(agent.avatar.color);
@@ -45,11 +44,6 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const [curation, setCuration] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useEffect(() => openStackedDialog(document, dialogRef.current, () => onCloseRef.current()), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -120,7 +114,6 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (response.status === 409) { setError(t("agents.profile.running")); return; }
       if (!response.ok || !data.agent) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
       onSaved(data.agent);
-      onClose();
     } catch (cause) {
       setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
     } finally {
@@ -138,7 +131,6 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (response.status === 409) { setError(t("agents.profile.running")); return; }
       if (!response.ok) { setError(t("agents.error", { error: data.error ?? `HTTP ${response.status}` })); return; }
       onDeleted();
-      onClose();
     } catch (cause) {
       setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
     } finally {
@@ -161,7 +153,6 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
       if (data.errors?.length) toast.warning(t("agents.profile.quarantinePartial", { errors: data.errors.join("; ") }), { duration: Infinity, closeButton: true });
       if (data.vaultSecrets?.length) toast.warning(t("agents.profile.quarantineVault", { names: data.vaultSecrets.join(", ") }), { duration: Infinity, closeButton: true });
       if (data.secrets?.length) setRotated(data.secrets);
-      else onClose();
     } catch (cause) {
       setError(t("agents.error", { error: cause instanceof Error ? cause.message : String(cause) }));
     } finally {
@@ -174,12 +165,9 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
   const title = t("agents.profile.title", { name: agent.name });
   const swatch = (selected: boolean) => ({ minWidth: 28, height: 28, borderRadius: 0, cursor: "pointer", border: selected ? "2px solid var(--accent)" : "1px solid var(--border)" });
   const modelInList = !model || modelList.some((entry) => `${entry.provider}/${entry.id}` === model);
-  if (typeof document === "undefined") return null;
-  return createPortal(
+  return (
     <>
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} style={backdropStyle}>
-      <form onSubmit={(event) => void submit(event)} style={formStyle}>
-        <strong style={{ fontSize: 14, color: "var(--text)" }}>{title}</strong>
+      <form className="agent-profile-form" aria-label={title} onSubmit={(event) => void submit(event)}>
         {error && <span role="alert" style={{ fontSize: 12, color: "var(--text-muted)" }}>{error}</span>}
         <div style={labelStyle}>
           {t("agents.new.avatar")}
@@ -292,35 +280,38 @@ export function AgentProfileDialog({ agent, onClose, onSaved, onDeleted, onThrea
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid var(--color-tron-red)", background: "none", color: "var(--color-tron-red)" }}>{t("agents.profile.delete")}</button>
             <button type="button" disabled={busy} onClick={() => void quarantine()} style={{ ...buttonStyle, border: 0, background: "var(--color-tron-red)", color: "var(--accent-contrast)", fontWeight: 600 }}>{t("agents.profile.quarantine")}</button>
-            <button type="button" disabled={busy} onClick={() => { onThreadReset(); onClose(); }} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
+            <button type="button" disabled={busy} onClick={onThreadReset} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={onClose} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("i18n.cancel")}</button>
+            <button type="button" disabled={busy} onClick={onDiscard} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.discard")}</button>
             <button type="submit" disabled={busy || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
               {busy ? t("agents.profile.saving") : t("agents.profile.save")}
             </button>
           </div>
         </div>
       </form>
-    </div>
-    {rotated[0] && (
-      <TriggerSecretDialog
-        key={rotated[0].triggerId}
-        triggerId={rotated[0].triggerId}
-        triggerName={rotated[0].name}
-        secret={rotated[0].webhookSecret}
-        onClose={() => { if (rotated.length > 1) setRotated(rotated.slice(1)); else { setRotated([]); onClose(); } }}
-      />
-    )}
-    {curation && agent.memorySnapshotPath && (
-      <TriggerDialog
-        agentName={agent.name}
-        prefill={{ name: "Memory curation", everyMinutes: 7 * 24 * 60, runTarget: "thread", promptTemplate: curationPrompt(agent.name, agent.memorySnapshotPath) }}
-        onClose={() => setCuration(false)}
-        onSaved={() => { setCuration(false); onClose(); }}
-      />
-    )}
-    </>,
-    document.body,
+      {typeof document !== "undefined" && createPortal(
+        <>
+          {rotated[0] && (
+            <TriggerSecretDialog
+              key={rotated[0].triggerId}
+              triggerId={rotated[0].triggerId}
+              triggerName={rotated[0].name}
+              secret={rotated[0].webhookSecret}
+              onClose={() => setRotated(rotated.slice(1))}
+            />
+          )}
+          {curation && agent.memorySnapshotPath && (
+            <TriggerDialog
+              agentName={agent.name}
+              prefill={{ name: "Memory curation", everyMinutes: 7 * 24 * 60, runTarget: "thread", promptTemplate: curationPrompt(agent.name, agent.memorySnapshotPath) }}
+              onClose={() => setCuration(false)}
+              onSaved={() => setCuration(false)}
+            />
+          )}
+        </>,
+        document.body,
+      )}
+    </>
   );
 }

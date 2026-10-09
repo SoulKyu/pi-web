@@ -4,7 +4,7 @@ import test from "node:test";
 
 const read = (p) => readFile(new URL(p, import.meta.url), "utf8");
 const models = await read("./ModelsConfig.tsx");
-const profile = await read("./agents/AgentProfileDialog.tsx");
+const profile = await read("./agents/AgentProfileForm.tsx");
 const globals = await read("../app/globals.css");
 const settings = await read("../app/settings.css");
 const tabs = await read("./TabBar.tsx");

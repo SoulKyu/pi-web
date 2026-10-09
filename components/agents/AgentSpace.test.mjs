@@ -3,16 +3,16 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 const left = await readFile(new URL("./AgentSpaceLeft.tsx", import.meta.url), "utf8");
 const right = await readFile(new URL("./AgentSpaceRight.tsx", import.meta.url), "utf8");
-const dialog = await readFile(new URL("./AgentProfileDialog.tsx", import.meta.url), "utf8");
+const form = await readFile(new URL("./AgentProfileForm.tsx", import.meta.url), "utf8");
 const shell = await readFile(new URL("../AppShell.tsx", import.meta.url), "utf8");
 
-test("AgentSpaceLeft mounts the home explorer and the profile dialog", () => {
+test("AgentSpaceLeft mounts the home explorer and the profile form", () => {
   assert.match(left, /<FileExplorer ref=\{explorerRef\} cwd=\{agent\.home\}/);
   assert.match(left, /onUploadBusyChange=\{setUploadBusy\}/);
   assert.match(left, /openUploadPicker\(\)/);
   assert.match(left, /agents\.space\.browse/);
   assert.match(left, /disabled=\{uploadBusy\}/);
-  assert.match(left, /<AgentProfileDialog/);
+  assert.match(left, /<AgentProfileForm/);
   assert.match(left, /agents\.space\.triggers/);
   assert.match(left, /\/api\/agent-ops\/triggers\?agent=\$\{encodeURIComponent\(name\)\}/);
   assert.match(left, /<AgentTriggers agentName=\{name\}/);
@@ -23,15 +23,15 @@ test("AgentSpaceRight shows the status row", () => {
   assert.match(right, /agents\.space\.context/);
 });
 
-test("AgentProfileDialog patches only changed fields and handles agent_running and delete", () => {
-  assert.match(dialog, /method: "PATCH"/);
-  assert.match(dialog, /if \(role !== agent\.role\) patch\.role = role/);
-  assert.match(dialog, /if \(toolsPreset !== agent\.toolsPreset\) patch\.toolsPreset = toolsPreset/);
-  assert.match(dialog, /patch\.model = model \|\| null/);
-  assert.match(dialog, /response\.status === 409/);
-  assert.match(dialog, /agents\.profile\.running/);
-  assert.match(dialog, /method: "DELETE"/);
-  assert.match(dialog, /window\.confirm\(t\("agents\.profile\.deleteConfirm"/);
+test("AgentProfileForm patches only changed fields and handles agent_running and delete", () => {
+  assert.match(form, /method: "PATCH"/);
+  assert.match(form, /if \(role !== agent\.role\) patch\.role = role/);
+  assert.match(form, /if \(toolsPreset !== agent\.toolsPreset\) patch\.toolsPreset = toolsPreset/);
+  assert.match(form, /patch\.model = model \|\| null/);
+  assert.match(form, /response\.status === 409/);
+  assert.match(form, /agents\.profile\.running/);
+  assert.match(form, /method: "DELETE"/);
+  assert.match(form, /window\.confirm\(t\("agents\.profile\.deleteConfirm"/);
 });
 
 test("AppShell renders the agent space and posts the read marker", () => {
@@ -71,8 +71,8 @@ test("the reset flow has one POST in AppShell, reached from the dialog and from 
   assert.match(shell, /agents\.profile\.resetConfirm/);
   assert.match(shell, /onThreadReset=\{\(\) => void resetAgentThread\(agentDetail\.name\)\}/);
   assert.match(shell, /onResetThread=\{resetAgentThread\}/);
-  assert.match(dialog, /agents\.profile\.reset"/);
-  assert.doesNotMatch(dialog, /thread\/reset/);
+  assert.match(form, /agents\.profile\.reset"/);
+  assert.doesNotMatch(form, /thread\/reset/);
 });
 
 test("task and trigger card headers wrap instead of squeezing the title", async () => {

@@ -43,7 +43,7 @@ test("reads only below the home and never polls", () => {
 });
 
 test("the role field of both dialogs carries the folded help", () => {
-  for (const file of ["NewAgentDialog.tsx", "AgentProfileDialog.tsx"]) {
+  for (const file of ["NewAgentDialog.tsx", "AgentProfileForm.tsx"]) {
     assert.match(readFileSync(new URL(`./${file}`, import.meta.url), "utf8"), /<details[^>]*>[\s\S]*agents\.new\.roleHelp/, file);
   }
 });
