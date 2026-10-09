@@ -226,6 +226,19 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 ## Day separators (`lib/day-separators.ts`, `components/ChatWindow.tsx`)
 Agent view only: a sticky `.day-separator` renders before a message or event card whose timestamp opens a new LOCAL calendar day (`isNewDay`, compared with `getFullYear/getMonth/getDate`, never a UTC string). The previous timestamp is the nearest earlier message that has one; with none, the first loaded message gets a label, so the top separator moves up as older pages load. The year shows only outside the current year. Messages without a timestamp get no separator. Only top-level (`message` prefix) entries are labelled: messages folded inside a process group are not. No "Today"/"Yesterday" words, no minimap nodes, no day folding.
 
+## Conversation view (`components/agents/conversation/*`, `app/agent-conversation.css`)
+- On only for a trusted thread with agent data (`ChatWindow` `conversation = Boolean(trustedAgentName && agentConversation)`); ordinary sessions get no prop and no data attribute.
+- `MessageView` `conversation` (boolean, in the memo comparator): user messages plain and left-aligned (`PlainBubble` instead of `Chamfer`), assistant without model label or cyan border, model and usage on hover only, each block wrapped in `data-block` / `data-tool`.
+- Author groups: one `createGroupTracker()` per render, fed by `renderMessage` (top-level `message` items only) and the process branch. A day separator, the unread divider, a system item or 5 min (`GROUP_GAP_MS`) opens a new group; recall cards and tool results neither open nor break one.
+- Details switch (`localStorage["pi-agent-details"]`, default off): `data-agent-details="off"` hides thinking, tool calls and process narration in CSS; `agent_notify` / `agent_approve` / `agent_delegate` stay. A finished turn without a speech act renders nothing; a search or deep-link reveal keeps today's `ProcessDetailsGroup`.
+- Event cards fold to a centered system line (failed = red + the word); delegation results stay open.
+- Header: `presenceOf` (needs input > working > failed > paused > quiet hours > available), first role line, the details switch. No new request: rail poll, `AgentDetail`, health poll.
+- Rail list: `expanded` (desktop only, `localStorage["pi-agent-rail-expanded"]`, default expanded at ≥ 1280 px). Rail order is kept so `Ctrl+Alt+n` and `Alt+↑/↓` still target the same agents.
+- Known limits: when the render window starts inside a group, the first visible item has no header until earlier items load; an interrupted turn made only of tool calls (no final answer) keeps its agent header with nothing under it while details are off.
+- `AgentEventCard` takes an optional `defaultOpen` (initial fold state); the app never passes it, tests use it to render the open card (the webhook summary must stay plain text).
+- Scroll save/restore collects anchors with `entryAnchors(content)` in `ChatWindow.tsx` (`:scope > [data-entry-id], :scope > .conv-item > [data-entry-id]`): the `.conv-item` wrapper moves the entry id one level down.
+- The health popover anchors on the rail `<nav>` rect in vertical mode (`navRef`), so it opens beside the 240 px list.
+
 ## Agent sidebar (`components/agents/AgentSidebar.tsx`)
 - Same markup and classes as the session sidebar (`sidebar.css`, `sidebar-tron.css`); `SessionSidebar.tsx` is untouched (upstream).
 - Tabs: Files | Triggers | Settings; phones add Status (`AgentSpaceRight`). Header: `+ Task` opens `QueueTaskDialog`, Search opens the home's file search.
