@@ -19,7 +19,8 @@ const GIT_TIMEOUT_MS = 10_000;
 const GIT_STATUS_MAX_BUFFER = 8 * 1024 * 1024;
 
 async function git(cwd: string, args: string[], maxBuffer = GIT_STATUS_MAX_BUFFER): Promise<string> {
-  const { stdout } = await execFileAsync("git", ["-C", cwd, ...args], {
+  // A repo's own config can run commands (an agent writes its home's .git): no fsmonitor, no hooks. Filter drivers are not covered.
+  const { stdout } = await execFileAsync("git", ["-C", cwd, "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", ...args], {
     timeout: GIT_TIMEOUT_MS,
     maxBuffer,
     env: { ...process.env, LC_ALL: "C" },
@@ -65,6 +66,7 @@ async function readTrackedLineStats(
       "diff",
       "--no-color",
       "--no-ext-diff",
+      "--no-textconv",
       "--numstat",
       "HEAD",
       "--",
@@ -175,6 +177,7 @@ async function createTrackedFilePatch(
       "diff",
       "--no-color",
       "--no-ext-diff",
+      "--no-textconv",
       "--unified=3",
       "HEAD",
       "--",
