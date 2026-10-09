@@ -35,9 +35,13 @@ test("a clipped card says so and its Inject button says it injects the truncated
 });
 
 test("a task card folds to a system line; the requester hint waits behind the fold", () => {
-  const folded = render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user", handedFrom: "Julien" }));
+  const task = { taskId: "t", title: "x", requestedBy: "user", handedFrom: "Julien" };
+  const folded = render(ev.buildTaskEvent(task));
   assert.match(folded, /class="agent-event-line" aria-expanded="false"/);
   assert.doesNotMatch(folded, /handed over from Julien/);
+  const open = render(ev.buildTaskEvent(task), { defaultOpen: true });
+  assert.match(open, /handed over from Julien/);
+  assert.doesNotMatch(render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user" }), { defaultOpen: true }), /handed over/);
 });
 
 test("a delegation summary renders as markdown; a long one folds behind an Expand toggle", () => {
@@ -58,16 +62,27 @@ test("a delegation summary never loads a markdown image", () => {
   assert.match(html, /🖼 pixel/);
 });
 
-test("a webhook summary is hidden behind the folded line", () => {
-  const folded = render(ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "completed", summary: "**raw**" }));
+test("a webhook summary is hidden behind the folded line and stays raw text when open", () => {
+  const event = ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "completed", summary: "**raw**" });
+  const folded = render(event);
   assert.match(folded, /class="agent-event-line"/);
   assert.doesNotMatch(folded, /\*\*raw\*\*/);
+  const open = render(event, { defaultOpen: true });
+  assert.match(open, /\*\*raw\*\*/);
+  assert.doesNotMatch(open, /<strong>raw<\/strong>/);
+});
+
+test("an open failed webhook offers its retry and see-run controls", () => {
+  const event = ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "failed", summary: "boom", runSessionId: "s1" });
+  const open = render(event, { defaultOpen: true, onOpenSession: () => {} });
+  assert.match(open, /class="agent-event-failed"/);
+  assert.equal(open.match(/class="agent-event-link"/g)?.length, 2);
 });
 
 test("schedule, task and webhook events fold to a system line; delegation results stay open", async () => {
   const { readFile } = await import("node:fs/promises");
   const card = await readFile(new URL("./AgentEventCard.tsx", import.meta.url), "utf8");
-  assert.match(card, /const \[open, setOpen\] = useState\(false\);/);
+  assert.match(card, /const \[open, setOpen\] = useState\(defaultOpen \?\? false\);/);
   assert.match(card, /className="agent-event-line"/);
   assert.match(card, /data-failed=\{failed \|\| undefined\}/);
   assert.match(card, /aria-expanded=\{false\}/);

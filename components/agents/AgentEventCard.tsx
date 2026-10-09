@@ -11,11 +11,11 @@ import { MarkdownBody } from "../MarkdownBody";
 const SUMMARY_FOLD_CHARS = 1200;
 const SUMMARY_FOLD_LINES = 16;
 
-export function AgentEventCard({ message, onOpenSession, onInject }: { message: CustomMessage; onOpenSession?: (sessionId: string) => void; onInject?: (from: string, summary: string) => void }) {
+export function AgentEventCard({ message, onOpenSession, onInject, defaultOpen }: { message: CustomMessage; onOpenSession?: (sessionId: string) => void; onInject?: (from: string, summary: string) => void; defaultOpen?: boolean }) {
   const { t } = useI18n();
   const [retryState, setRetryState] = useState<"idle" | "done" | string>("idle");
   const [expanded, setExpanded] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const summaryId = useId();
   const data = isAgentEventData(message.details) ? message.details : null;
   if (!data) return null;
@@ -32,7 +32,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
         </div>
         {/* Display-only (D14): no cwd, no onOpenFile, so a link never opens a file in the app; blockRemoteContent, so untrusted output never fetches anything; focus landing on a folded link expands the card. */}
         <div id={summaryId} className={foldable && !expanded ? "agent-event-summary is-collapsed" : "agent-event-summary"} onFocus={foldable && !expanded ? () => setExpanded(true) : undefined}><MarkdownBody blockRemoteContent>{data.summary}</MarkdownBody></div>
-        {foldable && <button type="button" className="agent-event-toggle" aria-expanded={expanded} aria-controls={summaryId} onClick={() => setExpanded((open) => !open)}>{t(expanded ? "i18n.collapse" : "i18n.expand")}</button>}
+        {foldable && <button type="button" className="agent-event-toggle" aria-expanded={expanded} aria-controls={summaryId} onClick={() => setExpanded((wasOpen) => !wasOpen)}>{t(expanded ? "i18n.collapse" : "i18n.expand")}</button>}
         {data.clipped && <div className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.event.clipped")}</div>}
       </div>
     );
