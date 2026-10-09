@@ -33,8 +33,7 @@ test("the Settings dialog and the agent dialogs glow on a hairline", () => {
   assert.match(dialogStyles, /border: "1px solid var\(--color-tron-line\)"/);
 });
 
-test("settings titles and headings are HUD labels; the active section has a cyan trace", () => {
-  assert.match(rule(settings, ".settings-general-title"), /font-family: var\(--font-hud\)/);
+test("settings headings are HUD labels; the active section has a cyan trace", () => {
   assert.match(rule(settings, ".settings-general-heading"), /font-family: var\(--font-hud\)/);
   assert.match(rule(settings, '.config-sidebar-item[aria-current="page"]'), /box-shadow: inset 2px 0 0 var\(--color-tron-cyan\)/);
 });

@@ -49,8 +49,9 @@ test("keeps the session event stream open through the idle grace window", () => 
   assert.doesNotMatch(agentEndSource, /closeEvents\(\)/);
   assert.match(agentStartSource, /cancelEventStreamGrace\(\)/);
   assert.match(agentSettledSource, /scheduleEventStreamClose\(sid\)/);
-  assert.match(agentSettledSource, /onAgentEnd\?\.\(\)/);
-  assert.match(promptDoneSource, /notifyPromptStage\(runId\)/);
+  // A stopped run ends quietly: the event says so (pi 1.1's agent_settled.aborted, carried on prompt_done).
+  assert.match(agentSettledSource, /onAgentEnd\?\.\(\{ aborted: event\.aborted === true \}\)/);
+  assert.match(promptDoneSource, /notifyPromptStage\(runId, event\.aborted === true\)/);
   assert.match(promptDoneSource, /scheduleEventStreamClose\(sid\)/);
   assert.match(sendSource, /const definitivelyRejected = !promptRequestStarted/);
   assert.match(sendSource, /if \(!definitivelyRejected && sentSessionId\) \{[\s\S]*?waitForPromptSettlement/);
@@ -416,7 +417,8 @@ test("uses server pagination state instead of guessing from rendered rows", () =
   assert.match(loadContextSource, /setData\(\(prev\) => \{[\s\S]*messages: \[\.\.\.d\.context\.messages, \.\.\.prev\.context\.messages\]/);
   assert.match(chatWindowSource, /const oldestId = historyCursor/);
   assert.doesNotMatch(chatWindowSource, /const oldestId = entryIds\[0\]/);
-  assert.match(chatWindowSource, /if \(!hasEarlierMessages\) return/);
+  // Nothing older on the server: the sentinel only widens the window over loaded rows.
+  assert.match(chatWindowSource, /if \(!hasEarlierMessages\) \{[\s\S]*?setVisibleCount\(\(current\) => getNextVisibleCount\(current\)\);\s*return;\s*\}/);
   assert.match(chatWindowSource, /const hasMore = startIndex > 0 \|\| hasEarlierMessages/);
   assert.doesNotMatch(chatWindowSource, /rendered\.length >= visibleCount/);
 });

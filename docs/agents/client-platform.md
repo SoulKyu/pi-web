@@ -18,6 +18,7 @@
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.
 - Autoplay policy requires unlocking sound from a user gesture: `ChatInput` calls the unlock hook from interactive controls, and `ChatWindow` plays the tone from `onAgentEnd`.
+- A stopped run is not a finished one (pi 1.1's `agent_settled.aborted`, which pi's own status reporting reads as idle, not done): `onAgentEnd({ aborted })` plays no tone and AppShell shows no browser notification, and the wrapper sends no "Task finished" push (`lastRunAborted`). The wrapper's `prompt_done` carries `aborted: true` for it, since the client finishes a prompt it sent on `prompt_done`, not `agent_settled`.
 
 ## Reduced motion
 - One `@media (prefers-reduced-motion: reduce)` rule in `app/globals.css` stops the shared `blink` / `pulse` / `spin` keyframes: inline `style` users are matched as `[style*="animation"][style*="<name>"]` (browsers reorder the serialised `animation` shorthand), Tailwind as `.animate-spin`, `.animate-pulse` and `[class*="animate-[<name>"]`, plus the rail's `.agent-dot-needs-input`. `!important` is what beats an inline `style`. `app/reduced-motion.test.mjs` fails when a component adds one of these keyframes in a form the rule does not cover. Other animations keep their own `prefers-reduced-motion` blocks (notice shelf, extension widget pulse).

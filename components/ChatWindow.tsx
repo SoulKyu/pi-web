@@ -13,7 +13,7 @@ import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecuti
 import { normalizeCustomPanelLines } from "@/lib/ansi";
 import { EXTENSION_DIALOG_BASE_WIDTH, fitExtensionDialogWidth } from "@/lib/extension-dialog-fit";
 import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
-import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, hasAssistantAnswer, isAssistantTruncated, isMessageGroupAnchor, splitFinalAssistantBlocks } from "@/lib/message-display";
+import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, hasAssistantAnswer, isAssistantTruncated, isHiddenCustomMessage, isMessageGroupAnchor, splitFinalAssistantBlocks } from "@/lib/message-display";
 import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-files";
 import { buildQuotedSelection } from "@/lib/quoted-selection";
 import { AGENT_APPROVE_TOOL, AGENT_DELEGATE_TOOL, AGENT_NOTIFY_TOOL, eventPromptIndexes } from "@/lib/agents/events";
@@ -36,7 +36,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { isNewDay } from "@/lib/day-separators";
 import { phaseAnnouncement, phaseLabel } from "@/lib/chat-phase-label";
 import { findInMessages, stepFindIndex } from "@/lib/chat-find";
-import { useAgentSession, type NewSessionChoices, type NoticeItem } from "@/hooks/useAgentSession";
+import { useAgentSession, type AgentEndInfo, type NewSessionChoices, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
@@ -48,6 +48,7 @@ import { findChatScrollAnchor, type ChatScrollPosition } from "@/lib/chat-scroll
 import { PerspectiveGrid } from "@/components/tron";
 import {
   captureScrollDistance,
+  getNextVisibleCount,
   getPromptAnchorSpacerHeight,
   getVisibleRenderWindow,
   isScrollAtTail,
@@ -71,7 +72,7 @@ interface Props {
   /** A fresh composer's model and reasoning picks, carried from the composer it replaces. */
   initialNewSessionChoices?: NewSessionChoices | null;
   onNewSessionChoicesChange?: (choices: NewSessionChoices) => void;
-  onAgentEnd?: () => void;
+  onAgentEnd?: (end: AgentEndInfo) => void;
   onAttentionNeeded?: (request: BlockingExtensionUiRequest) => void;
   onSessionCreated?: (session: SessionInfo, sourceDraftKey: string) => void;
   onSessionForked?: (newSessionId: string) => void;
@@ -317,11 +318,12 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   const soundEnabledRef = useRef(soundEnabled);
   soundEnabledRef.current = soundEnabled;
   const extensionDialogShownRef = useRef(false);
-  const wrappedOnAgentEnd = useCallback(() => {
-    if (completionNotificationsEnabled && soundEnabledRef.current) {
+  const wrappedOnAgentEnd = useCallback((end: AgentEndInfo) => {
+    // A run someone stopped did not finish anything.
+    if (completionNotificationsEnabled && soundEnabledRef.current && !end.aborted) {
       playDoneSoundRef.current();
     }
-    onAgentEnd?.();
+    onAgentEnd?.(end);
   }, [completionNotificationsEnabled, onAgentEnd]);
 
   const initialScrollPositionRef = useRef(searchTarget ? null : initialScrollPosition ?? null);
@@ -351,6 +353,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     lastUserMsgRef, promptAnchorActive,
     handleSend, handleAbort, handleFork, handleEditContent, cancelEdit, handleModelChange,
     handleCompact, handleSteer, handleFollowUp, handlePromptWithStreamingBehavior, handleAbortCompaction,
+    dismissCompactError,
     handleRecallQueue,
     handleBuiltinSlashCommand,
     handleToolPresetChange, handleAgentProfileChange, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadSlashCommands, scrollUserMsgToTop,
@@ -592,7 +595,9 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   // Only render the last N messages initially. When the user scrolls to the
   // top, load another page while keeping the scroll position stable.
   const [visibleCount, setVisibleCount] = useState(VISIBLE_PAGE_SIZE);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  // State, not a ref: the sentinel can appear with nothing else changing (a
+  // finished turn regrouped into more rows), and must get an observer then.
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const messageContentRef = useRef<HTMLDivElement | null>(null);
   const prevScrollDistanceRef = useRef<number | null>(null);
   const loadingOlderRef = useRef(false);
@@ -843,17 +848,24 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
   // IntersectionObserver on the sentinel div at the top of the message list.
   // When it becomes visible, load the next page of older messages.
   useEffect(() => {
-    const sentinel = sentinelRef.current;
     const container = scrollContainerRef.current;
     if (!sentinel || !container) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0]?.isIntersecting) return;
-        // No older history loaded yet: fetch the previous page from the server
-        // and prepend it (loadContext handles prepend + scroll anchoring).
-        // Skip while a page is already loading or nothing older exists.
+        // Skip while a page is already loading.
         if (loadingOlderRef.current) return;
-        if (!hasEarlierMessages) return;
+        if (!hasEarlierMessages) {
+          // Everything is loaded, yet the sentinel shows: the messages render as
+          // more rows than the window holds (an answer and its thinking are
+          // two), so widen the window. The observer is renewed with it, in case
+          // the sentinel stays in view.
+          prevScrollDistanceRef.current = captureScrollDistance(container.scrollHeight, container.scrollTop);
+          setVisibleCount((current) => getNextVisibleCount(current));
+          return;
+        }
+        // Fetch the previous page from the server and prepend it (loadContext
+        // handles prepend + scroll anchoring).
         const oldestId = historyCursor;
         if (!oldestId) return;
         const sid = session?.id ?? sessionIdRef.current;
@@ -868,7 +880,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [historyCursor, hasEarlierMessages, session, activeLeafId, loadContext, sessionIdRef, scrollContainerRef]);
+  }, [sentinel, visibleCount, historyCursor, hasEarlierMessages, session, activeLeafId, loadContext, sessionIdRef, scrollContainerRef]);
 
   // Keep the rendered window at least as large as what's loaded, so prepended
   // (older) pages stay visible instead of being sliced off the top.
@@ -1136,6 +1148,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
       onAbortCompaction={handleAbortCompaction}
       isCompacting={isCompacting}
       compactError={compactError}
+      onDismissCompactError={dismissCompactError}
       compactResult={compactResult}
       toolPreset={toolPreset}
       // An agent profile fixes the session's tools.
@@ -1293,6 +1306,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
 
               const renderMessage = (idx: number, options: { attachRef?: boolean; keyPrefix?: string; messageOverride?: AgentMessage; showTimestamp?: boolean; writtenFiles?: WrittenFile[]; recoverTruncation?: boolean } = {}): ReactNode => {
                 const msg = options.messageOverride ?? messages[idx];
+                if (isHiddenCustomMessage(msg)) return null;
                 const isVisible = isMessageGroupAnchor(msg) || msg.role === "assistant";
                 const currentRefIdx = visibleRefIndexByMessage.get(idx);
                 const keyPrefix = options.keyPrefix ?? "message";
@@ -1449,6 +1463,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                   const processMessage = messages[processIdx];
                   stickyReveal ||= entryIds[processIdx] === revealedEntryId;
                   if (processMessage.role === "custom") {
+                    // Not counted either: a turn whose only extra is a hidden message has no process details.
+                    if (isHiddenCustomMessage(processMessage)) continue;
                     revealProcess ||= Boolean(pendingSearchScroll && pendingSearchScroll.entryId === entryIds[processIdx]);
                     processViews.push(renderMessage(processIdx, { attachRef: false, keyPrefix: "process" }));
                     continue;
@@ -1549,7 +1565,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
               return (
                 <>
                   {hasMore && (
-                     <div ref={sentinelRef} className="py-3 text-center text-xs text-text-muted">
+                     <div ref={setSentinel} className="py-3 text-center text-xs text-text-muted">
                        {t("chat.loadEarlier")}
                     </div>
                   )}

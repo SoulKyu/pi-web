@@ -123,6 +123,13 @@ export function MarkdownBody({ children, className, isStreaming, cwd, onOpenFile
       if (blockRemoteContent) return <BlockedMarkdownImage src={props.src} alt={props.alt} />;
       return <MarkdownImage cwd={cwd} {...props} />;
     },
+    ol({ node, start, style, ...props }) {
+      // An outside marker wider than the list's left padding is clipped by
+      // .markdown-body's overflow-x, so the padding follows the largest number.
+      const items = node?.children.filter((child) => child.type === "element" && child.tagName === "li").length ?? 0;
+      const digits = String(Math.abs((start ?? 1) + Math.max(items, 1) - 1)).length;
+      return <ol start={start} style={{ ...style, ["--ol-marker-digits" as string]: Math.max(digits, 2) }} {...props} />;
+    },
     table({ children }) {
       return (
         <div className="markdown-table-wrap">

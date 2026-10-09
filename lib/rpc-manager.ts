@@ -332,6 +332,8 @@ export class AgentSessionWrapper {
   private activeMutatingCommands = 0;
   private sessionReplacement: "fork" | "clone" | null = null;
   private agentRunNeedsCompletion = false;
+  // Whether the last run ended because it was stopped (pi 1.1's `agent_settled.aborted`), not finished.
+  private lastRunAborted = false;
   private promptAdmissionTail: Promise<void> = Promise.resolve();
   private extensionsBound = false;
   private extensionBindingPromise: Promise<void> | null = null;
@@ -465,7 +467,11 @@ export class AgentSessionWrapper {
 
   start(): void {
     this.unsubscribe = this.inner.subscribe((event: AgentEvent) => {
-      if (event.type === "agent_start") this.agentRunNeedsCompletion = true;
+      if (event.type === "agent_start") {
+        this.agentRunNeedsCompletion = true;
+        this.lastRunAborted = false;
+      }
+      if (event.type === "agent_settled") this.lastRunAborted = event.aborted === true;
       if (event.type === "agent_end") {
         invalidateSessionListCache();
         // Every tool call of the run has finished; nothing is left to replay.
@@ -511,12 +517,18 @@ export class AgentSessionWrapper {
   private notifyAgentRunCompleteIfIdle(): void {
     if (!this.agentRunNeedsCompletion || this.isRunning()) return;
     this.agentRunNeedsCompletion = false;
-    if (this.suppressCompletionNotifications) return;
+    // A stopped run did not finish a task, as pi's own status reporting has it: nothing to announce.
+    if (this.suppressCompletionNotifications || this.lastRunAborted) return;
     try {
       this.onAgentRunComplete?.(this.sessionId);
     } catch (error) {
       console.error("[pi-web] completion listener failed:", error instanceof Error ? error.message : error);
     }
+  }
+
+  /** `prompt_done`, saying `aborted` when the prompt's run was stopped rather than finished. */
+  private promptDoneEvent(): AgentEvent {
+    return { type: "prompt_done", ...(this.lastRunAborted ? { aborted: true } : {}) };
   }
 
   beginExtensionBinding(): void {
@@ -858,6 +870,8 @@ export class AgentSessionWrapper {
               this.agentRunNeedsCompletion = true;
               if (preflightSettled) return;
               preflightSettled = true;
+              // A new prompt, not one queued into a run: what an earlier run's Stop said is over.
+              if (!streamingBehavior) this.lastRunAborted = false;
               resolve();
             };
             rejectPreflight = (error) => {
@@ -929,7 +943,7 @@ export class AgentSessionWrapper {
             // the internal callback. This waits for the run, but never acks early.
             acceptPreflight();
             finishPrompt();
-            if (!streamingBehavior) this.emit({ type: "prompt_done" });
+            if (!streamingBehavior) this.emit(this.promptDoneEvent());
           }, (error) => {
             rejectPreflight(error);
             finishPrompt();
@@ -941,7 +955,7 @@ export class AgentSessionWrapper {
                 type: "prompt_error",
                 errorMessage: error instanceof Error ? error.message : String(error),
               });
-              if (!streamingBehavior) this.emit({ type: "prompt_done" });
+              if (!streamingBehavior) this.emit(this.promptDoneEvent());
             }
           }).catch((error) => {
             console.error(
