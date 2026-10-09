@@ -29,6 +29,12 @@ test("a search or deep-link reveal sticks until the session changes; revealed an
   assert.match(chat, /data-revealed=\{conversation && \(revealProcess \|\| !finalAnswerMessage\) \? "" : undefined\}/);
 });
 
+test("a long process opens its agent group from where it ends, and shows when it started", () => {
+  assert.match(chat, /groups\.open\("agent", processEndAt, dividerInProcess\)/);
+  assert.doesNotMatch(chat, /groups\.open\("agent", processAt,/);
+  assert.match(chat, /<GroupHeader [^>]*timestamp=\{processAt\}/);
+});
+
 test("group headers come from one tracker per render; the streaming tail gets one when the agent did not speak last", () => {
   assert.match(chat, /const groups = createGroupTracker\(\);/);
   assert.match(chat, /groups\.open\(author, messageTimestamp, dayLabel !== null \|\| idx === unreadAt\)/);

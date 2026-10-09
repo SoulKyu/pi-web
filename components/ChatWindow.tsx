@@ -1473,12 +1473,17 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                   const dividerInProcess = unreadAt > userIdx && (unreadAt < finalAssistantIdx || (unreadAt === finalAssistantIdx && !finalAnswerMessage));
                   if (dividerInProcess) rendered.push(unreadDivider);
                   const processAt = (messages[userIdx + 1] as AgentMessage & { timestamp?: number } | undefined)?.timestamp;
+                  // The group gap is measured from where the process ends, so a long turn's answer stays under its header.
+                  let processEndAt: number | undefined;
+                  for (let i = finalAssistantIdx; i > userIdx && processEndAt === undefined; i--) {
+                    processEndAt = (messages[i] as AgentMessage & { timestamp?: number }).timestamp;
+                  }
                   if (conversation && !details && !revealProcess && finalAnswerMessage) {
                     // Details off: only the agent's speech acts survive (agent-conversation.css hides the rest).
                     let speaks = false;
                     for (let i = userIdx + 1; i <= finalAssistantIdx && !speaks; i++) speaks = hasSpeechAct(messages[i]);
                     if (speaks) {
-                      const opens = groups.open("agent", processAt, dividerInProcess);
+                      const opens = groups.open("agent", processEndAt, dividerInProcess);
                       rendered.push(
                         <Fragment key={`process-conv-${entryIds[groupStartIdx] ?? groupStartIdx}`}>
                           {opens && <GroupHeader author="agent" agent={agentConversation?.agent} timestamp={processAt} />}
@@ -1489,7 +1494,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
                       );
                     }
                   } else {
-                    if (conversation && groups.open("agent", processAt, dividerInProcess)) {
+                    if (conversation && groups.open("agent", processEndAt, dividerInProcess)) {
                       rendered.push(<GroupHeader key={`process-head-${entryIds[groupStartIdx] ?? groupStartIdx}`} author="agent" agent={agentConversation?.agent} timestamp={processAt} />);
                     }
                     rendered.push(

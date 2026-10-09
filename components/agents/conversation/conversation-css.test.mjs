@@ -30,6 +30,10 @@ test("every details-off hiding rule spares a revealed process", () => {
   for (const line of hiding) assert.match(line, /:not\(\[data-revealed\] \*\)(,| \{ display: none; \})$/, line);
 });
 
+test("the code-block language label uses the UI font in the thread", () => {
+  assert.match(css, /\[data-chat-style="agent"\] \.markdown-code-lang \{ font-family: var\(--font-ui\);/);
+});
+
 test("readability: 72ch prose, 15px body, 1.6 line height, no HUD font in the thread", () => {
   assert.match(css, /max-width: 72ch/);
   assert.match(css, /--chat-font-size-offset: calc\(var\(--chat-content-font-size, 14px\) - 13px\)/);

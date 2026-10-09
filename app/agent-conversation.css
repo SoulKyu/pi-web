@@ -11,6 +11,8 @@
 [data-chat-style="agent"] .markdown-body > :is(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6),
 [data-chat-style="agent"] [data-message-role="user"] { max-width: 72ch; }
 [data-chat-style="agent"] .markdown-body a { text-decoration: underline; text-underline-offset: 2px; }
+/* The code-block language label drops the HUD look (9 px tracked capitals) for the body font. */
+[data-chat-style="agent"] .markdown-code-lang { font-family: var(--font-ui); font-size: 11px; letter-spacing: normal; text-transform: none; }
 
 /* ---- Gutter, groups, headers ---- */
 [data-chat-style="agent"] .conv-item { position: relative; padding-left: 40px; }
