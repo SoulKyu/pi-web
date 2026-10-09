@@ -19,7 +19,7 @@ import { TasksBoard } from "./agents/TasksBoard";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { AgentAvatar } from "./agents/AgentAvatar";
 import { DRAWER_TAB_KEY, readDrawerTab, type DrawerTab } from "@/lib/agents/drawer-tab";
-import { AgentSpaceLeft } from "./agents/AgentSpaceLeft";
+import { AgentSidebar } from "./agents/AgentSidebar";
 import { AgentSpaceRight } from "./agents/AgentSpaceRight";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import { ProjectTrustDialog, type ProjectTrustFailure } from "./ProjectTrustDialog";
@@ -1546,16 +1546,6 @@ export function AppShell() {
     }
   }, []);
 
-  const agentSpaceLeft = activeAgent && agentDetail ? (
-    <AgentSpaceLeft
-      agent={agentDetail}
-      onOpenFile={handleOpenFile}
-      onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
-      onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
-      onDeleted={handleAgentDeleted}
-      onThreadReset={() => void resetAgentThread(agentDetail.name)}
-    />
-  ) : null;
   const agentSpaceRight = activeAgent && agentDetail ? (
     <AgentSpaceRight
       agent={agentDetail}
@@ -1566,6 +1556,21 @@ export function AppShell() {
       contextPercent={contextUsage?.percent ?? null}
       onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
       onOpenFile={handleOpenFile}
+    />
+  ) : null;
+
+  const agentSpaceLeft = activeAgent && agentDetail ? (
+    <AgentSidebar
+      key={agentDetail.name}
+      agent={agentDetail}
+      isMobile={isMobile}
+      status={agentSpaceRight}
+      onOpenFile={handleOpenFile}
+      onOpenTerminal={handleOpenTerminal}
+      onOpenSession={(sessionId) => void handleOpenSession(sessionId)}
+      onProfileSaved={(agent) => { setAgentDetail(agent); reloadAgents(); }}
+      onDeleted={handleAgentDeleted}
+      onThreadReset={() => void resetAgentThread(agentDetail.name)}
     />
   ) : null;
 

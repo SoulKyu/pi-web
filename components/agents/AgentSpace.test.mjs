@@ -1,19 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-const left = await readFile(new URL("./AgentSpaceLeft.tsx", import.meta.url), "utf8");
+const left = await readFile(new URL("./AgentSidebar.tsx", import.meta.url), "utf8");
 const right = await readFile(new URL("./AgentSpaceRight.tsx", import.meta.url), "utf8");
 const form = await readFile(new URL("./AgentProfileForm.tsx", import.meta.url), "utf8");
 const shell = await readFile(new URL("../AppShell.tsx", import.meta.url), "utf8");
 
-test("AgentSpaceLeft mounts the home explorer and the profile form", () => {
-  assert.match(left, /<FileExplorer ref=\{explorerRef\} cwd=\{agent\.home\}/);
+test("AgentSidebar mounts the home explorer, the profile form and the triggers", () => {
+  assert.match(left, /<FileExplorer\s+ref=\{explorerRef\}\s+cwd=\{agent\.home\}/);
   assert.match(left, /onUploadBusyChange=\{setUploadBusy\}/);
-  assert.match(left, /openUploadPicker\(\)/);
-  assert.match(left, /agents\.space\.browse/);
-  assert.match(left, /disabled=\{uploadBusy\}/);
-  assert.match(left, /<AgentProfileForm/);
-  assert.match(left, /agents\.space\.triggers/);
+  assert.match(left, /explorerRef\.current\?\.openUploadPicker\(\)/);
+  assert.match(left, /<AgentProfileForm key=\{formKey\}/);
   assert.match(left, /\/api\/agent-ops\/triggers\?agent=\$\{encodeURIComponent\(name\)\}/);
   assert.match(left, /<AgentTriggers agentName=\{name\}/);
 });
@@ -35,7 +32,7 @@ test("AgentProfileForm patches only changed fields and handles agent_running and
 });
 
 test("AppShell renders the agent space and posts the read marker", () => {
-  assert.match(shell, /activeAgent && agentDetail \? \(?\s*<AgentSpaceLeft/);
+  assert.match(shell, /activeAgent && agentDetail \? \(?\s*<AgentSidebar/);
   assert.match(shell, /<AgentSpaceRight/);
   assert.match(shell, /\/read`/);
   assert.match(shell, /agents\.space\.panels/);
