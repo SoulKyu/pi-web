@@ -15,6 +15,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
   const { t } = useI18n();
   const [retryState, setRetryState] = useState<"idle" | "done" | string>("idle");
   const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const summaryId = useId();
   const data = isAgentEventData(message.details) ? message.details : null;
   if (!data) return null;
@@ -39,14 +40,26 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
   const webhook = data.kind === "webhook";
   const icon = data.kind === "schedule" ? "⏱" : data.kind === "task" ? "▶" : "🪝";
   const label = t(data.kind === "schedule" ? "agents.event.schedule" : data.kind === "task" ? "agents.event.task" : (webhook && data.taskKind === "schedule") ? "agents.event.isolated" : "agents.event.webhook");
+  const failed = webhook && data.status === "failed";
+  if (!open) {
+    return (
+      <button type="button" className="agent-event-line" data-failed={failed || undefined} aria-expanded={false} onClick={() => setOpen(true)}>
+        <span aria-hidden>{icon}</span>
+        <span>{label}</span>
+        <span aria-hidden>·</span>
+        <span className="agent-event-line-title">{data.title}</span>
+        {failed && <><span aria-hidden>·</span><span>{t("agents.event.failed")}</span></>}
+      </button>
+    );
+  }
   return (
     <div className={webhook ? "agent-event agent-event-webhook" : "agent-event"} role="note">
       <div className="agent-event-head">
         <span aria-hidden>{icon}</span> <strong>{label}</strong> · <span>{data.title}</span>
         {data.kind === "task" && data.requestedBy && data.requestedBy !== "user" && <span className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.tasks.requestedBy", { name: data.requestedBy })}</span>}
         {data.kind === "task" && data.handedFrom && <span className="agent-event-reason" style={{ fontSize: 11, color: "var(--text-dim)" }}>{t("agents.tasks.handedFrom", { name: data.handedFrom })}</span>}
-        {webhook && data.status === "failed" && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
-        {webhook && data.status === "failed" && retryState === "idle" && (
+        {failed && <span className="agent-event-failed">{t("agents.event.failed")}</span>}
+        {failed && retryState === "idle" && (
           <button type="button" className="agent-event-link" onClick={() => void requestTaskAction(`/api/agent-ops/tasks/${data.taskId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "retry" }) }).then((failure) => setRetryState(failure ?? "done"))}>{t("agentOps.retry")}</button>
         )}
         {webhook && data.runSessionId && onOpenSession && (
@@ -67,6 +80,7 @@ export function AgentEventCard({ message, onOpenSession, onInject }: { message: 
           {`· ${formatRunUsage(data.usage, { turns: (turns) => t("agents.usage.turns", { turns }), equivalent: t("agents.usage.equivalent") })}`}
         </div>
       )}
+      <button type="button" className="agent-event-toggle" aria-expanded={true} onClick={() => setOpen(false)}>{t("i18n.collapse")}</button>
     </div>
   );
 }

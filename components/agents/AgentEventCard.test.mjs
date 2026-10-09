@@ -34,9 +34,10 @@ test("a clipped card says so and its Inject button says it injects the truncated
   assert.match(whole, /Inject into the conversation/);
 });
 
-test("a user hand-over's task card names the requester; a plain task card does not", () => {
-  assert.match(render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user", handedFrom: "Julien" })), /handed over from Julien/);
-  assert.doesNotMatch(render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user" })), /handed over/);
+test("a task card folds to a system line; the requester hint waits behind the fold", () => {
+  const folded = render(ev.buildTaskEvent({ taskId: "t", title: "x", requestedBy: "user", handedFrom: "Julien" }));
+  assert.match(folded, /class="agent-event-line" aria-expanded="false"/);
+  assert.doesNotMatch(folded, /handed over from Julien/);
 });
 
 test("a delegation summary renders as markdown; a long one folds behind an Expand toggle", () => {
@@ -57,6 +58,21 @@ test("a delegation summary never loads a markdown image", () => {
   assert.match(html, /🖼 pixel/);
 });
 
-test("a webhook summary stays raw text", () => {
-  assert.match(render(ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "completed", summary: "**raw**" })), /\*\*raw\*\*/);
+test("a webhook summary is hidden behind the folded line", () => {
+  const folded = render(ev.buildWebhookEvent({ taskId: "w", triggerId: "g", title: "alert", status: "completed", summary: "**raw**" }));
+  assert.match(folded, /class="agent-event-line"/);
+  assert.doesNotMatch(folded, /\*\*raw\*\*/);
+});
+
+test("schedule, task and webhook events fold to a system line; delegation results stay open", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const card = await readFile(new URL("./AgentEventCard.tsx", import.meta.url), "utf8");
+  assert.match(card, /const \[open, setOpen\] = useState\(false\);/);
+  assert.match(card, /className="agent-event-line"/);
+  assert.match(card, /data-failed=\{failed \|\| undefined\}/);
+  assert.match(card, /aria-expanded=\{false\}/);
+  assert.match(card, /t\("i18n\.collapse"\)/);
+  const delegation = card.indexOf('data.kind === "delegation"');
+  const line = card.indexOf('className="agent-event-line"');
+  assert.ok(delegation >= 0 && line > delegation, "the delegation branch returns before the folded line");
 });
