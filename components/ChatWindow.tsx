@@ -201,6 +201,12 @@ function NewSessionUpdateLink({
   );
 }
 
+const ENTRY_ANCHOR_SELECTOR = ":scope > [data-entry-id], :scope > .conv-item > [data-entry-id]";
+
+function entryAnchors(content: HTMLElement): HTMLElement[] {
+  return Array.from(content.querySelectorAll<HTMLElement>(ENTRY_ANCHOR_SELECTOR));
+}
+
 function hasFinalAssistantAnswer(message: AgentMessage): boolean {
   if (message.role !== "assistant") return false;
   return splitFinalAssistantBlocks(message as AssistantMessage).answerBlocks.some((block) => (
@@ -696,8 +702,8 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
         return;
       }
       const viewportTop = container.getBoundingClientRect().top;
-      const candidates = Array.from(content.children).flatMap((element) => {
-        if (!(element instanceof HTMLElement) || !element.dataset.entryId) return [];
+      const candidates = entryAnchors(content).flatMap((element) => {
+        if (!element.dataset.entryId) return [];
         const rect = element.getBoundingClientRect();
         return [{ entryId: element.dataset.entryId, top: rect.top, bottom: rect.bottom }];
       });
@@ -772,9 +778,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
     const position = pendingScrollRestore;
     const content = messageContentRef.current;
     if (!position || !content || searchTarget) return;
-    const element = Array.from(content.children).find((candidate) => (
-      candidate instanceof HTMLElement && candidate.dataset.entryId === position.anchorEntryId
-    ));
+    const element = entryAnchors(content).find((candidate) => candidate.dataset.entryId === position.anchorEntryId);
     if (element instanceof HTMLElement) {
       scrollToMessage(element, position.anchorOffset);
       setPendingScrollRestore(null);

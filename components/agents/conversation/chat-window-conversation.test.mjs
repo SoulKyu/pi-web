@@ -36,3 +36,8 @@ test("AppShell passes the active agent, its role, the global pause and quiet hou
   assert.match(shell, /agentConversation=\{/);
   assert.match(shell, /quietHours: healthState\?\.health\.quietHours \?\? false/);
 });
+
+test("scroll save and restore find entry anchors inside conversation items", () => {
+  assert.match(chat, /:scope > \.conv-item > \[data-entry-id\]/);
+  assert.doesNotMatch(chat, /Array\.from\(content\.children\)/);
+});
