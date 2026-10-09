@@ -6,7 +6,7 @@ import { getRpcSession, getRunningRpcSessionIds, startRpcSession, type AgentSess
 import { getSessionEntries, invalidateSessionListCache, resolveSessionPath } from "../session-reader";
 import type { SessionEntry } from "../types";
 import { syncAgentMcpOverrides } from "./mcp-access";
-import { AgentRegistryError, getLongTermAgent, setThreadSessionId, writeMemoryMd, type LongTermAgent } from "./registry";
+import { AgentRegistryError, ensureAgentRepo, getLongTermAgent, setThreadSessionId, writeMemoryMd, type LongTermAgent } from "./registry";
 import { AGENT_EVENT_ENTRY_TYPE, isAgentEventData, type AgentEventData } from "./events";
 
 export interface ThreadDeps {
@@ -88,6 +88,7 @@ export async function ensureThreadLocked(agent: LongTermAgent, deps: ThreadDeps 
   if (!current) throw new AgentRegistryError("not_found", `agent not found: ${agent.name}`);
   deps.syncMcp(current.home, current.mcpServers); // fail-closed: a server added globally since the last open is blocked before the session loads the adapter
   try { writeMemoryMd(current.home, current.name); } catch (error) { console.error(`[agents] MEMORY.md for ${current.name}:`, error); } // agents created before MEMORY.md existed; never overwrites
+  try { ensureAgentRepo(current.home, current.name); } catch (error) { console.error(`[agents] git repo for ${current.name}:`, error); } // homes created before git
   if (current.threadSessionId) {
     const path = await deps.resolvePath(current.threadSessionId);
     if (path && existsSync(path)) return { sessionId: current.threadSessionId, path };
