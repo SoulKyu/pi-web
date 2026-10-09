@@ -27,4 +27,6 @@ test("the header states presence in words next to the dot and labels the details
   assert.match(header, /t\(`agents\.presence\.\$\{presence\.key\}`\)/);
   assert.match(header, /<Switch id=\{switchId\} checked=\{details\} onCheckedChange=\{onDetailsChange\}/);
   assert.match(header, /<label htmlFor=\{switchId\} className="conv-header-details"/);
+  // ChatWindow already announces the phase; a live region here would re-read the ticking relative time.
+  assert.doesNotMatch(header, /role="status"|aria-live/);
 });

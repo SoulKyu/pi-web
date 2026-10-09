@@ -22,7 +22,7 @@ export function ConversationHeader({ agent, role, globalPaused, quietHours, deta
       <div className="conv-header-text">
         <div className="conv-header-line">
           <span className="conv-header-name">{agent.name}</span>
-          <span className="conv-header-status" data-tone={presence.tone} role="status">
+          <span className="conv-header-status" data-tone={presence.tone}>
             <span className="conv-header-dot" aria-hidden="true" />
             {status}
           </span>

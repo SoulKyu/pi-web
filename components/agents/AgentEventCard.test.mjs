@@ -91,3 +91,9 @@ test("schedule, task and webhook events fold to a system line; delegation result
   const line = card.indexOf('className="agent-event-line"');
   assert.ok(delegation >= 0 && line > delegation, "the delegation branch returns before the folded line");
 });
+
+test("toggling an event line keeps focus on the control that replaces the clicked one", () => {
+  assert.match(source, /aria-expanded=\{false\} ref=\{toggleRef\} onClick=\{\(\) => toggle\(true\)\}/);
+  assert.match(source, /aria-expanded=\{true\} ref=\{toggleRef\} onClick=\{\(\) => toggle\(false\)\}/);
+  assert.match(source, /if \(!focusToggleRef\.current\) return;\n\s*focusToggleRef\.current = false;\n\s*toggleRef\.current\?\.focus\(\);\n\s*\}, \[open\]\);/);
+});

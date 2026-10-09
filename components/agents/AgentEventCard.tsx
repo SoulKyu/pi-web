@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { isAgentEventData } from "@/lib/agents/events";
 import { formatRunUsage } from "@/lib/agents/format-usage";
@@ -17,6 +17,15 @@ export function AgentEventCard({ message, onOpenSession, onInject, defaultOpen }
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(defaultOpen ?? false);
   const summaryId = useId();
+  // Each toggle unmounts on click: focus follows to the control that replaced it.
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const focusToggleRef = useRef(false);
+  const toggle = (next: boolean) => { focusToggleRef.current = true; setOpen(next); };
+  useEffect(() => {
+    if (!focusToggleRef.current) return;
+    focusToggleRef.current = false;
+    toggleRef.current?.focus();
+  }, [open]);
   const data = isAgentEventData(message.details) ? message.details : null;
   if (!data) return null;
   if (data.kind === "delegation") {
@@ -43,7 +52,7 @@ export function AgentEventCard({ message, onOpenSession, onInject, defaultOpen }
   const failed = webhook && data.status === "failed";
   if (!open) {
     return (
-      <button type="button" className="agent-event-line" data-failed={failed || undefined} aria-expanded={false} onClick={() => setOpen(true)}>
+      <button type="button" className="agent-event-line" data-failed={failed || undefined} aria-expanded={false} ref={toggleRef} onClick={() => toggle(true)}>
         <span aria-hidden>{icon}</span>
         <span>{label}</span>
         <span aria-hidden>·</span>
@@ -80,7 +89,7 @@ export function AgentEventCard({ message, onOpenSession, onInject, defaultOpen }
           {`· ${formatRunUsage(data.usage, { turns: (turns) => t("agents.usage.turns", { turns }), equivalent: t("agents.usage.equivalent") })}`}
         </div>
       )}
-      <button type="button" className="agent-event-toggle" aria-expanded={true} onClick={() => setOpen(false)}>{t("i18n.collapse")}</button>
+      <button type="button" className="agent-event-toggle" aria-expanded={true} ref={toggleRef} onClick={() => toggle(false)}>{t("i18n.collapse")}</button>
     </div>
   );
 }
