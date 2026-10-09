@@ -138,7 +138,7 @@ npm run lint
 Contrôle final que les modifs du fork sont toujours là :
 
 ```bash
-git diff --stat upstream/main "$BR" | tail -1    # comparer au journal (section 8) : ~380 fichiers au 2026-10-08 (après synchro a096af3)
+git diff --stat upstream/main "$BR" | tail -1    # comparer au journal (section 8) : ~508 fichiers au 2026-10-09 (après synchro 5fd1e67)
 git diff --name-only --diff-filter=M upstream/main "$BR" > /tmp/fork-modified.txt
 ```
 
@@ -188,7 +188,7 @@ Dans ce cas : laisser la branche `sync/…` poussée sur `origin`, et rédiger u
 
 ## 7. Modifications propres au fork
 
-> **À tenir à jour.** Référence pour résoudre les conflits. État au 2026-10-08, après la synchro de `76bdc57` : 482 fichiers diffèrent de l'upstream (344 ajoutés, 133 modifiés, 5 supprimés : la plomberie de thème retirée par Tron). La liste exacte se régénère avec `git diff --name-status upstream/main...local`.
+> **À tenir à jour.** Référence pour résoudre les conflits. État au 2026-10-09, après la synchro de `5fd1e67` : 508 fichiers diffèrent de l'upstream (368 ajoutés, 135 modifiés, 5 supprimés : la plomberie de thème retirée par Tron). La liste exacte se régénère avec `git diff --name-status upstream/main...local`.
 
 | Zone | Nature | Règle en cas de conflit |
 | ---- | ------ | ----------------------- |
@@ -209,7 +209,8 @@ Dans ce cas : laisser la branche `sync/…` poussée sur `origin`, et rédiger u
 
 Champs `package.json` propres au fork :
 
-- SDK Pi épinglé en version exacte : `@earendil-works/pi-agent-core`, `pi-ai`, `pi-coding-agent`, `pi-tui` = `1.0.4` (upstream : `1.0.0`).
+- SDK Pi épinglé en version exacte : `@earendil-works/pi-agent-core`, `pi-ai`, `pi-coding-agent`, `pi-tui` = `1.1.0`, **aligné sur l'upstream** depuis la synchro `5fd1e67` (passage 1.0.4 → 1.1.0 autorisé par l'humain le 2026-10-09). Une montée de version upstream reste un arrêt §6.
+- Scripts `dev` / `start` liés à `0.0.0.0` sans variantes `:lan` (`19244cd`), `browserslist` Safari/iOS **16.4** (`eff4745`), dépendances UI Tron (`class-variance-authority`, `clsx`, `cmdk`, `lucide-react`, `radix-ui`, `sonner`, `tailwind-merge`) : fork, à réappliquer sur le `package.json` upstream.
 - `remark-cjk-friendly` : **dépendance ajoutée upstream** (`6d4d6b5`, #1072, emphase markdown à côté de la ponctuation CJK). Le fork ne l'a jamais retirée : la garder lors de la synchro (accepter l'ajout upstream dans `package.json` et le lock).
 - `name`, `version`, `repository` : identiques à l'upstream (`@agegr/pi-web`), à garder tels quels.
 
@@ -222,6 +223,7 @@ Champs `package.json` propres au fork :
 | 2026-10-08 | — (base : `6fcd7d4` Release v0.10.0) | — | État initial : `local` a 231 commits d'avance, upstream 22 de retard à intégrer (jusqu'à `a096af3`) |
 | 2026-10-08 | `a096af3` (22 commits, `6fcd7d4..a096af3`) | 10 : `AGENTS.md`, 4 × `docs/agents/*.md`, `ChatWindow.tsx`, `useDragDrop.ts`, `rpc-manager.ts`, `rpc-manager.test.mjs`, `subagents.test.mjs` (+ doublon `addNotice` dans `useAgentSession.ts`, fusion auto) | Branche `sync/upstream-2026-10-08` (merge `af99d15` + `fix(fork)` `d3def27`), relue par l'humain puis intégrée en fast-forward dans `local` ; `main` = `a096af3`. 3196/3197 tests OK (1 ignoré), tsc et lint OK |
 | 2026-10-08 | `76bdc57` (20 commits, `a096af3..76bdc57`) | 19 : `AGENTS.md`, `globals.css`, `AppShell.tsx` (+ test mobile), `ChatInput.tsx` (+ test), `ChatWindow.tsx`, `FileExplorer.tsx`, `FileViewer.tsx`, `MermaidBlock.tsx`, `SessionSidebar.tsx` (+ test), `SettingsPanel.tsx` (+ test), `useAgentSession.ts`, i18n en/zh-CN/zh-TW, `session-reader.ts` | Sidebar upstream adoptée (décision humaine), apports du fork réappliqués et passée en Tron ; polices #1074 gardées sans plomberie de thème ; `cf3ebfb` (rotation des secrets preview) intégré. Branche `sync/upstream-76bdc57` (merge `3be73b0`) |
+| 2026-10-09 | `5fd1e67` (15 commits, `76bdc57..5fd1e67`, Release v0.11.0) | 12 : `package.json`, `package-lock.json` (theirs + `npm install`), `settings.css`, `ChatInput.tsx`, `ChatWindow.tsx`, `MessageView.tsx`, `SessionSidebar.test.mjs`, 2 × `docs/agents/*.md`, i18n en/zh-CN/zh-TW | SDK passé à 1.1.0 (décision humaine, option A). Titre de la page Général retiré (upstream) avec sa règle Tron et son assertion `tron-settings.test` ; repli des messages `display:false` retiré (upstream) ; 19 clés `fr` traduites, 2 retirées. Branche `sync/upstream-2026-10-09` (merge `64fb20e`), en attente de relecture. 3693/3694 tests OK (1 ignoré), tsc et lint OK |
 
 ---
 
