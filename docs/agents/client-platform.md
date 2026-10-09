@@ -13,7 +13,7 @@
 - `?` opens `components/ShortcutsDialog.tsx` (also Settings › General and the mobile toolbar's keyboard button) unless typed into an input, textarea, select or contenteditable, during IME composition, or while a `[role="dialog"]` is open (`isShortcutsHelpKey`). The table is static (`components/shortcuts-table.ts`): the composer rows follow `useEnterSendMode()` and `useIsMobile()` exactly as `ChatInput`'s `sendShortcut` does (Cmd on macOS). A new shortcut needs a row there. The dialog sits at z-index 1100 above Settings and takes Escape through `openStackedDialog`.
 
 ## Sidebar breakpoint (`components/AppShell.tsx`)
-- The mobile drawer starts closed on entering the mobile breakpoint. Desktop open state is remembered separately, seeded from the URL's initial `sidebarCollapsed` value and updated only by explicit desktop toggles. Returning to desktop restores that preference; mobile drawer toggles, backdrop clicks and toolbar actions must not replace it.
+- The mobile drawer starts closed on entering the mobile breakpoint. Desktop open state is remembered separately, starts collapsed everywhere (`useState(false)`) and is updated only by explicit desktop toggles. Returning to desktop restores that preference; mobile drawer toggles, backdrop clicks and toolbar actions must not replace it.
 
 ## Completion sound
 - `hooks/useAudio.ts` stores the toggle in `localStorage` as `pi-sound-enabled` and reuses one `AudioContext`.
@@ -25,9 +25,9 @@
 ## Push and badges on iOS
 - Web Push and app badges need iOS/iPadOS 16.4+ (installed web app). Every push feature (agent notifications, needs-your-answer, failure pushes) degrades silently when push is unsupported or not configured; the rail dot and the `document.title` `(n)` prefix remain the in-page signal.
 
-## Agent drawer tabs (mobile)
+## Agent sidebar (mobile)
 
-On mobile, the agent view's drawer shows a two-tab header (`role="tablist"`, `agents.drawer.home` / `agents.drawer.status`): tab 1 is `AgentSpaceLeft` (home files, triggers), tab 2 is `AgentSpaceRight` (status, usage, memory to approve, tasks). The rail stays on top. The last tab is kept in `localStorage["pi-agent-drawer-tab"]`; it is read in an effect (never during SSR render) through `readDrawerTab()` in `lib/agents/drawer-tab.ts`, and any value other than `status` falls back to `home`. Desktop keeps the left and right panels. Styles: `.agent-drawer-tabs` / `.agent-drawer-tab` / `.is-active` under `@media (max-width: 640px)`.
+On phones the agent sidebar carries a Status tab (`AgentSpaceRight`: status, usage, memory to approve, tasks) after Files | Triggers | Settings. The last tab is kept in `localStorage["pi-agent-sidebar-tab"]` (`lib/agents/drawer-tab.ts`). Details: long-term-agents.md.
 
 ## Keyboard-open height budget (phones)
 

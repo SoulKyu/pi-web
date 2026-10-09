@@ -181,7 +181,7 @@ lib/
   agents/secrets.ts         listSecretNames / setSecret / deleteSecret / readSecrets: <agentDir>/agents-secrets/<agent>.env (0600), reserved names refused, injected as bash extraEnv
   agents/secret-redaction.ts createSecretRedactionExtension(): exact secret values (8+ chars) in text tool results become [SECRET:<NAME>] (accidental leaks only)
   agents/usage-summary.ts   summarizeAgentUsage(): pure per-agent buckets from run records (local-day today, rolling 7/30 d)
-  agents/drawer-tab.ts      readDrawerTab(): mobile agent drawer tab from localStorage "pi-agent-drawer-tab" (client-safe)
+  agents/drawer-tab.ts      agent sidebar tab (AgentSidebarTab) from localStorage "pi-agent-sidebar-tab" (client-safe)
   agents/prompt-chips.ts    promptChipsOf(): .md names of <home>/prompts as chips (sorted, max 12, client-safe)
   agents/memory.ts          mem0 snapshot reader + forget and save requests
   agents/curation-prompt.ts curationPrompt(): weekly memory curation trigger template
@@ -284,7 +284,6 @@ components/
   agents/PendingRequests.tsx pending strip in a trusted thread: own outgoing requests still queued/running, Cancel; 10 s poll only while the tab is visible
   agents/AgentAvatar.tsx   agent avatar (color + glyph)
   agents/NewAgentDialog.tsx create a long-term agent
-  agents/AgentProfileDialog.tsx edit a long-term agent's profile
   agents/AgentOpsSettings.tsx quiet hours, run cap and memory floor in Settings › Agents
   agents/AgentEventCard.tsx event card in the thread (orange schedule/task, purple webhook)
   agents/QueueTaskDialog.tsx queue a task for an agent's thread
@@ -293,7 +292,8 @@ components/
   agents/AgentMemoryRecent.tsx recent memories with forget
   agents/AgentPermissions.tsx read-only Permissions section of the profile dialog
   agents/AgentSecrets.tsx  Secrets section of the profile dialog: names, add (password input), delete
-  agents/AgentSpaceLeft.tsx / AgentSpaceRight.tsx  agent view panels (home files; profile and status)
+  agents/AgentSidebar.tsx / AgentProfileForm.tsx   agent sidebar (Files, Triggers, Settings tabs; Status on phones) and its inline profile form
+  agents/AgentSpaceRight.tsx  agent status panel (status, usage, memory, tasks)
   agents/dialog-styles.ts  shared styles of the agent dialogs
   PluginsConfig.tsx        Settings › Plugins: installed package plugins
   SkillsConfig.tsx         Settings › Skills: loaded, search, install

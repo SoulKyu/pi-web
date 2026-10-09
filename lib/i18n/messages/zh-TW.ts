@@ -1567,7 +1567,6 @@ export const zhTWLocale: LocalePlugin = {
     "agents.rail.needsInput": "需要你的回答",
     "agents.rail.failed": "失敗",
     "agents.rail.stale": "離線 · 資料截至 {time}",
-
     "agents.loadFailed": "無法載入智慧代理：{error}",
     "agents.error": "操作失敗：{error}",
     "agents.mention.queued": "已為 {name} 排隊",
@@ -1607,14 +1606,12 @@ export const zhTWLocale: LocalePlugin = {
     "agents.tools.read-only": "唯讀",
     "agents.tools.standard": "標準",
     "agents.tools.full": "完整",
-
     "agents.sidebar.tabsLabel": "代理側欄檢視",
     "agents.sidebar.files": "檔案",
     "agents.sidebar.triggers": "觸發器",
     "agents.sidebar.settings": "設定",
     "agents.sidebar.status": "狀態",
     "agents.sidebar.newTask": "任務",
-
     "agents.space.status": "狀態",
     "agents.usage.equivalent": "API 等效",
     "agents.usage.breakdown": "依模型 / 依來源",

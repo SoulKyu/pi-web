@@ -2317,7 +2317,6 @@ span.token.table {
 .agent-jump-unread { align-self: center; margin-right: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-panel); color: var(--text); font-size: 12px; cursor: pointer; pointer-events: auto; box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 16%, transparent); }
 .agent-jump-unread:hover:not(:disabled) { background: var(--bg-hover); }
 .agent-jump-unread:disabled { opacity: 0.6; cursor: progress; }
-
 .agent-sidebar-scroll { overflow-y: auto; padding: 8px; }
 .agent-space-section { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 10px 0 4px; }
 .agent-profile-form { display: grid; gap: 10px; padding: 10px 10px 16px; }

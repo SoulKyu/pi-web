@@ -17,6 +17,8 @@ const sources = {
   bar: await read("./NewSessionContextBar.tsx"),
   worktree: await read("./WorktreeCreateForm.tsx"),
   fonts: await read("./FontSettings.tsx"),
+  agentSidebar: await read("./agents/AgentSidebar.tsx"),
+  profileForm: await read("./agents/AgentProfileForm.tsx"),
 };
 // Only black, white and the Tron hues (cyan 0 216 255, orange 255 154 0, red 255 77 94) as literals.
 const OFF_PALETTE = /#(?!(?:000|000000|fff|ffffff)\b)[0-9a-f]{3,8}\b|rgba?\(\s*(?!0[\s,]+0[\s,]+0\b|0 216 255\b|255 154 0\b|255 77 94\b)\d/i;

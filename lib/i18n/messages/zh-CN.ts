@@ -1567,7 +1567,6 @@ export const zhCNLocale: LocalePlugin = {
     "agents.rail.needsInput": "需要你的回答",
     "agents.rail.failed": "失败",
     "agents.rail.stale": "离线 · 数据截至 {time}",
-
     "agents.loadFailed": "无法加载智能体：{error}",
     "agents.error": "操作失败：{error}",
     "agents.mention.queued": "已为 {name} 排队",
@@ -1607,14 +1606,12 @@ export const zhCNLocale: LocalePlugin = {
     "agents.tools.read-only": "只读",
     "agents.tools.standard": "标准",
     "agents.tools.full": "完整",
-
     "agents.sidebar.tabsLabel": "代理侧栏视图",
     "agents.sidebar.files": "文件",
     "agents.sidebar.triggers": "触发器",
     "agents.sidebar.settings": "设置",
     "agents.sidebar.status": "状态",
     "agents.sidebar.newTask": "任务",
-
     "agents.space.status": "状态",
     "agents.usage.equivalent": "API 等效",
     "agents.usage.breakdown": "按模型 / 按来源",

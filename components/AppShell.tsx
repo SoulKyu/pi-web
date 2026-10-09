@@ -1529,7 +1529,6 @@ export function AppShell() {
   }, [windowTitle]);
 
 
-
   const agentSpaceRight = activeAgent && agentDetail ? (
     <AgentSpaceRight
       agent={agentDetail}

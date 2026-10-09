@@ -1567,7 +1567,6 @@ export const enLocale: LocalePlugin = {
     "agents.rail.needsInput": "needs your answer",
     "agents.rail.failed": "failed",
     "agents.rail.stale": "offline · data from {time}",
-
     "agents.loadFailed": "Could not load agents: {error}",
     "agents.error": "Action failed: {error}",
     "agents.mention.queued": "Queued for {name}",
@@ -1607,14 +1606,12 @@ export const enLocale: LocalePlugin = {
     "agents.tools.read-only": "read-only",
     "agents.tools.standard": "standard",
     "agents.tools.full": "full",
-
     "agents.sidebar.tabsLabel": "Agent sidebar view",
     "agents.sidebar.files": "Files",
     "agents.sidebar.triggers": "Triggers",
     "agents.sidebar.settings": "Settings",
     "agents.sidebar.status": "Status",
     "agents.sidebar.newTask": "Task",
-
     "agents.space.status": "Status",
     "agents.usage.equivalent": "API-equivalent",
     "agents.usage.breakdown": "by model / by origin",
