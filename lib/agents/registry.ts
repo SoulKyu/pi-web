@@ -209,6 +209,11 @@ export function writeMemoryMd(home: string, name: string): void {
   try { writeFileSync(join(home, "MEMORY.md"), header, { flag: "wx", mode: 0o600 }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
 }
 
+/** The prompt chips read and upload `.md` files here; uploads need the folder to exist. Never touches its files. */
+export function ensurePromptsDir(home: string): void {
+  mkdirSync(join(home, "prompts"), { recursive: true, mode: 0o700 });
+}
+
 export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   const name = input.name.trim();
   if (!AGENT_NAME_RE.test(name) || name.length > AGENT_NAME_MAX) throw new AgentRegistryError("invalid", "invalid agent name");
@@ -220,6 +225,7 @@ export function createLongTermAgent(input: CreateAgentInput): LongTermAgent {
   writeSpace({ name, avatar: input.avatar, createdAt: new Date().toISOString() });
   try {
     writeMemoryMd(agentHome(name), name);
+    ensurePromptsDir(agentHome(name));
     writeProfile({ ...input, name }, input.avatar.color); // last: the profile is what lists the agent
   } catch (error) {
     rmSync(agentHome(name), { recursive: true, force: true }); // just created, so at most MEMORY.md: a leftover would block the name for good

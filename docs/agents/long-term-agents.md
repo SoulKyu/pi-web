@@ -214,7 +214,7 @@ Each run of an agent session shows a folded grey card "🧠 n memories recalled 
 - Source: `.md` files directly under `<home>/prompts/` (`lib/agents/prompt-chips.ts`: names without extension, sorted, max 12). `components/agents/PromptChips.tsx` lists the folder once per home (no polling) above the composer of a trusted agent thread; a 404 or an error shows no chips.
 - A click reads the file (`?type=read`, capped at 16 KB client-side) and inserts it with `ChatInputHandle.insertText`. Nothing is sent. URLs are built from the home only.
 - Why not `.pi/prompts`: `prompts` is a trust-requiring project entry (`lib/project-trust.ts`) and a home is never trusted.
-- The "+" chip is always shown; without an `onOpenFolder` handler (the file tree has no reveal API) it only carries the hint `agents.prompts.hint` as its title. The chip bar never writes to the server.
+- The "+" chip is always shown (title: the hint `agents.prompts.hint`). It opens a file picker and uploads `.md` files into `<home>/prompts` through `POST /api/files/…?type=upload` with `conflict=skip` (an existing prompt is never overwritten), then lists the folder again; failures go to the chat notices. Uploads need the folder: `ensurePromptsDir` (`lib/agents/registry.ts`) makes it at agent creation and on `GET /api/agents/[name]` for older agents.
 - The role field of the create and profile dialogs has a folded help (`agents.new.roleHelp`).
 
 ## Day separators (`lib/day-separators.ts`, `components/ChatWindow.tsx`)

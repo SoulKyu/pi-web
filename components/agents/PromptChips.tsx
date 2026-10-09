@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { promptChipsOf } from "@/lib/agents/prompt-chips";
 import { encodeFilePathForApi, joinFilePath } from "@/lib/file-paths";
+import { uploadFiles } from "@/lib/file-upload-client";
 import type { ChatInputHandle } from "../ChatInput";
 
 const MAX_PROMPT_CHARS = 16 * 1024;
@@ -19,15 +20,18 @@ const chipStyle = {
   cursor: "pointer",
 } as const;
 
-export function PromptChips({ home, chatInputRef, onOpenFolder }: {
+export function PromptChips({ home, chatInputRef, onNotice }: {
   home: string;
   chatInputRef: RefObject<ChatInputHandle | null>;
-  onOpenFolder?: (dir: string) => void;
+  onNotice?: (message: string) => void;
 }) {
   const { t } = useI18n();
   const dir = joinFilePath(home, "prompts");
   const [names, setNames] = useState<string[] | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +44,25 @@ export function PromptChips({ home, chatInputRef, onOpenFolder }: {
       .then((data: { entries: Array<{ name: string; isDir: boolean }> }) => { if (!cancelled) setNames(promptChipsOf(data.entries)); })
       .catch((error) => { console.warn("prompt chips", error); if (!cancelled) setNames([]); });
     return () => { cancelled = true; };
-  }, [dir]);
+  }, [dir, reloadKey]);
+
+  // The + chip: .md files go into <home>/prompts (an existing name is skipped, never overwritten).
+  const handleUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []).filter((file) => file.name.toLowerCase().endsWith(".md"));
+    event.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    uploadFiles(dir, files, "skip")
+      .then(({ status, data }) => {
+        const failed = status >= 400 ? [data.error ?? String(status)] : (data.errors ?? []).map((item) => `${item.name}: ${item.error}`);
+        if (failed.length) onNotice?.(t("agents.prompts.uploadFailed", { error: failed.join(", ") }));
+      })
+      .catch((error) => onNotice?.(t("agents.prompts.uploadFailed", { error: error instanceof Error ? error.message : String(error) })))
+      .finally(() => {
+        setUploading(false);
+        setReloadKey((key) => key + 1);
+      });
+  };
 
   const insert = (name: string) => {
     setLoading(name);
@@ -59,10 +81,12 @@ export function PromptChips({ home, chatInputRef, onOpenFolder }: {
       <button
         type="button"
         aria-label={t("agents.prompts.add")}
-        title={onOpenFolder ? t("agents.prompts.add") : t("agents.prompts.hint", { dir })}
-        onClick={onOpenFolder ? () => onOpenFolder(dir) : undefined}
+        title={t("agents.prompts.hint", { dir })}
+        disabled={uploading}
+        onClick={() => uploadInputRef.current?.click()}
         style={chipStyle}
       >+</button>
+      <input ref={uploadInputRef} type="file" accept=".md,text/markdown" multiple hidden onChange={handleUpload} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { cancelQueuedTasksOfAgent } from "@/lib/agent-ops/task-store";
 import { deleteTriggersOfAgent, repinTriggersOfAgent } from "@/lib/agent-ops/trigger-api";
 import { canEditProfile, splitModel, toAgentDetail } from "@/lib/agents/agent-view";
 import { agentDetailExtras } from "@/lib/agents/agent-detail-extras";
-import { deleteLongTermAgent, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
+import { deleteLongTermAgent, ensurePromptsDir, getLongTermAgent, updateLongTermAgent, validateUpdateInput } from "@/lib/agents/registry";
 import { openThread, threadRunning, unreadCount, withThreadLock } from "@/lib/agents/thread";
 import { getRpcSession, isRpcSessionStarting } from "@/lib/rpc-manager";
 import { invalidateSessionListCache, invalidateSessionPathCache, resolveSessionPath } from "@/lib/session-reader";
@@ -17,6 +17,7 @@ const notFound = () => NextResponse.json({ error: "Agent not found" }, { status:
 export async function GET(_req: Request, { params }: Context) {
   const agent = getLongTermAgent((await params).name);
   if (!agent) return notFound();
+  ensurePromptsDir(agent.home);
   return NextResponse.json({ agent: toAgentDetail(agent, threadRunning(agent), await unreadCount(agent), agentDetailExtras(agent)) }, { headers });
 }
 

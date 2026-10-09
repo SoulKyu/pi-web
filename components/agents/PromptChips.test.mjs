@@ -15,6 +15,26 @@ test("renders the + chip with the hint before anything is listed", () => {
   assert.match(html, /title="Add \.md files under \/h\/agent\/prompts to get chips"/);
 });
 
+test("the + chip uploads .md files into <home>/prompts, never overwriting, then lists them again", () => {
+  const source = readFileSync(new URL("./PromptChips.tsx", import.meta.url), "utf8");
+  assert.match(source, /<input ref=\{uploadInputRef\} type="file" accept="\.md,text\/markdown" multiple hidden onChange=\{handleUpload\} \/>/);
+  assert.match(source, /onClick=\{\(\) => uploadInputRef\.current\?\.click\(\)\}/);
+  assert.match(source, /uploadFiles\(dir, files, "skip"\)/);
+  assert.match(source, /\.filter\(\(file\) => file\.name\.toLowerCase\(\)\.endsWith\("\.md"\)\)/);
+  assert.match(source, /setReloadKey\(\(key\) => key \+ 1\)/);
+  assert.match(source, /onNotice\?\.\(t\("agents\.prompts\.uploadFailed"/);
+});
+
+test("the agent detail route makes sure the prompts folder exists", () => {
+  const route = readFileSync(new URL("../../app/api/agents/[name]/route.ts", import.meta.url), "utf8");
+  assert.match(route, /ensurePromptsDir\(agent\.home\);\s*return NextResponse\.json\(\{ agent: toAgentDetail/);
+});
+
+test("ChatWindow wires the chips' upload notices", () => {
+  const chat = readFileSync(new URL("../ChatWindow.tsx", import.meta.url), "utf8");
+  assert.match(chat, /<PromptChips home=\{session\.cwd\} chatInputRef=\{chatInputRef\} onNotice=\{\(message\) => addNotice\(\{ type: "error", message \}\)\} \/>/);
+});
+
 test("reads only below the home and never polls", () => {
   const source = readFileSync(new URL("./PromptChips.tsx", import.meta.url), "utf8");
   assert.match(source, /joinFilePath\(home, "prompts"\)/);

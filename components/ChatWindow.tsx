@@ -1712,7 +1712,7 @@ export function ChatWindow({ session, searchTarget, onSearchTargetHandled, onReq
           </div>
         )}
         {trustedAgentName ? <PendingRequests agentName={trustedAgentName} refreshKey={pendingRefresh} /> : null}
-        {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} /> : null}
+        {session?.agentProfile && session.agentProfile.trust !== "untrusted" && session.cwd && chatInputRef ? <PromptChips home={session.cwd} chatInputRef={chatInputRef} onNotice={(message) => addNotice({ type: "error", message })} /> : null}
         {chatInputElement}
         {handQuote !== null && trustedAgentName && handTargets.length > 0 ? (
           <QueueTaskDialog agentName={(handTargets.find((agent) => !agent.paused) ?? handTargets[0]).name} targetAgents={handTargets} quote={handQuote.text} purpose={handQuote.purpose} deliverTo={trustedAgentName} onClose={() => setHandQuote(null)} onQueued={(name) => { addNotice({ type: "success", message: t("agents.mention.queued", { name }) }); setHandQuote(null); setPendingRefresh((tick) => tick + 1); }} />
