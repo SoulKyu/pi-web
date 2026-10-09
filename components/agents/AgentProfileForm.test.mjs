@@ -19,3 +19,8 @@ test("sub-dialogs are portaled to the body, above the sidebar", () => {
   assert.match(form, /createPortal\(\s*<>\s*\{rotated\[0\] && \(/);
   assert.match(form, /document\.body,\s*\)\}/);
 });
+
+test("the action row and both button groups wrap in a narrow sidebar", () => {
+  const row = form.match(/<div style=\{\{ display: "flex", justifyContent: "space-between"[^}]*\}\}>[\s\S]*?<\/form>/)[0];
+  assert.equal([...row.matchAll(/flexWrap: "wrap"/g)].length, 3);
+});

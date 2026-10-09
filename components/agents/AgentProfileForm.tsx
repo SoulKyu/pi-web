@@ -276,13 +276,13 @@ export function AgentProfileForm({ agent, onSaved, onDeleted, onThreadReset, onD
         {agent.memorySnapshotPath && (
           <button type="button" disabled={busy} onClick={() => setCuration(true)} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text)" }}>{t("agents.profile.scheduleCuration")}</button>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button type="button" disabled={busy} onClick={() => void remove()} style={{ ...buttonStyle, border: "1px solid var(--color-tron-red)", background: "none", color: "var(--color-tron-red)" }}>{t("agents.profile.delete")}</button>
             <button type="button" disabled={busy} onClick={() => void quarantine()} style={{ ...buttonStyle, border: 0, background: "var(--color-tron-red)", color: "var(--accent-contrast)", fontWeight: 600 }}>{t("agents.profile.quarantine")}</button>
             <button type="button" disabled={busy} onClick={onThreadReset} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.reset")}</button>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button type="button" disabled={busy} onClick={onDiscard} style={{ ...buttonStyle, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)" }}>{t("agents.profile.discard")}</button>
             <button type="submit" disabled={busy || !role.trim() || !emoji} style={{ ...buttonStyle, border: 0, background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600 }}>
               {busy ? t("agents.profile.saving") : t("agents.profile.save")}

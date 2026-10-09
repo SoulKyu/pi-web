@@ -43,7 +43,7 @@ test("arrow keys, Home and End move between the tabs", () => {
 
 test("Search opens the file search, switching to Files first; + Task opens the queue dialog above everything", () => {
   assert.match(source, /if \(tab !== "files"\) \{\s*switchTab\("files"\);\s*setFileSearchOpen\(true\);\s*return;\s*\}\s*setFileSearchOpen\(\(open\) => !open\);/);
-  assert.match(source, /createPortal\(<QueueTaskDialog agentName=\{agent\.name\} onClose=\{\(\) => setQueueOpen\(false\)\} onQueued=\{\(\) => setQueueOpen\(false\)\} \/>, document\.body\)/);
+  assert.match(source, /createPortal\(<QueueTaskDialog agentName=\{agent\.name\} onClose=\{\(\) => setQueueOpen\(false\)\} onQueued=\{\(\) => \{ setQueueOpen\(false\); void load\(\); \}\} \/>, document\.body\)/);
 });
 
 test("the files head has terminal, file manager, upload and refresh, and no project picker", () => {
@@ -63,4 +63,34 @@ test("AppShell: the agent sidebar replaces the phone drawer tabs and is keyed by
   assert.match(appShellSource, /<AgentSidebar\s+key=\{agentDetail\.name\}/);
   assert.match(appShellSource, /const sidebarContent = agentSpaceLeft \?\? \(/);
   assert.doesNotMatch(appShellSource, /agent-drawer-tab|drawerTab|DRAWER_TAB_KEY/);
+});
+
+const css = await readFile(new URL("../../app/globals.css", import.meta.url), "utf8");
+
+test("scrolling panels out-rank .sidebar-panel{overflow:hidden}", () => {
+  assert.match(css, /\.sidebar-panel\.agent-sidebar-scroll \{[^}]*overflow-y: auto/);
+  assert.doesNotMatch(css, /^\.agent-sidebar-scroll \{/m);
+});
+
+test("the Status content is mounted only while its tab is shown (one poller)", () => {
+  assert.doesNotMatch(render(true), /STATUS/);
+  assert.match(source, /\{tab === "status" && status\}/);
+});
+
+test("queueing a task refreshes the task list; search toggle controls the real input", () => {
+  assert.match(source, /onQueued=\{\(\) => \{ setQueueOpen\(false\); void load\(\); \}\}/);
+  assert.match(source, /aria-controls="file-search-input"/);
+});
+
+test("trigger and queue dialogs are portaled out of the drawer", async () => {
+  for (const file of ["AgentTriggers.tsx", "AgentSpaceRight.tsx"]) {
+    const src = await readFile(new URL(`./${file}`, import.meta.url), "utf8");
+    assert.match(src, /import \{ createPortal \} from "react-dom"/, file);
+    assert.match(src, /createPortal\(/, file);
+  }
+  const triggers = await readFile(new URL("./AgentTriggers.tsx", import.meta.url), "utf8");
+  assert.match(triggers, /createPortal\(<TriggerDialog/);
+  assert.match(triggers, /createPortal\(<TriggerSecretDialog/);
+  const right = await readFile(new URL("./AgentSpaceRight.tsx", import.meta.url), "utf8");
+  assert.match(right, /createPortal\(<QueueTaskDialog/);
 });

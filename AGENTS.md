@@ -290,8 +290,8 @@ components/
   agents/queue-task-view.ts HandTarget, QUOTE_MAX mirror, clipQuote, reviewExcerpt, queueErrorKey: pure helpers of QueueTaskDialog (client-safe)
   agents/PromptChips.tsx   prompt chips above the agent composer, from <home>/prompts
   agents/AgentMemoryRecent.tsx recent memories with forget
-  agents/AgentPermissions.tsx read-only Permissions section of the profile dialog
-  agents/AgentSecrets.tsx  Secrets section of the profile dialog: names, add (password input), delete
+  agents/AgentPermissions.tsx read-only Permissions section of the Settings tab form
+  agents/AgentSecrets.tsx  Secrets section of the inline profile form: names, add (password input), delete
   agents/AgentSidebar.tsx / AgentProfileForm.tsx   agent sidebar (Files, Triggers, Settings tabs; Status on phones) and its inline profile form
   agents/AgentSpaceRight.tsx  agent status panel (status, usage, memory, tasks)
   agents/dialog-styles.ts  shared styles of the agent dialogs

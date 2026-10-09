@@ -197,6 +197,7 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
           title={t("sidebar.searchFiles")}
           aria-label={t("sidebar.searchFiles")}
           aria-expanded={fileSearchOpen}
+          aria-controls="file-search-input"
           className={`sidebar-search-toggle${fileSearchOpen ? " is-active" : ""}`}
         >
           <SearchIcon size={16} />
@@ -236,11 +237,11 @@ export function AgentSidebar({ agent, isMobile, status, onOpenFile, onOpenTermin
 
       {isMobile && (
         <div id="agent-sidebar-panel-status" role="tabpanel" aria-labelledby="agent-sidebar-tab-status" hidden={tab !== "status"} className="sidebar-panel agent-sidebar-scroll">
-          {status}
+          {tab === "status" && status}
         </div>
       )}
 
-      {queueOpen && typeof document !== "undefined" && createPortal(<QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={() => setQueueOpen(false)} />, document.body)}
+      {queueOpen && typeof document !== "undefined" && createPortal(<QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={() => { setQueueOpen(false); void load(); }} />, document.body)}
     </div>
   );
 }

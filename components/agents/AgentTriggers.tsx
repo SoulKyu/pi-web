@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties, useState } from "react";
+import { createPortal } from "react-dom";
 import type { TriggerLogEntry } from "@/lib/agent-ops/trigger-log";
 import { useI18n } from "@/hooks/useI18n";
 import { formatRelativeTime } from "@/lib/i18n/format";
@@ -231,8 +232,8 @@ export function AgentTriggers({ agentName, triggers, tasks, onOpenSession, onCha
           <TriggerRow key={trigger.id} trigger={trigger} tasks={tasks} onEdit={() => setDialog({ trigger })} onReveal={setReveal} onOpenSession={onOpenSession} onChanged={onChanged} />
         ))}
       </ul>
-      {dialog && <TriggerDialog trigger={dialog.trigger} agentName={agentName} onClose={() => setDialog(null)} onSaved={saved} />}
-      {reveal && <TriggerSecretDialog {...reveal} onClose={() => setReveal(null)} />}
+      {dialog && typeof document !== "undefined" && createPortal(<TriggerDialog trigger={dialog.trigger} agentName={agentName} onClose={() => setDialog(null)} onSaved={saved} />, document.body)}
+      {reveal && typeof document !== "undefined" && createPortal(<TriggerSecretDialog {...reveal} onClose={() => setReveal(null)} />, document.body)}
     </section>
   );
 }

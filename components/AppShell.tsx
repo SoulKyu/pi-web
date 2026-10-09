@@ -1528,7 +1528,6 @@ export function AppShell() {
     return () => observer.disconnect();
   }, [windowTitle]);
 
-
   const agentSpaceRight = activeAgent && agentDetail ? (
     <AgentSpaceRight
       agent={agentDetail}

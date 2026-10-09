@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useI18n } from "@/hooks/useI18n";
 import type { AgentDetail } from "@/lib/agents/agent-view";
 import type { StagedFactView } from "@/lib/agent-ops/memory-review";
@@ -199,7 +200,7 @@ export function AgentSpaceRight({ agent, running, paused, allPaused, contextPerc
       <div className="agent-space-section">{t("agents.space.memory")}</div>
       {error && <div role="alert" style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("agents.error", { error })}</div>}
       <AgentMemoryRecent agentName={agent.name} items={memory.recent} events={memory.events} onOpenSession={onOpenSession} pending={memory.pendingForget} health={memory.health} onChanged={reloadMemory} />
-      {queueOpen && <QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={reloadMemory} />}
+      {queueOpen && typeof document !== "undefined" && createPortal(<QueueTaskDialog agentName={agent.name} onClose={() => setQueueOpen(false)} onQueued={reloadMemory} />, document.body)}
     </div>
   );
 }
