@@ -123,7 +123,6 @@ test("keeps Settings › MCP usable in the 190px phone sidebar", () => {
   assert.deepEqual([...styled].sort(), [...rendered].sort());
 });
 
-test("the agent drawer tab header is styled under 640px", () => {
-  assert.match(cssSource, /@media \(max-width: 640px\) \{\s*\.agent-drawer-tabs/);
-  assert.match(cssSource, /\.agent-drawer-tab\.is-active/);
+test("the agent drawer tabs are gone (the agent sidebar's Status tab replaces them)", () => {
+  assert.doesNotMatch(cssSource, /agent-drawer-tab/);
 });

@@ -18,14 +18,11 @@ test("the Agent pseudo-tab is first, never persisted, and brings the panel back"
   assert.match(source, /if \(!activeAgent\) \{[^}]*setActiveFileTabId\(\(cur\) => cur === AGENT_TAB_ID/);
 });
 
-test("the mobile agent drawer has two tabs and remembers the last one", () => {
-  assert.match(source, /localStorage\.getItem\(DRAWER_TAB_KEY\)/);
-  assert.match(source, /readDrawerTab\(/);
-  assert.match(source, /role="tablist"/);
-  assert.match(source, /role="tab"/);
-  assert.match(source, /aria-selected=\{drawerTab === "home"\}/);
-  assert.match(source, /agents\.drawer\.home/);
-  assert.match(source, /agents\.drawer\.status/);
+test("the agent sidebar's Status tab replaced the mobile drawer tabs", () => {
+  assert.doesNotMatch(source, /DRAWER_TAB_KEY/);
+  assert.doesNotMatch(source, /readDrawerTab\(/);
+  assert.doesNotMatch(source, /agents\.drawer\.(home|status)/);
+  assert.match(source, /const sidebarContent = agentSpaceLeft \?\? \(/);
 });
 
 test("?entry= is handed to the existing search scroll once the agent thread is open", () => {

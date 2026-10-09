@@ -26,11 +26,3 @@ export function saveAgentSidebarTab(tab: AgentSidebarTab): void {
   }
 }
 
-/** @deprecated removed in Task 4 with the phone drawer tabs. */
-export type DrawerTab = "home" | "status";
-/** @deprecated removed in Task 4 with the phone drawer tabs. */
-export const DRAWER_TAB_KEY = "pi-agent-drawer-tab";
-/** @deprecated removed in Task 4 with the phone drawer tabs. */
-export function readDrawerTab(raw: string | null): DrawerTab {
-  return raw === "status" ? "status" : "home";
-}

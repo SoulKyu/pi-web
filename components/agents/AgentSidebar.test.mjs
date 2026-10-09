@@ -57,3 +57,10 @@ test("the tab persists through the agent tab store", () => {
   assert.match(source, /useState<AgentSidebarTab>\(\(\) => loadAgentSidebarTab\(isMobile\)\)/);
   assert.match(source, /saveAgentSidebarTab\(next\);/);
 });
+
+test("AppShell: the agent sidebar replaces the phone drawer tabs and is keyed by agent", async () => {
+  const appShellSource = await readFile(new URL("../AppShell.tsx", import.meta.url), "utf8");
+  assert.match(appShellSource, /<AgentSidebar\s+key=\{agentDetail\.name\}/);
+  assert.match(appShellSource, /const sidebarContent = agentSpaceLeft \?\? \(/);
+  assert.doesNotMatch(appShellSource, /agent-drawer-tab|drawerTab|DRAWER_TAB_KEY/);
+});

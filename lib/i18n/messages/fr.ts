@@ -1567,8 +1567,7 @@ export const frLocale: LocalePlugin = {
     "agents.rail.needsInput": "attend votre réponse",
     "agents.rail.failed": "échec",
     "agents.rail.stale": "hors ligne · données de {time}",
-    "agents.drawer.home": "Accueil et déclencheurs",
-    "agents.drawer.status": "Statut, tâches, mémoire",
+
     "agents.loadFailed": "Impossible de charger les agents : {error}",
     "agents.error": "Échec de l'action : {error}",
     "agents.mention.queued": "Tâche envoyée à {name}",
@@ -1608,16 +1607,14 @@ export const frLocale: LocalePlugin = {
     "agents.tools.read-only": "lecture seule",
     "agents.tools.standard": "standard",
     "agents.tools.full": "complet",
-    "agents.space.home": "Dossier personnel",
-    "agents.space.browse": "Parcourir…",
+
     "agents.sidebar.tabsLabel": "Vue de la barre de l'agent",
     "agents.sidebar.files": "Fichiers",
     "agents.sidebar.triggers": "Déclencheurs",
     "agents.sidebar.settings": "Réglages",
     "agents.sidebar.status": "Statut",
     "agents.sidebar.newTask": "Tâche",
-    "agents.space.triggers": "Déclencheurs",
-    "agents.space.profile": "Paramètres du profil",
+
     "agents.space.status": "Statut",
     "agents.usage.equivalent": "équivalent API",
     "agents.usage.breakdown": "par modèle / par origine",
