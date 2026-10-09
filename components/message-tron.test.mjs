@@ -21,7 +21,7 @@ test("user message is an orange chamfer that keeps its scroll cap", () => {
 });
 
 test("editing a user message turns the chamfer glow on", () => {
-  assert.match(source, /<Chamfer tone="orange" glow=\{isEditing\}/);
+  assert.match(source, /<Bubble tone="orange" glow=\{isEditing\}/);
 });
 
 test("assistant reply has the cyan trace, a HUD model label and a cursor while streaming", () => {

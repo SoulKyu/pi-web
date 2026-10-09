@@ -3,7 +3,7 @@
 import type { PlannotatorConfig } from "@/lib/plannotator";
 import { isExternalContentTool } from "@/lib/agents/untrusted-content";
 import { plannotatorLinks } from "@/lib/plannotator-links";
-import { memo, useState, useRef, useEffect, useMemo } from "react";
+import { memo, useState, useRef, useEffect, useMemo, type CSSProperties, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
@@ -237,6 +237,8 @@ interface Props {
   runningToolIds?: ReadonlySet<string>;
   /** The session's run is active: a tool call without a result may still get one. */
   runActive?: boolean;
+  /** Agent view only: plain left-aligned layout, blocks tagged with data-block/data-tool for agent-conversation.css. */
+  conversation?: boolean;
 }
 
 export function getModelDisplayName(
@@ -318,12 +320,12 @@ function haveSameRelevantRunningTools(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, plannotator, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onAskReview, onInject, runningToolIds, runActive }: Props) {
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, onOpenSession, plannotator, agentName, previewRoot, entryId, searchBlock, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, showTimestamp, prevTimestamp, sessionId, writtenFiles, onCompact, isCompacting, compactError, onHandTo, onAskReview, onInject, runningToolIds, runActive, conversation = false }: Props) {
   if (message.role === "user") {
-    return <UserMessageView message={message as UserMessage} asEventPrompt={asEventPrompt} cwd={cwd} onOpenFile={onOpenFile} entryId={entryId} onFork={onFork} forking={forking} onEditContent={onEditContent} onCancelEdit={onCancelEdit} isEditing={isEditing} />;
+    return <UserMessageView message={message as UserMessage} asEventPrompt={asEventPrompt} cwd={cwd} onOpenFile={onOpenFile} entryId={entryId} onFork={onFork} forking={forking} onEditContent={onEditContent} onCancelEdit={onCancelEdit} isEditing={isEditing} conversation={conversation} />;
   }
   if (message.role === "assistant") {
-    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} onAskReview={onAskReview} runningToolIds={runningToolIds} runActive={runActive} />;
+    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} searchBlock={searchBlock} writtenFiles={writtenFiles} previewRoot={previewRoot} onCompact={onCompact} isCompacting={isCompacting} compactError={compactError} onHandTo={onHandTo} onAskReview={onAskReview} runningToolIds={runningToolIds} runActive={runActive} conversation={conversation} />;
   }
   if (message.role === "toolResult") {
     // Rendered inline under its toolCall — skip standalone rendering if paired
@@ -375,10 +377,22 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     && prev.compactError === next.compactError
     && prev.onHandTo === next.onHandTo
     && prev.onAskReview === next.onAskReview
-    && prev.onInject === next.onInject;
+    && prev.onInject === next.onInject
+    && prev.conversation === next.conversation;
 });
 
-function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt }: {
+/** Conversation mode stand-in for Chamfer: same props, no clipped bubble, no background unless editing. */
+function PlainBubble({ className, innerClassName, innerStyle, children }: { tone?: string; glow?: boolean; cut?: number; className?: string; innerClassName?: string; innerStyle?: CSSProperties; children?: ReactNode }) {
+  const { padding, background, ...rest } = innerStyle ?? {};
+  void padding;
+  return (
+    <div className={className}>
+      <div className={innerClassName} style={{ ...rest, padding: 0, background: background === "var(--user-bg)" ? "transparent" : background }}>{children}</div>
+    </div>
+  );
+}
+
+function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, onEditContent, onCancelEdit, isEditing, asEventPrompt, conversation }: {
   message: UserMessage;
   cwd?: string;
   onOpenFile?: (filePath: string, page?: number) => void;
@@ -389,6 +403,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
   onCancelEdit?: () => void;
   isEditing?: boolean;
   asEventPrompt?: boolean;
+  conversation?: boolean;
 }) {
   const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
@@ -471,14 +486,16 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
     );
   }
 
+  const Bubble = conversation ? PlainBubble : Chamfer;
   return (
     <div
-      style={{ marginBottom: 16, display: "flex", flexDirection: "column", alignItems: "flex-end" }}
+      data-message-role={conversation ? "user" : undefined}
+      style={{ marginBottom: conversation ? 4 : 16, display: "flex", flexDirection: "column", alignItems: conversation ? "stretch" : "flex-end" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: "85%" }}>
-        <Chamfer tone="orange" glow={isEditing} cut={10} className="min-w-0 flex-1" innerClassName="text-text" innerStyle={{
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: conversation ? "100%" : "85%" }}>
+        <Bubble tone="orange" glow={isEditing} cut={10} className="min-w-0 flex-1" innerClassName="text-text" innerStyle={{
           padding: "8px 12px",
           fontSize: "calc(14px + var(--chat-font-size-offset, 0px))",
           lineHeight: 1.6,
@@ -552,7 +569,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
           {content && <SafeMarkdownBody className="markdown-user-message" keepLineBreaks cwd={cwd} onOpenFile={onOpenFile}>{content}</SafeMarkdownBody>}
           </>
           )}
-        </Chamfer>
+        </Bubble>
 
       </div>
 
@@ -713,8 +730,10 @@ function AssistantMessageView({
   onAskReview,
   runningToolIds,
   runActive,
+  conversation,
 }: {
   message: AssistantMessage;
+  conversation?: boolean;
   isStreaming?: boolean;
   toolResults?: Map<string, ToolResultMessage>;
   modelNames?: Record<string, string>;
@@ -874,12 +893,14 @@ function AssistantMessageView({
     <div
       data-message-role="assistant"
       data-entry-id={entryId}
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: conversation ? 4 : 16 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocusInside(true)}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusInside(false); }}
     >
+      {!conversation && (
+      <>
       {/* Model label */}
       <div
         className="font-hud text-[9px] uppercase tracking-[0.16em] text-tron-cyan/80"
@@ -920,11 +941,16 @@ function AssistantMessageView({
           );
         })()}
       </div>
+      </>
+      )}
 
-      <div className="border-l border-tron-cyan pl-3.5 shadow-[-6px_0_10px_-8px_var(--color-tron-cyan)]" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {blockItems.map(({ block, originalIndex }) => (
-          <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} runningToolIds={runningToolIds} runActive={runActive} />
-        ))}
+      <div className={conversation ? undefined : "border-l border-tron-cyan pl-3.5 shadow-[-6px_0_10px_-8px_var(--color-tron-cyan)]"} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {blockItems.map(({ block, originalIndex }) => {
+          const view = <BlockView key={`${entryId ?? "stream"}-${originalIndex}`} block={block} searchTarget={block === searchBlock} toolResults={toolResults} isStreaming={isStreaming} streamingDuration={streamingDurations.get(originalIndex) ?? (block.type === "thinking" ? thinkingDurationFromFile : undefined)} toolCallDurations={toolCallDurations} cwd={cwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} plannotator={plannotator} sessionId={sessionId} entryId={entryId} blockIndex={originalIndex} runningToolIds={runningToolIds} runActive={runActive} />;
+          return conversation ? (
+            <div key={`${entryId ?? "stream"}-${originalIndex}`} data-block={block.type} data-tool={block.type === "toolCall" ? (block as ToolCallContent).toolName : undefined}>{view}</div>
+          ) : view;
+        })}
         {isStreaming && <StreamCursor />}
       </div>
 
@@ -1000,7 +1026,10 @@ function AssistantMessageView({
       <div style={{
         display: "flex", alignItems: "center", gap: 8, marginTop: 4,
       }}>
-        {message.usage && !isStreaming && (
+        {conversation && actionsVisible && !isStreaming && message.provider && (
+          <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{getModelDisplayName(message.provider, message.model, modelNames)}</div>
+        )}
+        {message.usage && !isStreaming && (!conversation || actionsVisible) && (
           <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
             {formatUsage(message.usage)}
           </div>
