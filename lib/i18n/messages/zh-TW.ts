@@ -1774,6 +1774,7 @@ export const zhTWLocale: LocalePlugin = {
     "agents.approve.denied": "已拒絕",
     "agents.approve.pending": "等待你的回覆",
     "agents.tasks.requestedBy": "由 {name} 請求",
+    "agents.tasks.reminder": "⏰ 代理設定的提醒",
     "agents.delegate.label": "委派給",
     "shortcuts.title": "鍵盤快捷鍵",
     "shortcuts.open": "顯示鍵盤快捷鍵",

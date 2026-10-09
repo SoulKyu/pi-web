@@ -4,6 +4,7 @@ import type { AuditPolicy, BlockEvent } from "./agents/audit-types";
 import { createAgentApproveExtension } from "./agents/agent-approve";
 import { createAgentDelegateExtension } from "./agents/agent-delegate";
 import { createAgentNotifyExtension } from "./agents/agent-notify";
+import { createAgentRemindExtension } from "./agents/agent-remind";
 import { createCommandPolicyExtension } from "./agents/command-policy";
 import { createEgressPolicyExtension } from "./agents/egress-policy";
 import { createHomePathPolicyExtension } from "./agents/path-policy";
@@ -40,6 +41,6 @@ export function agentProfileExtensionFactories(options: {
     createSecretRedactionExtension(secrets),
     ...(options.commandDeny?.length ? [createCommandPolicyExtension(options.commandDeny, onBlock)] : []),
     ...(options.webAllowHosts?.length ? [createEgressPolicyExtension(options.webAllowHosts, onBlock)] : []),
-    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName }), createAgentDelegateExtension({ agentName: options.agentName })] : []),
+    ...(options.trustedThread && options.agentName ? [createAgentNotifyExtension({ agentName: options.agentName }), createAgentApproveExtension({ agentName: options.agentName }), createAgentDelegateExtension({ agentName: options.agentName }), createAgentRemindExtension({ agentName: options.agentName })] : []),
   ];
 }

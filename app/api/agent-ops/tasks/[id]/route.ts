@@ -4,6 +4,8 @@ import { kickRunner, recoverOnce } from "@/lib/agent-ops/kick";
 import { cancelQueuedChildren, cancelTask, createTask, getTask, TERMINAL, updateTask, type AgentTask } from "@/lib/agent-ops/task-store";
 import { getTrigger, triggerPinStatus } from "@/lib/agent-ops/trigger-store";
 import { appendTriggerLog } from "@/lib/agent-ops/trigger-log";
+import { reminderAuditLine } from "@/lib/agents/agent-remind";
+import { appendAuditSafe } from "@/lib/agents/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -74,5 +76,7 @@ export async function DELETE(_req: Request, { params }: Context) {
     } catch { /* already terminal: answer with the current status */ }
     if (current.sessionId) await getRpcSession(current.sessionId)?.send({ type: "abort" }).catch(() => {});
   }
-  return NextResponse.json({ task: getTask(id), cancelledChildren: cancelQueuedChildren(id) });
+  const after = getTask(id);
+  if (task.kind === "reminder" && task.agent && !TERMINAL.has(task.status) && after?.status === "cancelled") appendAuditSafe(task.agent, reminderAuditLine(task, "cancel"));
+  return NextResponse.json({ task: after, cancelledChildren: cancelQueuedChildren(id) });
 }

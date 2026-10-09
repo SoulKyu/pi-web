@@ -1,10 +1,11 @@
+import { isWaiting } from "../agents/queue";
 import { appendTriggerLog, type TriggerLogEntry } from "./trigger-log";
 import { budgetRefusalFor } from "./scheduler";
 import { listTasks, updateTask, type AgentTask } from "./task-store";
 
-/** Reason a trigger-origin task must not start: its agent's daily budget is reached. UI-queued tasks are never gated. */
-export function triggerBudgetRefusal(task: Pick<AgentTask, "origin" | "agent" | "profile">, refusalFor: (agent: string) => string | null = (agent) => budgetRefusalFor(agent)): string | null {
-  return task.origin === "trigger" ? refusalFor(task.agent ?? task.profile) : null;
+/** Reason an automatic task (a trigger fire or an agent's own reminder) must not start: its agent's daily budget is reached. UI-queued and delegated tasks are never gated. */
+export function triggerBudgetRefusal(task: Pick<AgentTask, "origin" | "agent" | "profile" | "kind">, refusalFor: (agent: string) => string | null = (agent) => budgetRefusalFor(agent)): string | null {
+  return task.origin === "trigger" || task.kind === "reminder" ? refusalFor(task.agent ?? task.profile) : null;
 }
 
 /** Pure: the queued trigger tasks whose agent is over budget, with the reason. `refusalFor` is asked once per agent. */
@@ -16,7 +17,8 @@ export function overBudgetTriggerTasks(queued: readonly AgentTask[], refusalFor:
   };
   const over: Array<{ task: AgentTask; reason: string }> = [];
   for (const task of queued) {
-    const reason = task.status === "queued" ? triggerBudgetRefusal(task, refusal) : null;
+    // A reminder for a later day must not die on today's budget; it is checked again when it is due.
+    const reason = task.status === "queued" && !(task.kind === "reminder" && isWaiting(task, Date.now())) ? triggerBudgetRefusal(task, refusal) : null;
     if (reason) over.push({ task, reason });
   }
   return over;

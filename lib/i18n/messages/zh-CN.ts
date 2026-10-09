@@ -1774,6 +1774,7 @@ export const zhCNLocale: LocalePlugin = {
     "agents.approve.denied": "已拒绝",
     "agents.approve.pending": "等待你的答复",
     "agents.tasks.requestedBy": "由 {name} 请求",
+    "agents.tasks.reminder": "⏰ 智能体设置的提醒",
     "agents.delegate.label": "委派给",
     "shortcuts.title": "键盘快捷键",
     "shortcuts.open": "显示键盘快捷键",

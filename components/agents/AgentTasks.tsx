@@ -8,6 +8,13 @@ import { formatTaskDuration, requestTaskAction } from "./task-view";
 
 const smallButton: CSSProperties = { padding: "2px 10px", borderRadius: 0, fontSize: 11, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" };
 
+/** A wait past today (a reminder days ahead) shows its date too. */
+const waitTime = (iso: string): string => {
+  const at = new Date(iso);
+  const time = { hour: "2-digit", minute: "2-digit" } as const;
+  return at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString([], time) : at.toLocaleString([], { weekday: "short", day: "numeric", month: "short", ...time });
+};
+
 function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
   task: AgentTaskListItem;
   compact: boolean;
@@ -38,10 +45,11 @@ function TaskRow({ task, onOpenSession, onChanged, onSelectAgent, compact }: {
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, rowGap: 4, fontSize: 12 }}>
         <strong style={{ flex: "1 1 12em", minWidth: 0, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>{task.title}</strong>
         {!compact && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{task.profile}</span>}
+        {task.kind === "reminder" && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agents.tasks.reminder")}</span>}
         {task.requestedBy && task.requestedBy !== "user" && <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agents.tasks.requestedBy", { name: task.requestedBy })}</span>}
         {task.requestedBy && task.requestedBy !== "user" && onSelectAgent && <button type="button" onClick={() => onSelectAgent(task.requestedBy!)} style={{ ...smallButton, flexShrink: 0 }}>{t("agents.board.openAgent", { name: task.requestedBy })}</button>}
         {task.status === "queued" && task.notBefore && (
-          <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agentOps.task.waitsUntil", { time: new Date(task.notBefore).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</span>
+          <span style={{ color: "var(--text-dim)", flexShrink: 0 }}>{t("agentOps.task.waitsUntil", { time: waitTime(task.notBefore) })}</span>
         )}
         <span style={{ marginLeft: "auto", flexShrink: 0, color: task.status === "running" ? "var(--accent)" : "var(--text-muted)" }}>{t(`agentOps.status.${task.status}`)}</span>
         <span style={{ flexShrink: 0, color: "var(--text-dim)" }}>{formatTaskDuration(task)}</span>

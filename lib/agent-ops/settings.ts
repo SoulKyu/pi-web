@@ -5,9 +5,10 @@ import { writePrivateFileAtomicSync } from "../atomic-file";
 import { AGENT_NAME_RE } from "../agents/registry";
 
 export interface QuietHours { from: string; to: string }
-export interface AgentOpsSettings { maxAutomaticRuns: number; minFreeMb: number; paused: boolean; pausedAgents: string[]; quietHours?: QuietHours }
-export const DEFAULT_AGENT_OPS_SETTINGS: AgentOpsSettings = { maxAutomaticRuns: 2, minFreeMb: 1500, paused: false, pausedAgents: [] };
+export interface AgentOpsSettings { maxAutomaticRuns: number; minFreeMb: number; paused: boolean; pausedAgents: string[]; quietHours?: QuietHours; /** Queued `agent_remind` reminders per agent. */ maxPendingReminders: number }
+export const DEFAULT_AGENT_OPS_SETTINGS: AgentOpsSettings = { maxAutomaticRuns: 2, minFreeMb: 1500, paused: false, pausedAgents: [], maxPendingReminders: 5 };
 const MAX_AUTOMATIC_RUNS = 8;
+const MAX_PENDING_REMINDERS = 50;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -20,6 +21,7 @@ export function validateAgentOpsSettingsPatch(body: unknown): { ok: true; patch:
     switch (key) {
       case "maxAutomaticRuns": if (!Number.isInteger(value) || (value as number) < 1 || (value as number) > MAX_AUTOMATIC_RUNS) return { ok: false, error: `maxAutomaticRuns must be an integer from 1 to ${MAX_AUTOMATIC_RUNS}` }; patch.maxAutomaticRuns = value as number; break;
       case "minFreeMb": if (!Number.isInteger(value) || (value as number) < 0) return { ok: false, error: "minFreeMb must be an integer >= 0" }; patch.minFreeMb = value as number; break;
+      case "maxPendingReminders": if (!Number.isInteger(value) || (value as number) < 1 || (value as number) > MAX_PENDING_REMINDERS) return { ok: false, error: `maxPendingReminders must be an integer from 1 to ${MAX_PENDING_REMINDERS}` }; patch.maxPendingReminders = value as number; break;
       case "paused": if (typeof value !== "boolean") return { ok: false, error: "paused must be a boolean" }; patch.paused = value; break;
       case "pausedAgents": if (!Array.isArray(value) || !value.every((n) => typeof n === "string" && AGENT_NAME_RE.test(n))) return { ok: false, error: "pausedAgents must be a list of agent names" }; patch.pausedAgents = [...new Set(value as string[])]; break;
       case "quietHours":

@@ -3,12 +3,14 @@ import type { RunHandle } from "../agent-ops/runner";
 import { getTask, TERMINAL, type AgentTask } from "../agent-ops/task-store";
 import { triggerBudgetRefusal } from "../agent-ops/budget-gate";
 import { isPausedFor, readAgentOpsSettings } from "../agent-ops/settings";
+import { reminderAuditLine, reminderPrompt } from "./agent-remind";
+import { appendAuditSafe, type AuditLine } from "./audit";
 import { AGENT_EVENT_ENTRY_TYPE, buildScheduleEvent, buildTaskEvent, type AgentEventData } from "./events";
 import { getLongTermAgent, type LongTermAgent } from "./registry";
 import { openThread } from "./thread";
 
 export interface ThreadSessionLike extends PromptRunSession { isRunning(): boolean; appendDisplayEntry(customType: string, data: unknown): string }
-export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent; readTask: typeof getTask; budgetRefusal?: (task: AgentTask) => string | null }
+export interface ThreadRunDeps { open: (agent: LongTermAgent) => Promise<{ session: ThreadSessionLike; sessionId: string }>; readAgent: typeof getLongTermAgent; readTask: typeof getTask; budgetRefusal?: (task: AgentTask) => string | null; audit?: (agent: string, line: AuditLine) => void }
 const defaultDeps = (): ThreadRunDeps => ({ open: openThread, readAgent: getLongTermAgent, readTask: getTask });
 
 export function eventOfTask(task: AgentTask): AgentEventData {
@@ -33,8 +35,9 @@ export function waitUntilIdle(session: Pick<ThreadSessionLike, "isRunning" | "on
   });
 }
 
-/** D14: a request from another agent is labelled as such and told where to leave files; the user's own tasks and triggers are sent as written. */
+/** D14: a request from another agent is labelled as such and told where to leave files; a reminder comes back labelled and fenced; the user's own tasks and triggers are sent as written. */
 export function promptOfTask(task: AgentTask): string {
+  if (task.kind === "reminder") return reminderPrompt(task);
   const from = task.requestedBy;
   if (!from || from === "user") return task.prompt;
   return `[Request from agent ${from}, not from the user. Put files meant for ${from} under ${task.cwd}/outbox/${task.id}/ and cite absolute paths in your answer.]\n\n${task.prompt}`;
@@ -53,6 +56,7 @@ export async function startThreadEventRun(task: AgentTask, deps: ThreadRunDeps =
   if (isPausedFor(readAgentOpsSettings(), task.agent)) throw new Error("agent paused");
   const overBudget = (deps.budgetRefusal ?? triggerBudgetRefusal)(task);
   if (overBudget) throw new Error(overBudget);
+  if (task.kind === "reminder") (deps.audit ?? appendAuditSafe)(task.agent, reminderAuditLine(task, "fire"));
   session.appendDisplayEntry(AGENT_EVENT_ENTRY_TYPE, eventOfTask(task));
   const run = watchPromptRun(session, promptOfTask(task));
   return { sessionId, done: run.done, abort: run.abort, usage: run.usage };

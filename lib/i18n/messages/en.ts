@@ -1774,6 +1774,7 @@ export const enLocale: LocalePlugin = {
     "agents.approve.denied": "denied",
     "agents.approve.pending": "waiting for your answer",
     "agents.tasks.requestedBy": "requested by {name}",
+    "agents.tasks.reminder": "⏰ reminder set by the agent",
     "agents.delegate.label": "Delegated to",
     "shortcuts.title": "Keyboard shortcuts",
     "shortcuts.open": "Show keyboard shortcuts",

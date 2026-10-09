@@ -32,8 +32,11 @@ function markVaultValues(text: string, secrets: Record<string, string> = {}): st
 
 const finishMarks = (text: string): string => text.replace(new RegExp(`${MARK_OPEN}([A-Z0-9_]+)${MARK_CLOSE}`, "g"), "[SECRET:$1]");
 
+/** Vault values become `[SECRET:<NAME>]`, then the pattern redaction runs: for text the server stores (audit lines, reminder notes). */
+export const scrubSecrets = (text: string, secrets?: Record<string, string>): string => finishMarks(redactSecrets(markVaultValues(text, secrets)));
+
 /** Vault values are scrubbed BEFORE the pattern redaction and the cap: the cap must not cut a value in two and leave half of it. */
-export const scrubAuditText = (text: string, secrets?: Record<string, string>): string => truncate(finishMarks(redactSecrets(markVaultValues(text, secrets))), ARGS_MAX);
+export const scrubAuditText = (text: string, secrets?: Record<string, string>): string => truncate(scrubSecrets(text, secrets), ARGS_MAX);
 
 export function auditArgs(args: unknown, secrets?: Record<string, string>): string {
   let json: string | undefined;
