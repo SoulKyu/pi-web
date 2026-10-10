@@ -241,7 +241,10 @@ export function AppShell() {
   const agentMountOpenedRef = useRef(false);
   const { agents, agentsHomeDir, paused: allPaused, error: agentsError, lastOkAt: agentsLastOkAt, reload: reloadAgents } = useAgentsPoll();
   const healthState = useHealthPoll();
-  const [railExpanded, setRailExpanded] = useState(loadRailExpanded);
+  // SSR must render collapsed; loadRailExpanded reads localStorage/viewport, which
+  // differs on the client and causes a hydration mismatch if used as initial state.
+  const [railExpanded, setRailExpanded] = useState(false);
+  useEffect(() => setRailExpanded(loadRailExpanded()), []);
   const changeRailExpanded = useCallback((next: boolean) => {
     setRailExpanded(next);
     savePref(RAIL_EXPANDED_KEY, next);
