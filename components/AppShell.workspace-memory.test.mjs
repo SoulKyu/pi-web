@@ -52,6 +52,10 @@ test("workspace restoration remains inside the cross-project branch", () => {
     callbackBody("handleCwdChange", "handleSelectSession"),
     /if \(currentProject !== newProject\) \{[\s\S]*?restoreWorkspaceContext\(newProject, cwd\);[\s\S]*?\}/,
   );
+  assert.match(
+    callbackBody("handleNewSession", "hydrateSelectedSession"),
+    /if \(activeProjectKeyRef\.current !== targetProject\) \{\s*changeFileWorkspace\(activeProjectKeyRef\.current, targetProject\);/,
+  );
 });
 
 test("New restores the draft after session navigation and workspace auto-restore", async (t) => {
@@ -94,6 +98,7 @@ test("New restores the draft after session navigation and workspace auto-restore
         bashRecoveryIdRef: { current: 0 },
         cancelEventStreamGrace() {},
         closeEvents() {},
+        changeFileWorkspace() {},
         isMobile: false,
         activeCwd: cwd,
         activeFileTabId: null,
@@ -213,6 +218,11 @@ test("New in another project adopts it up front and parks the composer's draft",
       context[state] = typeof value === "function" ? value(context[state]) : value;
     };
   }
+  context.changeFileWorkspace = () => {
+    context.fileTabs = [];
+    context.activeFileTabId = null;
+    context.rightPanelOpen = false;
+  };
   vm.runInContext(stripTypeScriptTypes(`${parkedKeyHelper}\n${callbacks}
     globalThis.navigate = { handleCwdChange, handleSelectSession, handleNewSession };
   `), context);
@@ -294,6 +304,11 @@ test("the composer's bar moves the fresh composer's draft and model picks instea
       context[state] = typeof value === "function" ? value(context[state]) : value;
     };
   }
+  context.changeFileWorkspace = () => {
+    context.fileTabs = [];
+    context.activeFileTabId = null;
+    context.rightPanelOpen = false;
+  };
   vm.runInContext(stripTypeScriptTypes(`${parkedKeyHelper}\n${callbacks}
     globalThis.navigate = { handleCwdChange, handleNewSession };
   `), context);
