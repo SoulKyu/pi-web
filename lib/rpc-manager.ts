@@ -2665,9 +2665,9 @@ export async function startRpcSession(
                 }
               : {}),
             appendSystemPrompt: subagentResources.appendSystemPrompt,
-            // The skills binding composes the exact prompt and named skills: keep its factory first.
+            // Upstream's subagent factories (codemode, then the skills binding's exact prompt and named skills) first.
             extensionFactories: [
-              ...(skillsBinding!.loaderOptions.extensionFactories ?? []),
+              ...subagentExtensionFactories,
               ...agentProfileExtensionFactories({
                 cwd: sessionCwd, settings: settingsManager, trustedThread: Boolean(trustedThread && snapshotProfile),
                 agentName: snapshotProfile?.name, longTerm: snapshotProfile?.longTerm === true,

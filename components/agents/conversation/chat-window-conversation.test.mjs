@@ -15,7 +15,7 @@ test("conversation mode only for a trusted agent thread with agent data", () => 
 test("details: persisted, and a revealed process keeps today's group", () => {
   assert.match(chat, /useState\(loadDetails\)/);
   assert.match(chat, /savePref\(DETAILS_KEY, next\)/);
-  assert.match(chat, /if \(conversation && !details && !revealProcess && !stickyReveal && finalAnswerMessage\) \{/);
+  assert.match(chat, /if \(conversation && !details && !revealProcess && !stickyReveal && answered\) \{/);
   assert.match(chat, /hasSpeechAct/);
   assert.match(chat, /data-process/);
 });
@@ -28,7 +28,7 @@ test("a search or deep-link reveal sticks until the session changes; revealed an
   assert.match(chat, /stickyReveal \|\|= entryIds\[processIdx\] === revealedEntryId;/);
   assert.doesNotMatch(chat, /revealProcess \|\|= entryIds\[processIdx\] === revealedEntryId/);
   assert.match(chat, /reveal=\{revealProcess\}/);
-  assert.match(chat, /data-revealed=\{conversation && \(revealProcess \|\| stickyReveal \|\| !finalAnswerMessage\) \? "" : undefined\}/);
+  assert.match(chat, /data-revealed=\{conversation && \(revealProcess \|\| stickyReveal \|\| !answered\) \? "" : undefined\}/);
 });
 
 test("a long process opens its agent group from where it ends, and shows when it started", () => {

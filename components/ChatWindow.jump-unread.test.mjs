@@ -14,7 +14,7 @@ test("the pill shows for a loaded unread start or an unloaded marker with earlie
 test("the jump pages upward with a bound and scrolls to the first unread entry, not the marker", () => {
   assert.match(chat, /const JUMP_UNREAD_MAX_PAGES = 20/);
   assert.match(chat, /pages < JUMP_UNREAD_MAX_PAGES/);
-  assert.match(chat, /loadContext\(session\.id, activeLeafId, before, \{ signal: controller\.signal \}\)/);
+  assert.match(chat, /loadOlderPage\(session\.id, before, \{ signal: controller\.signal \}\)/);
   assert.match(chat, /data-entry-id="\$\{CSS\.escape\(entryIds\[unreadAt\]\)\}"/);
   assert.match(chat, /jumpAbortRef\.current\?\.abort\(\)/);
 });

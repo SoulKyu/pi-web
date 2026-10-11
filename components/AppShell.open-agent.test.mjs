@@ -31,6 +31,6 @@ test("?entry= is handed to the existing search scroll once the agent thread is o
 });
 
 test("the close path checks !activeAgent before closing the agent panel", () => {
-  assert.match(source, /if \(!replacement && !remaining\.length && !fileTabs\.length && !activeAgent\) setRightPanelOpen\(false\)/);
-  assert.match(source, /if \(next\.length === 0 && terminalTabs\.length === 0 && !activeAgent\) setRightPanelOpen\(false\)/);
+  assert.match(source, /if \(!replacement && !remaining\.length && !fileTabs\.length && !agentTabs\.length && !activeAgent\) setRightPanelOpen\(false\)/);
+  assert.match(source, /if \(next\.length === 0 && terminalTabs\.length === 0 && agentTabs\.length === 0 && !activeAgent\) setRightPanelOpen\(false\)/);
 });

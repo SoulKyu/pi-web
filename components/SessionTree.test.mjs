@@ -255,8 +255,8 @@ test("an awaiting row shows the amber dot in the spinner's slot", () => {
   assert.match(html, /aria-label="More actions"/);
   // The unread dot's shape and breath, in warning amber, and still stopped for
   // reduced motion.
-  assert.match(cssRule(".session-tree-awaiting"), /width: 6px;\s*height: 6px;\s*border-radius: 50%;\s*background: #d97706;/);
-  assert.match(cssRule(".session-tree-awaiting::after"), /inset: -3px;\s*border: 1\.4px solid #d97706;[\s\S]*animation: session-tree-status-pulse 1\.6s ease-in-out infinite;/);
+  assert.match(cssRule(".session-tree-awaiting"), /width: 6px;\s*height: 6px;\s*border-radius: 50%;\s*background: var\(--color-tron-orange\);/);
+  assert.match(cssRule(".session-tree-awaiting::after"), /inset: -3px;\s*border: 1\.4px solid var\(--color-tron-orange\);[\s\S]*animation: session-tree-status-pulse 1\.6s ease-in-out infinite;/);
   assert.match(css, /@keyframes session-tree-status-pulse \{\s*50% \{\s*transform: scale\(1\.6\);\s*opacity: 0;\s*\}\s*\}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.session-tree-unread::after \{\s*animation: none;\s*\}\s*\.session-tree-awaiting::after \{\s*animation: none;\s*\}/);
 });
@@ -549,7 +549,7 @@ test("row CSS stays flat, themed and quiet", () => {
   // the errors' red and the delete button's white). No mixes of their own.
   const textColors = new Set([...css.matchAll(/(?:^|[\s;{])color: ([^;]+);/g)].map((match) => match[1]));
   for (const color of textColors) {
-    assert.ok(["var(--text)", "var(--text-muted)", "var(--text-dim)", "var(--accent)", "inherit", "#f87171", "#fff"].includes(color), `unexpected text color ${color}`);
+    assert.ok(["var(--text)", "var(--text-muted)", "var(--text-dim)", "var(--accent)", "inherit", "#f87171", "var(--color-tron-red)", "#fff"].includes(color), `unexpected text color ${color}`);
   }
   assert.doesNotMatch(css, /color: color-mix\(in srgb, var\(--text\)/);
   // Titles are content: the text color at the file tree's 12px (13px on a
@@ -570,14 +570,14 @@ test("row CSS stays flat, themed and quiet", () => {
   // block), clear of its rounded corners, never on a delete confirmation.
   // No row draws a left border (the toolbar row's New cell, further down, does).
   assert.doesNotMatch(css.slice(0, css.indexOf(" * Sidebar shell")), /border-left/);
-  assert.match(cssRule(".session-tree-session.is-selected:not(.is-confirming)::before"), /^\s*content: "";\s*position: absolute;\s*top: 7px;\s*bottom: 7px;\s*left: 0;\s*width: 3px;\s*border-radius: 0 2px 2px 0;\s*background: var\(--accent\);\s*$/);
+  assert.match(cssRule(".session-tree-session.is-selected:not(.is-confirming)::before"), /^\s*content: "";\s*position: absolute;\s*top: 7px;\s*bottom: 7px;\s*left: 0;\s*width: 3px;\s*border-radius: 0;\s*background: var\(--accent\);\s*$/);
   assert.match(cssRule(".session-tree.is-mobile .session-tree-session.is-selected:not(.is-confirming)::before"), /^\s*top: 12px;\s*bottom: 12px;\s*$/);
   // A 14px bar on a 28px row, 20px on a phone's 44px one.
   const barInset = (rule) => Number(cssRule(rule).match(/top: (\d+)px;/)[1]);
   assert.equal(SIDEBAR_ROW_HEIGHTS.desktop.session - 2 * barInset(".session-tree-session.is-selected:not(.is-confirming)::before"), 14);
   assert.equal(SIDEBAR_ROW_HEIGHTS.mobile.session - 2 * barInset(".session-tree.is-mobile .session-tree-session.is-selected:not(.is-confirming)::before"), 20);
   assert.match(cssRule(".session-tree-row"), /position: absolute;/);
-  assert.ok(Number(cssRule(".session-tree-session").match(/border-radius: (\d+)px;/)[1]) <= 8, "the bar starts below the corner's curve");
+  assert.ok(Number(cssRule(".session-tree-session").match(/border-radius: (\d+)(?:px)?;/)[1]) <= 8, "the bar starts below the corner's curve");
   assert.match(cssRule(".session-tree-group"), /right: var\(--session-tree-inset-right\);\s*left: var\(--session-tree-inset-left\);[\s\S]*?border-radius: 0;/);
   assert.match(cssRule(".session-tree-action"), /display: none;/);
   assert.match(cssRule(".session-tree.is-mobile .session-tree-more-action"), /display: flex;/);

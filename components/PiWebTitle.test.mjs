@@ -102,7 +102,7 @@ test("a click shows the versions for a while, a second click takes them back at 
 
 test("the brand's look: the old one's type, in the chevron column, a focus ring, never cut at the sidebar's minimum", async () => {
   const brand = rule(".sidebar-brand");
-  assert.match(brand, /^\s*flex: none;\s*align-self: center;\s*min-width: 6ch;\s*margin: 0 0 0 7px;\s*padding: 2px 4px;\s*border: 0;\s*border-radius: 6px;\s*background: transparent;\s*color: var\(--text\);\s*font-family: var\(--font-mono\);\s*font-size: 15px;\s*font-weight: 700;\s*letter-spacing: -0\.01em;\s*line-height: normal;\s*text-align: left;\s*white-space: nowrap;\s*cursor: default;\s*$/);
+  assert.match(brand, /^\s*flex: none;\s*align-self: center;\s*min-width: 6ch;\s*margin: 0 0 0 7px;\s*padding: 2px 4px;\s*border: 0;\s*border-radius: 0;\s*background: transparent;\s*color: var\(--text\);\s*font-family: var\(--font-mono\);\s*font-size: 15px;\s*font-weight: 700;\s*letter-spacing: -0\.01em;\s*line-height: normal;\s*text-align: left;\s*white-space: nowrap;\s*cursor: default;\s*$/);
   assert.match(rule(".sidebar-brand:focus-visible"), /^\s*outline: 2px solid var\(--accent\);\s*outline-offset: 1px;\s*$/);
   // Its text in the chevron column: the tree's 6px inset and a toggle's 5px.
   const [marginLeft] = brand.match(/margin: 0 0 0 (\d+)px;/).slice(1).map(Number);

@@ -101,5 +101,6 @@ test("closing a tab falls back without a ?? chain swallowed by a ternary", () =>
 test("the subagent card in a tool call opens the side tab with a label", () => {
   assert.match(messageView, /onOpenSubagent\?: \(sessionId: string, label: string\) => void/);
   assert.match(messageView, /onClick=\{\(\) => onOpenSubagent\(subagent\.sessionId, subagent\.description \|\| subagent\.profile\)\}/);
-  assert.doesNotMatch(messageView, /onOpenSession/);
+  // Fork: MessageView keeps onOpenSession for agent event cards; the tool card itself never opens a session.
+  assert.doesNotMatch(messageView.slice(messageView.indexOf("function ToolCallBlock")), /onOpenSession/);
 });

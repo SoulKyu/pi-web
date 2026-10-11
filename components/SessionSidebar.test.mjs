@@ -552,7 +552,7 @@ test("below the sessions the section's header row holds the files' keys in the f
   // its grow factor, far above the toggle's (1), gives it the room the
   // toggle's content leaves before the toggle takes any.
   const keyRule = sidebarRule(".sidebar-files-keys .sidebar-tool-button");
-  assert.match(keyRule, /^\s*flex: 1 1 0;\s*min-width: 18px;\s*max-width: 26px;\s*height: 26px;\s*border-radius: 6px;\s*$/);
+  assert.match(keyRule, /^\s*flex: 1 1 0;\s*min-width: 18px;\s*max-width: 26px;\s*height: 26px;\s*border-radius: 0;\s*$/);
   const [keyMin] = px(keyRule, "min-width");
   const [keyMax] = px(keyRule, "max-width");
   const keysGroup = sidebarRule(".sidebar-files-keys").match(/^\s*display: flex;\s*flex: (\d+) 0 calc\((\d+) \* (\d+)px\);\s*align-items: center;\s*max-width: calc\((\d+) \* (\d+)px\);\s*$/);
